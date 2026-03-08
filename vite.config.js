@@ -8,7 +8,8 @@ export default defineConfig({
     port: 4173,
     allowedHosts: [
       "newbalanpharmacy.com",
-      "localhost"
+      "localhost",
+      "newbalan-frontend"
     ]
   }
 })
