@@ -1,0 +1,268 @@
+.footer {
+    background: var(--gray-900);
+    color: var(--gray-300);
+    padding: 5rem 0 0;
+    margin-top: auto;
+    position: relative;
+}
+
+.footer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
+}
+
+/* Ensure footer is visible on mobile above bottom nav */
+@media (max-width: 768px) {
+    .footer {
+        padding-bottom: 5rem;
+        /* Significantly increased from 2rem */
+        /* Extra padding for mobile */
+        margin-bottom: 0;
+    }
+}
+
+.footer-grid {
+    display: grid;
+    gap: 3rem;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    padding-bottom: 4rem;
+}
+
+@media (max-width: 480px) {
+    .footer-grid {
+        grid-template-columns: 1fr;
+        /* Force single column on very small screens */
+        text-align: center;
+    }
+
+    .footer-brand,
+    .footer-links ul,
+    .footer-contact,
+    .footer-timing {
+        align-items: center;
+    }
+}
+
+@media (min-width: 1921px) {
+    .footer-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 5rem;
+    }
+}
+
+@media (min-width: 2560px) {
+    .footer-grid {
+        max-width: 2000px;
+        margin: 0 auto;
+    }
+}
+
+.footer-brand .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.footer-logo-img {
+    height: 60px;
+    width: auto;
+    object-fit: contain;
+    background: white;
+    padding: 8px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+@media (min-width: 768px) {
+    .footer-logo-img {
+        height: 75px;
+    }
+}
+
+.footer-brand .logo-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.footer-brand .logo-main {
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 800;
+    color: #4da3ff;
+    line-height: 1;
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+}
+
+.footer-brand .logo-sub {
+    font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+    font-weight: 600;
+    color: #44cf6c;
+    margin-top: 3px;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.01em;
+}
+
+.brand-tagline {
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.whatsapp-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: #25d366;
+    color: var(--white);
+    padding: 0.8rem 1.5rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    transition: transform 0.2s ease;
+}
+
+.whatsapp-btn:hover {
+    transform: scale(1.05);
+}
+
+.footer h3 {
+    color: var(--white);
+    font-size: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.footer-links ul {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.footer-links a:hover {
+    color: var(--accent);
+    padding-left: 5px;
+}
+
+.footer-contact,
+.footer-timing {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.contact-item,
+.timing-item {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.contact-icon,
+.timing-icon {
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+.order-limit-info {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    padding: 0.75rem 1rem;
+    background: rgba(231, 243, 255, 0.05);
+    /* Slightly dimmer */
+    border-left: none;
+    /* Removed the "left white/light color" accent */
+    color: var(--accent);
+    border-radius: var(--radius-sm);
+}
+
+.footer-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 2.5rem 0;
+    text-align: center;
+    font-size: 0.9rem;
+    position: relative;
+    z-index: 10;
+}
+
+.footer-legal-links {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.footer-legal-links a {
+    color: var(--gray-300);
+    text-decoration: none;
+    transition: color 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.footer-legal-links a:hover {
+    color: var(--accent);
+}
+
+.footer-legal-links .separator {
+    color: var(--gray-500);
+}
+
+.footer-bottom p {
+    margin: 0;
+    padding: 0 1rem;
+    line-height: 1.6;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+@media (max-width: 768px) {
+    .footer-grid {
+        gap: 2.5rem;
+    }
+
+    .footer-bottom {
+        padding: 2.5rem 0 4rem 0;
+        font-size: 0.85rem;
+        text-align: center;
+    }
+
+    .footer-bottom p {
+        padding: 0 1.5rem;
+        line-height: 1.8;
+    }
+}
+
+/* Additional mobile optimizations for very small screens */
+@media (max-width: 480px) {
+    .footer {
+        padding: 3rem 0 0;
+    }
+
+    .footer-bottom {
+        padding: 1.5rem 0;
+        font-size: 0.8rem;
+    }
+
+    .footer-bottom p {
+        padding: 0 1rem;
+        line-height: 1.8;
+        max-width: 100%;
+    }
+}
+
+/* Ensure footer is visible on all mobile devices */
+@media (max-width: 375px) {
+    .footer-bottom {
+        padding: 1.25rem 0;
+        font-size: 0.75rem;
+    }
+
+    .footer-bottom p {
+        padding: 0 0.75rem;
+    }
+}

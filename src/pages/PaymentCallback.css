@@ -1,0 +1,239 @@
+.payment-callback-page {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: var(--gray-50);
+}
+
+.callback-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 3rem 2.5rem;
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+}
+
+.callback-card h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin: 1.5rem 0 0.5rem;
+}
+
+.callback-card p {
+    color: var(--gray-600);
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+.callback-loader {
+    color: var(--primary);
+}
+
+.poll-hint {
+    font-size: 0.85rem !important;
+    color: var(--gray-400) !important;
+    margin-top: -0.5rem;
+}
+
+/* Icon circles */
+.callback-icon-circle {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.success-circle {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.failed-circle {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.processing-circle {
+    background: #fffbeb;
+    color: #d97706;
+}
+
+/* Details section */
+.callback-details {
+    background: var(--gray-50);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--gray-200);
+    text-align: left;
+}
+
+.callback-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    font-size: 0.95rem;
+}
+
+.callback-row:not(:last-child) {
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.callback-row span:first-child {
+    color: var(--gray-500);
+    font-weight: 500;
+}
+
+.callback-row .mono {
+    font-family: monospace;
+    font-size: 0.9rem;
+    color: var(--gray-900);
+    font-weight: 600;
+}
+
+.callback-row .amount-paid {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #059669;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.status-success {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+/* Action buttons */
+.callback-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.callback-actions .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.callback-actions .btn-primary {
+    background: var(--primary);
+    color: var(--white);
+}
+
+.callback-actions .btn-primary:hover {
+    opacity: 0.9;
+}
+
+.callback-actions .btn-outline {
+    background: var(--white);
+    color: var(--primary);
+    border: 2px solid var(--primary);
+}
+
+.callback-actions .btn-outline:hover {
+    background: var(--primary-light);
+}
+
+/* Support section */
+.callback-support {
+    margin-top: 1.75rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--gray-200);
+}
+
+.callback-support p {
+    font-size: 0.9rem;
+    color: var(--gray-500);
+    margin-bottom: 0.75rem;
+}
+
+.support-links {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.support-link {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    background: var(--gray-100);
+    border-radius: var(--radius);
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.support-link:hover {
+    background: var(--gray-200);
+}
+
+.support-whatsapp {
+    color: #25d366;
+}
+
+.support-whatsapp:hover {
+    background: #ecfdf5;
+}
+
+/* Note text */
+.callback-note {
+    font-size: 0.8rem !important;
+    color: var(--gray-400) !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 0 !important;
+    line-height: 1.5 !important;
+}
+
+/* Spinner */
+.spin-icon {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 480px) {
+    .callback-card {
+        padding: 2rem 1.5rem;
+    }
+
+    .callback-card h2 {
+        font-size: 1.5rem;
+    }
+
+    .support-links {
+        flex-direction: column;
+        align-items: center;
+    }
+}

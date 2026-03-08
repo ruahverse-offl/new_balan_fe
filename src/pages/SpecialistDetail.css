@@ -1,0 +1,665 @@
+.specialist-detail-page {
+    min-height: 100vh;
+    background: var(--gray-50);
+}
+
+.specialist-header {
+    position: relative;
+    padding-top: calc(var(--nav-height) + 1rem);
+    min-height: calc(380px + var(--nav-height));
+}
+
+.back-link {
+    position: absolute;
+    top: calc(var(--nav-height) + 1.5rem);
+    left: 2rem;
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--white);
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    text-decoration: none;
+    z-index: 10;
+}
+
+.back-link:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateX(-5px);
+}
+
+.specialist-detail-section {
+    padding: 3rem 0;
+}
+
+.specialist-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 3rem;
+    align-items: start;
+}
+
+.specialist-profile-card {
+    background: var(--white);
+    padding: 2.5rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    text-align: center;
+    position: sticky;
+    top: 100px;
+}
+
+.profile-avatar-large {
+    position: relative;
+    margin: 0 auto 1.5rem;
+    display: inline-block;
+}
+
+.avatar-circle-large {
+    width: 120px;
+    height: 120px;
+    background: var(--primary-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary);
+    box-shadow: var(--shadow-md);
+    border: 4px solid var(--white);
+}
+
+.online-dot-large {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 4px solid var(--white);
+}
+
+.online-dot-large.active {
+    background: #10b981;
+}
+
+.online-dot-large.inactive {
+    background: #94a3b8;
+}
+
+.status-badge-large {
+    padding: 0.5rem 1.25rem;
+    border-radius: var(--radius-full);
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 1.5rem;
+    display: inline-block;
+}
+
+.status-badge-large.online {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.status-badge-large.offline {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.profile-info h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+    color: var(--gray-900);
+}
+
+.specialty-badge-large {
+    background: #f0f9ff;
+    color: #0369a1;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    font-weight: 600;
+    border: 1px solid #bae6fd;
+    display: inline-block;
+    margin-bottom: 0.75rem;
+}
+
+.sub-specialty {
+    color: var(--gray-600);
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.qualification-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--radius);
+    margin-top: 1.5rem;
+}
+
+.qual-icon {
+    color: var(--primary);
+}
+
+.qualification-info span {
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.specialist-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.info-section {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.info-section h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1.25rem;
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.about-text {
+    color: var(--gray-700);
+    line-height: 1.8;
+    font-size: 1.05rem;
+}
+
+.timing-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.timing-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: var(--gray-50);
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+}
+
+.timing-icon {
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+.timing-card div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.timing-label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--gray-500);
+    letter-spacing: 0.5px;
+}
+
+.timing-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--gray-900);
+}
+
+.experience-text {
+    color: var(--gray-700);
+    line-height: 1.8;
+    font-size: 1.05rem;
+}
+
+.education-list {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.education-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    color: var(--gray-700);
+    line-height: 1.6;
+}
+
+.education-list li svg {
+    color: var(--secondary);
+    margin-top: 0.25rem;
+    flex-shrink: 0;
+}
+
+.specializations-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.specialization-tag {
+    background: var(--primary-light);
+    color: var(--primary);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: 1px solid var(--primary);
+}
+
+.contact-info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--radius);
+    color: var(--gray-700);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: 1px solid var(--gray-200);
+}
+
+.contact-item:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    color: var(--primary);
+    transform: translateX(5px);
+}
+
+.contact-item svg {
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.btn-book-appointment {
+    flex: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.btn-outline {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.not-found {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.not-found h2 {
+    margin-bottom: 1rem;
+    color: var(--gray-900);
+}
+
+.not-found p {
+    color: var(--gray-600);
+    margin-bottom: 2rem;
+}
+
+@media (max-width: 1024px) {
+    .specialist-detail-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .specialist-profile-card {
+        position: static;
+    }
+}
+
+/* Booking Modal */
+.booking-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 1rem;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.booking-modal {
+    background: var(--white);
+    border-radius: 16px;
+    max-width: 440px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+}
+
+.booking-modal-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: var(--gray-100);
+    border: none;
+    cursor: pointer;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-600);
+    transition: all 0.2s;
+    z-index: 10;
+}
+
+.booking-modal-close:hover {
+    background: var(--gray-200);
+    color: var(--gray-900);
+}
+
+.booking-modal-header {
+    padding: 1.25rem 1.5rem 1rem;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.booking-modal-doctor {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.booking-modal-avatar {
+    width: 42px;
+    height: 42px;
+    background: var(--primary-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+.booking-modal-doctor h3 {
+    font-size: 1.1rem;
+    color: var(--gray-900);
+    margin-bottom: 0.15rem;
+}
+
+.booking-modal-doctor p {
+    font-size: 0.85rem;
+    color: var(--gray-500);
+}
+
+.booking-form {
+    padding: 1rem 1.5rem 1.5rem;
+}
+
+.booking-form-group {
+    margin-bottom: 0.875rem;
+}
+
+.booking-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.booking-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 0.35rem;
+}
+
+.booking-label .required {
+    color: #ef4444;
+}
+
+.booking-input {
+    width: 100%;
+    padding: 0.6rem 0.85rem;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: var(--gray-900);
+    background: var(--white);
+    transition: all 0.2s;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.booking-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.1);
+}
+
+.booking-input::placeholder {
+    color: var(--gray-400);
+}
+
+.booking-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+}
+
+.booking-textarea {
+    resize: vertical;
+    min-height: 56px;
+}
+
+.booking-submit-btn {
+    width: 100%;
+    padding: 0.75rem 1.25rem;
+    background: var(--primary);
+    color: var(--white);
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+}
+
+.booking-submit-btn:hover:not(:disabled) {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0, 86, 179, 0.3);
+}
+
+.booking-submit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.booking-modal-footer {
+    text-align: center;
+    margin-top: 0.75rem;
+    color: var(--gray-500);
+    font-size: 0.8rem;
+}
+
+.booking-modal-footer a {
+    color: var(--primary);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.booking-modal-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Booking Success */
+.booking-success {
+    text-align: center;
+    padding: 2rem 1.5rem;
+}
+
+.booking-success-icon {
+    color: #22c55e;
+    margin-bottom: 0.75rem;
+}
+
+.booking-success h3 {
+    font-size: 1.25rem;
+    color: var(--gray-900);
+    margin-bottom: 0.5rem;
+}
+
+.booking-success p {
+    color: var(--gray-600);
+    line-height: 1.5;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    max-width: 340px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.booking-success-call {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--primary);
+    font-weight: 600;
+    text-decoration: none;
+    padding: 0.75rem 1.5rem;
+    background: var(--primary-light);
+    border-radius: 10px;
+    transition: all 0.2s;
+}
+
+.booking-success-call:hover {
+    background: var(--primary);
+    color: var(--white);
+}
+
+@media (max-width: 768px) {
+    .specialist-header {
+        padding-top: calc(var(--nav-height) + 0.5rem);
+        min-height: calc(300px + var(--nav-height));
+    }
+
+    .back-link {
+        position: static;
+        margin-bottom: 1rem;
+        display: inline-flex;
+        top: auto;
+        left: auto;
+    }
+
+    .specialist-header .container {
+        padding-top: 0;
+    }
+
+    .timing-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .btn-book-appointment,
+    .btn-outline {
+        width: 100%;
+    }
+
+    .specialist-profile-card {
+        padding: 2rem 1.5rem;
+    }
+
+    .info-section {
+        padding: 1.5rem;
+    }
+
+    .booking-modal {
+        margin: 0.5rem;
+        max-height: 90vh;
+        border-radius: 14px;
+    }
+
+    .booking-modal-header {
+        padding: 1rem 1.25rem 0.75rem;
+    }
+
+    .booking-form {
+        padding: 0.875rem 1.25rem 1.25rem;
+    }
+
+    .booking-form-row {
+        grid-template-columns: 1fr;
+    }
+}

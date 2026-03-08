@@ -1,0 +1,86 @@
+.coupon-marquee-container {
+    width: 100%;
+    background: linear-gradient(90deg, #0056b3 0%, #0088ff 100%);
+    color: white;
+    padding: 0.5rem 0;
+    overflow: hidden;
+    position: fixed;
+    top: var(--nav-height);
+    left: 0;
+    z-index: 999;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.05);
+}
+
+.marquee-content {
+    display: flex;
+    white-space: nowrap;
+    animation: marquee 30s linear infinite;
+    /* Increased duration for smoother read */
+    gap: 4rem;
+    padding-left: 2.5rem;
+    align-items: center;
+}
+
+.marquee-item {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    font-size: clamp(0.75rem, 2vw, 0.95rem);
+    /* Dynamic scaling */
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    font-family: 'Inter', sans-serif;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.single-coupon-text {
+    white-space: nowrap;
+}
+
+.highlight-code {
+    font-weight: 800;
+    color: #fff;
+    padding: 0.15rem 0.6rem;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    margin: 0 0.3rem;
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: 0.05em;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.coupon-separator {
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 300;
+    margin: 0 0.5rem;
+}
+
+@keyframes marquee {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        transform: translateX(-33.33%);
+    }
+}
+
+@media (max-width: 768px) {
+    .coupon-marquee-container {
+        padding: 0.4rem 0;
+    }
+
+    .marquee-content {
+        gap: 3rem;
+    }
+
+    .marquee-item {
+        gap: 0.75rem;
+        font-size: 0.85rem;
+    }
+
+    .coupon-code-wrapper {
+        padding: 0.15rem 0.5rem;
+        font-size: 0.75rem;
+    }
+}

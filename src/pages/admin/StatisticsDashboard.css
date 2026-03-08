@@ -1,0 +1,241 @@
+/* ============================================
+   Statistics Dashboard — Pro-level styling
+   ============================================ */
+
+/* Wrapper */
+.dashboard-view {
+    --stat-card-radius: 12px;
+    --stat-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    --stat-card-shadow-hover: 0 12px 24px -8px rgba(0, 0, 0, 0.12), 0 4px 8px -4px rgba(0, 0, 0, 0.06);
+    --chart-card-radius: 14px;
+    --chart-header-border: 1px solid var(--admin-border);
+}
+
+/* —— Sub-tab bar (Finance | Inventory | Sales) —— */
+.statistics-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 2rem;
+    background: var(--white);
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid var(--admin-border);
+    box-shadow: var(--stat-card-shadow);
+    width: fit-content;
+}
+
+.statistics-tab {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--admin-text-muted);
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.statistics-tab:hover {
+    color: var(--admin-text-main);
+    background: var(--admin-bg);
+}
+
+.statistics-tab.active {
+    color: var(--white);
+    background: var(--primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* —— Dashboard container (shared by Finance/Inventory/Sales) —— */
+.dashboard-container {
+    animation: statDashboardFade 0.25s ease-out;
+}
+
+@keyframes statDashboardFade {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* —— KPI / Stat cards —— */
+.dashboard-container .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.dashboard-container .stat-card {
+    background: var(--white);
+    padding: 1.5rem;
+    border-radius: var(--stat-card-radius);
+    border: 1px solid var(--admin-border);
+    box-shadow: var(--stat-card-shadow);
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.dashboard-container .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--stat-card-shadow-hover);
+    border-color: rgba(99, 102, 241, 0.25);
+}
+
+.dashboard-container .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.dashboard-container .stat-icon.blue {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    color: #2563eb;
+}
+
+.dashboard-container .stat-icon.green {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    color: #16a34a;
+}
+
+.dashboard-container .stat-icon.orange {
+    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+    color: #ea580c;
+}
+
+.dashboard-container .stat-icon.purple {
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+    color: #6d28d9;
+}
+
+.dashboard-container .stat-card h4 {
+    color: var(--admin-text-muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0 0 0.5rem 0;
+    line-height: 1.3;
+}
+
+.dashboard-container .stat-card .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--admin-text-main);
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.dashboard-container .stat-card .stat-value.subdued {
+    font-size: 1.25rem;
+    color: var(--admin-text-muted);
+}
+
+/* —— Chart cards —— */
+.dashboard-container .dashboard-grid-activity {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 1.5rem;
+}
+
+.dashboard-container .admin-table-card {
+    border-radius: var(--chart-card-radius);
+    border: 1px solid var(--admin-border);
+    box-shadow: var(--stat-card-shadow);
+    padding: 1.5rem;
+    margin-bottom: 0;
+    transition: box-shadow 0.2s ease;
+}
+
+.dashboard-container .admin-table-card:hover {
+    box-shadow: var(--stat-card-shadow-hover);
+}
+
+.dashboard-container .admin-table-card > div:first-child,
+.dashboard-container .chart-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: var(--chart-header-border);
+}
+
+.dashboard-container .admin-table-card h3,
+.dashboard-container .chart-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--admin-text-main);
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+/* Alerts block inside dashboard */
+.dashboard-container .admin-table-card .alert-item {
+    padding: 1rem 1.25rem;
+    border-radius: 10px;
+    border-left: 4px solid;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+}
+
+.dashboard-container .admin-table-card .alert-item.critical {
+    background: #fef2f2;
+    border-left-color: #dc2626;
+}
+
+.dashboard-container .admin-table-card .alert-item.warning {
+    background: #fffbeb;
+    border-left-color: #d97706;
+}
+
+/* Loading / empty state */
+.dashboard-container .dashboard-loading {
+    padding: 3rem 2rem;
+    text-align: center;
+    color: var(--admin-text-muted);
+    font-size: 0.9375rem;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .dashboard-container .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .dashboard-container .dashboard-grid-activity {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .statistics-tabs {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .statistics-tab {
+        flex: 1;
+        min-width: 0;
+        text-align: center;
+    }
+
+    .dashboard-container .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-container .stat-card {
+        padding: 1.25rem;
+    }
+
+    .dashboard-container .stat-card .stat-value {
+        font-size: 1.35rem;
+    }
+}

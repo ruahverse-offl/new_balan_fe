@@ -1,0 +1,947 @@
+.clinic-page {
+    background: var(--gray-50);
+}
+
+/* Hero enhancements */
+.clinic-hero {
+    position: relative;
+}
+
+.clinic-hero-pattern {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.06) 0%, transparent 50%),
+                     radial-gradient(circle at 80% 80%, rgba(255,255,255,0.04) 0%, transparent 40%);
+    pointer-events: none;
+}
+
+.clinic-hero-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    padding: 0.4rem 1rem;
+    border-radius: 2rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 1rem;
+    backdrop-filter: blur(8px);
+}
+
+/* Features strip */
+.clinic-features-strip {
+    background: var(--white);
+    padding: 1.5rem 0;
+    border-bottom: 1px solid var(--gray-100);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.clinic-features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.clinic-feature-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.clinic-feature-icon {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--primary-light) 0%, #e0f2fe 100%);
+    color: var(--primary);
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+/* Polyclinic CTA */
+.clinic-polyclinic-cta {
+    padding: 2rem 0;
+}
+
+.clinic-polyclinic-card {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.25rem 1.5rem;
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    border: 1px solid #bbf7d0;
+    border-radius: 16px;
+    text-decoration: none;
+    color: inherit;
+    max-width: 560px;
+    margin: 0 auto;
+    transition: all 0.3s ease;
+}
+
+.clinic-polyclinic-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(34, 197, 94, 0.12);
+    border-color: #86efac;
+}
+
+.clinic-polyclinic-icon {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #22c55e;
+    color: white;
+    border-radius: 14px;
+    flex-shrink: 0;
+}
+
+.clinic-polyclinic-content h3 {
+    font-size: 1.15rem;
+    margin: 0 0 0.35rem 0;
+    color: var(--gray-900);
+    font-weight: 700;
+}
+
+.clinic-polyclinic-content p {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    margin: 0;
+    line-height: 1.4;
+}
+
+.clinic-polyclinic-arrow {
+    margin-left: auto;
+    color: var(--gray-400);
+    transition: transform 0.2s;
+}
+
+.clinic-polyclinic-card:hover .clinic-polyclinic-arrow {
+    transform: translateX(4px);
+    color: var(--gray-600);
+}
+
+/* Loading, error, empty states */
+.clinic-loading,
+.clinic-error,
+.clinic-empty {
+    text-align: center;
+    padding: 3rem 1.5rem;
+}
+
+.clinic-loading-spinner {
+    animation: spin 1s linear infinite;
+    color: var(--primary);
+    margin-bottom: 1rem;
+}
+
+.clinic-loading p,
+.clinic-empty p {
+    color: var(--gray-600);
+    font-size: 1rem;
+}
+
+.clinic-error p {
+    color: #dc2626;
+}
+
+.clinic-empty svg {
+    color: var(--gray-300);
+    margin-bottom: 1rem;
+}
+
+.clinic-section-header {
+    margin-bottom: 2.5rem;
+}
+
+/* Doctor fee badge */
+.doc-fee-badge {
+    margin-top: 0.75rem;
+    padding: 0.4rem 0.6rem;
+    background: var(--white);
+    border-radius: 8px;
+    border: 1px solid var(--gray-200);
+    text-align: center;
+}
+
+.doc-fee-label {
+    display: block;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--gray-400);
+    letter-spacing: 0.5px;
+}
+
+.doc-fee-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+/* Doctors List */
+.doctors-section {
+    padding: 4rem 0;
+}
+
+.sub-heading {
+    font-size: 1.8rem;
+    margin-bottom: 2rem;
+    color: var(--primary);
+}
+
+.professional-doc-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.professional-doc-card {
+    background: var(--white);
+    border-radius: 1rem;
+    display: flex;
+    gap: 0;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--gray-100);
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    cursor: pointer;
+    height: 100%;
+}
+
+.professional-doc-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+    border-color: var(--primary-light);
+}
+
+/* Side Profile Area */
+.doc-profile-side {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    width: 140px;
+    padding: 1rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-right: 1px solid var(--gray-100);
+    flex-shrink: 0;
+}
+
+.doc-avatar {
+    position: relative;
+    margin-bottom: 0.75rem;
+}
+
+.avatar-circle {
+    width: 60px;
+    height: 60px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
+    border: 2px solid white;
+}
+
+.online-dot {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 3px solid white;
+}
+
+.online-dot.active {
+    background: #10b981;
+}
+
+.online-dot.inactive {
+    background: #94a3b8;
+}
+
+.status-pill {
+    padding: 0.3rem 0.7rem;
+    border-radius: 2rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-pill.online {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.status-pill.offline {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+/* Content Area */
+.doc-content-side {
+    padding: 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.doc-header-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.doc-header-info h3 {
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
+    color: var(--gray-900);
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+}
+
+.specialty-badge {
+    background: #f0f9ff;
+    color: #0369a1;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid #bae6fd;
+    display: inline-block;
+    line-height: 1.2;
+}
+
+.doc-sub-text {
+    color: var(--gray-500);
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+}
+
+.doc-meta {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+.meta-item svg {
+    color: var(--primary);
+}
+
+.timing-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    background: #f8fafc;
+    padding: 0.75rem;
+    border-radius: 0.6rem;
+    margin-bottom: 0.75rem;
+}
+
+.timing-slot {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.slot-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--gray-400);
+    letter-spacing: 0.5px;
+}
+
+.slot-time {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.view-details-link {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--primary);
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--gray-200);
+    transition: all 0.3s ease;
+}
+
+.professional-doc-card:hover .view-details-link {
+    color: var(--primary-dark);
+    gap: 0.75rem;
+}
+
+.view-details-link svg {
+    transition: transform 0.3s ease;
+}
+
+.professional-doc-card:hover .view-details-link svg {
+    transform: translateX(5px);
+}
+
+.doc-card-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: auto;
+}
+
+.btn-book-now {
+    flex: 2;
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.85rem;
+    border-radius: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-book-now:hover {
+    opacity: 0.9;
+}
+
+.btn-call {
+    flex: 1;
+    background: white;
+    color: var(--gray-700);
+    border: 1px solid var(--gray-200);
+    padding: 0.85rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-call:hover {
+    background: #f8fafc;
+    border-color: var(--gray-300);
+}
+
+.timing-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Form Styling */
+.appointment-form-container {
+    position: sticky;
+    top: 100px;
+}
+
+.form-card {
+    background: var(--white);
+    padding: 2.5rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    border-top: 5px solid var(--secondary);
+}
+
+@media (max-width: 640px) {
+    .form-card {
+        padding: 1.5rem;
+    }
+
+    .doctor-card {
+        padding: 1rem;
+        gap: 1rem;
+    }
+
+    .doc-image {
+        width: 100px;
+        height: 100px;
+    }
+}
+
+.form-card h3 {
+    font-size: 1.6rem;
+    margin-bottom: 0.5rem;
+}
+
+.form-card p {
+    color: var(--gray-500);
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--gray-700);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    background: var(--gray-50);
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: var(--primary);
+    background: var(--white);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.form-group textarea {
+    height: 100px;
+    resize: none;
+}
+
+.success-message {
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.success-icon {
+    color: var(--secondary);
+    width: 64px;
+    height: 64px;
+    margin-bottom: 1.5rem;
+}
+
+/* Centered Layout */
+.doctors-container-centered {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.doctors-list {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+    .doctors-list {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .professional-doc-card {
+        flex-direction: column;
+    }
+
+    .doc-profile-side {
+        width: 100%;
+        padding: 1.25rem 1.25rem 0.5rem;
+        flex-direction: row;
+        justify-content: flex-start;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        border: none;
+        background: transparent;
+    }
+
+    .doc-avatar {
+        margin-bottom: 0;
+    }
+
+    .avatar-circle {
+        width: 60px;
+        height: 60px;
+        font-size: 1.1rem;
+    }
+
+    .status-pill {
+        margin-left: auto;
+    }
+
+    .doc-fee-badge {
+        margin-top: 0;
+        margin-left: auto;
+        order: 1;
+        width: 100%;
+        text-align: right;
+        padding: 0.35rem 0.5rem;
+    }
+
+    .clinic-features-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .clinic-feature-item {
+        font-size: 0.85rem;
+    }
+
+    .clinic-feature-icon {
+        width: 38px;
+        height: 38px;
+    }
+
+    .clinic-polyclinic-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 1.5rem;
+    }
+
+    .clinic-polyclinic-arrow {
+        margin-left: 0;
+    }
+
+    .doc-content-side {
+        padding: 1rem 1.25rem 1.25rem;
+    }
+
+    .doc-header-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .doc-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .timing-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .doc-card-actions {
+        flex-direction: column;
+    }
+
+    .btn-call-booking {
+        padding: 0.75rem 1.25rem;
+        font-size: 0.9rem;
+    }
+
+    .booking-info-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .booking-info-icon {
+        width: 70px;
+        height: 70px;
+    }
+}
+
+@media (min-width: 1921px) {
+    .doctors-section .grid-2 {
+        grid-template-columns: 1fr 500px;
+        gap: 6rem;
+        max-width: 1700px;
+        margin: 0 auto;
+    }
+}
+
+@media (min-width: 2560px) {
+    .doctors-section .grid-2 {
+        max-width: 2100px;
+        grid-template-columns: 1fr 600px;
+    }
+}
+
+/* Services Highlight Grid */
+.clinic-services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+    margin-bottom: 2rem;
+}
+
+.service-highlight-card {
+    background: #f8fafc;
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    text-align: center;
+    transition: all 0.3s ease;
+    border: 1px solid #e2e8f0;
+}
+
+.service-highlight-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    border-color: var(--primary-light);
+    background: white;
+}
+
+.service-icon-box {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.service-highlight-card h3 {
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+    color: var(--gray-800);
+}
+
+.service-highlight-card p {
+    font-size: 0.95rem;
+    color: var(--gray-600);
+    line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+    .clinic-services-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .service-highlight-card {
+        padding: 1.5rem;
+    }
+}
+
+/* Booking Info Section */
+.booking-info-section {
+    padding: 3rem 0;
+    background: var(--gray-50);
+}
+
+.booking-info-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.booking-info-icon {
+    width: 80px;
+    height: 80px;
+    background: var(--primary-light);
+    color: var(--primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.booking-info-content {
+    flex: 1;
+}
+
+.booking-info-content h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: var(--gray-900);
+    font-weight: 800;
+}
+
+.booking-info-content p {
+    color: var(--gray-600);
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.booking-phone-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--primary);
+    color: var(--white);
+    padding: 0.875rem 1.75rem;
+    border-radius: var(--radius);
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-decoration: none;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0, 86, 179, 0.2);
+}
+
+.booking-phone-link:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 86, 179, 0.3);
+}
+
+.professional-doc-card-wrapper {
+    position: relative;
+}
+
+.btn-call-booking {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.875rem 1.5rem;
+    background: #10b981;
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius);
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+}
+
+.btn-call-booking:hover {
+    background: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Polyclinic Services Section - Removed */
+
+.section-header-compact {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.section-header-compact h2 {
+    font-size: clamp(1.75rem, 4vw, 2.25rem);
+    color: var(--primary);
+    margin-bottom: 0.75rem;
+    font-weight: 800;
+}
+
+.section-header-compact p {
+    color: var(--gray-600);
+    font-size: 1.05rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.polyclinic-facilities-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+    .polyclinic-facilities-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .polyclinic-facilities-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.polyclinic-facility-card {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-200);
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.polyclinic-facility-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-light);
+}
+
+.polyclinic-icon-wrapper {
+    width: 70px;
+    height: 70px;
+    background: #e6fffa;
+    color: #2c7a7b;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.polyclinic-facility-card h3 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    color: var(--gray-900);
+    font-weight: 700;
+}
+
+.polyclinic-facility-card p {
+    color: var(--gray-600);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0;
+}
+
+@media (max-width: 640px) {
+    .polyclinic-services-section {
+        padding: 2rem 0;
+    }
+
+    .polyclinic-facility-card {
+        padding: 1.5rem;
+    }
+}

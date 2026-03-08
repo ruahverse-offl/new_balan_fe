@@ -1,0 +1,24 @@
+// Export all admin tab components
+export { default as DashboardTab } from './DashboardTab';
+export { default as DoctorsTab } from './DoctorsTab';
+export { default as MedicinesTab } from './MedicinesTab';
+export { default as OrdersTab } from './OrdersTab';
+export { default as AppointmentsTab } from './AppointmentsTab';
+export { default as DeliveryTab } from './DeliveryTab';
+export { default as CouponsTab } from './CouponsTab';
+export { default as StaffTab } from './StaffTab';
+export { default as CategoriesTab } from './CategoriesTab';
+export { default as RolesTab } from './RolesTab';
+export { default as PermissionsTab } from './PermissionsTab';
+export { default as RolePermissionsTab } from './RolePermissionsTab';
+export { default as AdminLayout } from './AdminLayout';
+export { default as PrescriptionsTab } from './PrescriptionsTab';
+export { default as TestBookingsTab } from './TestBookingsTab';
+export { default as BrandsTab } from './BrandsTab';
+export { default as CompositionsTab } from './CompositionsTab';
+export { default as BatchesTab } from './BatchesTab';
+export { default as PaymentsTab } from './PaymentsTab';
+export { default as TherapeuticCategoriesTab } from './TherapeuticCategoriesTab';
+export { default as CouponUsagesTab } from './CouponUsagesTab';
+export { default as InventoryTab } from './InventoryTab';
+export { default as MyProfileTab } from './MyProfileTab';

@@ -1,0 +1,600 @@
+.insurance-page {
+    background: var(--white);
+}
+
+.insurance-header {
+    background: linear-gradient(135deg, #00478f 0%, #002b5c 100%) !important;
+    color: var(--white);
+}
+
+/* Consultation Card */
+.consultation-box {
+    margin-top: -3rem;
+    padding-bottom: 2rem;
+}
+
+.consultation-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 2rem;
+    border: 1px solid var(--gray-200);
+}
+
+.consultation-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.consultation-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.consultation-icon-wrapper {
+    width: 70px;
+    height: 70px;
+    background: var(--primary-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+.consultation-header h2 {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    margin-bottom: 0.5rem;
+    color: var(--gray-900);
+}
+
+.achievement-badge-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--secondary-light);
+    color: var(--secondary);
+    padding: 0.4rem 1rem;
+    border-radius: var(--radius-full);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.consultation-timings {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--gray-50);
+    border-radius: var(--radius);
+}
+
+.timing-item-compact {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.timing-item-compact svg {
+    color: var(--primary);
+    margin-top: 0.25rem;
+    flex-shrink: 0;
+}
+
+.timing-item-compact div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.timing-item-compact strong {
+    font-size: 0.8rem;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.timing-item-compact span {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--gray-900);
+}
+
+.consultation-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.consultation-actions .btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+}
+
+/* Main Content Section */
+.insurance-content-section {
+    padding: 2rem 0 3rem;
+}
+
+/* Info Cards Grid */
+.info-cards-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+@media (min-width: 768px) {
+    .info-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.info-card {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-200);
+    transition: all 0.3s ease;
+}
+
+.info-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-light);
+}
+
+.info-card-icon {
+    width: 60px;
+    height: 60px;
+    background: var(--primary-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    margin-bottom: 1.25rem;
+}
+
+.info-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: var(--gray-900);
+    font-weight: 700;
+}
+
+.info-card > p {
+    color: var(--gray-600);
+    line-height: 1.7;
+    margin-bottom: 1.25rem;
+    font-size: 1rem;
+}
+
+.info-list {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.info-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--gray-700);
+    font-size: 0.95rem;
+}
+
+.info-list li svg {
+    color: var(--secondary);
+    flex-shrink: 0;
+}
+
+/* Section Headers */
+.section-header-compact {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.section-header-compact .header-icon {
+    color: var(--primary);
+}
+
+.section-header-compact h2 {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    color: var(--primary);
+    font-weight: 700;
+    margin: 0;
+}
+
+/* Benefits Section */
+.benefits-section-compact {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-200);
+    margin-bottom: 2.5rem;
+}
+
+.benefits-grid-compact {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+@media (min-width: 640px) {
+    .benefits-grid-compact {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .benefits-grid-compact {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.benefit-item-compact {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+    transition: all 0.3s ease;
+}
+
+.benefit-item-compact:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    transform: translateX(5px);
+}
+
+.benefit-check {
+    color: var(--secondary);
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+.benefit-item-compact span {
+    color: var(--gray-700);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    font-weight: 500;
+}
+
+/* Plans Section */
+.plans-section-compact {
+    margin-bottom: 2.5rem;
+}
+
+.plans-grid-compact {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+    .plans-grid-compact {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.plan-item-compact {
+    background: var(--white);
+    padding: 1.5rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-200);
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.plan-item-compact:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary);
+}
+
+.plan-icon-wrapper {
+    width: 60px;
+    height: 60px;
+    background: var(--primary-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    margin: 0 auto 1rem;
+}
+
+.plan-item-compact h4 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    color: var(--gray-900);
+    font-weight: 700;
+}
+
+.plan-item-compact p {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* Help Section */
+.help-section-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+@media (min-width: 768px) {
+    .help-section-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.help-card {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-200);
+}
+
+.help-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1.25rem;
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.help-intro {
+    color: var(--gray-600);
+    margin-bottom: 1rem;
+    line-height: 1.7;
+}
+
+.help-list {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.help-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    color: var(--gray-700);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.help-list li svg {
+    color: var(--secondary);
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+/* Insurance Enquiry Form */
+.enquiry-form-section {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-200);
+    margin-bottom: 2.5rem;
+}
+
+.enquiry-subtitle {
+    color: var(--gray-600);
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+.enquiry-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius);
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.enquiry-alert-success {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.enquiry-alert-error {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+.enquiry-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.enquiry-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.enquiry-field-full {
+    grid-column: 1 / -1;
+}
+
+.enquiry-field label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.enquiry-field input,
+.enquiry-field select,
+.enquiry-field textarea {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius);
+    font-size: 1rem;
+    color: var(--gray-900);
+    background: var(--white);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: inherit;
+}
+
+.enquiry-field input:focus,
+.enquiry-field select:focus,
+.enquiry-field textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0, 71, 143, 0.1);
+}
+
+.enquiry-field textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.enquiry-submit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    width: 100%;
+    max-width: 280px;
+}
+
+.enquiry-submit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.spin-icon {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* FAQ Section */
+.faq-section-compact {
+    background: var(--gray-50);
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200);
+}
+
+.faq-grid-compact {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .faq-grid-compact {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.faq-item-compact {
+    background: var(--white);
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+}
+
+.faq-item-compact h4 {
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.faq-item-compact p {
+    color: var(--gray-600);
+    line-height: 1.7;
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .consultation-card {
+        padding: 1.5rem;
+    }
+
+    .consultation-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+
+    .consultation-timings {
+        grid-template-columns: 1fr;
+    }
+
+    .consultation-actions {
+        flex-direction: column;
+    }
+
+    .info-card,
+    .help-card {
+        padding: 1.5rem;
+    }
+
+    .benefits-section-compact,
+    .faq-section-compact,
+    .enquiry-form-section {
+        padding: 1.5rem;
+    }
+
+    .enquiry-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .plans-grid-compact {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .plans-grid-compact {
+        grid-template-columns: 1fr;
+    }
+
+    .benefits-grid-compact {
+        grid-template-columns: 1fr;
+    }
+}

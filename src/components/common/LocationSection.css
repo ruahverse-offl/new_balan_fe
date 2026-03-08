@@ -1,0 +1,214 @@
+.location-section {
+    padding: 4rem 0;
+}
+
+.location-section .container {
+    width: 100%;
+    max-width: var(--container-width, 1200px);
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.location-section .section-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.location-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    align-items: center;
+}
+
+@media (min-width: 768px) {
+    .location-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+    }
+}
+
+.location-content {
+    background: var(--white);
+    padding: 2.5rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+}
+
+.location-icon-wrapper {
+    width: 70px;
+    height: 70px;
+    background: var(--primary-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    margin-bottom: 1.5rem;
+}
+
+.location-content h3 {
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+    color: var(--gray-900);
+    font-weight: 700;
+}
+
+.location-address {
+    font-size: 1.1rem;
+    color: var(--gray-600);
+    margin-bottom: 2rem;
+    line-height: 1.8;
+}
+
+.location-content .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.75rem;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.location-content .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.location-map {
+    position: relative;
+    width: 100%;
+    height: 380px;
+    min-height: 280px;
+    max-height: 420px;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+    background: var(--gray-100);
+    aspect-ratio: 16 / 10;
+}
+
+.location-map iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+}
+
+.location-map-fallback {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 8px 14px;
+    background: var(--white);
+    color: var(--primary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 1;
+}
+.location-map-fallback:hover {
+    background: var(--primary);
+    color: var(--white);
+}
+
+/* Clickable map placeholder – kept for fallback */
+.location-map-clickable {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: inherit;
+    background: linear-gradient(135deg, #e8eef4 0%, #d4dce6 50%, #c5d0dc 100%);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.location-map-clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+.location-map-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 2rem;
+    text-align: center;
+}
+.location-map-pin {
+    color: var(--primary);
+    flex-shrink: 0;
+}
+.location-map-address {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--gray-700);
+    line-height: 1.5;
+    max-width: 320px;
+}
+.location-map-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+    font-size: 1rem;
+    border-radius: 50px;
+    margin-top: 0.5rem;
+}
+.location-map-clickable:hover .location-map-cta {
+    background: var(--primary);
+    color: #fff;
+}
+
+@media (max-width: 768px) {
+    .location-content {
+        padding: 2rem;
+        text-align: center;
+        align-items: center;
+    }
+
+    .location-icon-wrapper {
+        margin: 0 auto 1.5rem;
+    }
+
+    .location-map {
+        height: 320px;
+        min-height: 260px;
+    }
+}
+
+@media (max-width: 480px) {
+    .location-content {
+        padding: 1.5rem;
+    }
+
+    .location-content h3 {
+        font-size: 1.5rem;
+    }
+
+    .location-address {
+        font-size: 1rem;
+    }
+
+    .location-map {
+        height: 280px;
+        min-height: 240px;
+    }
+}
