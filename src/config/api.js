@@ -1,48 +1,33 @@
 /**
  * API Configuration
- * 
- * This file handles API base URL configuration for different environments.
- * In production, VITE_API_BASE_URL should be set in environment variables.
+ * Reads API configuration strictly from .env
  */
 
-// Get API base URL from environment variable or use default
-const getApiBaseUrl = () => {
-  // Vite uses import.meta.env for environment variables
-  const baseUrl = import.meta.env.VITE_API_BASE_URL;
-  const apiPrefix = import.meta.env.VITE_API_PREFIX || '/api/v1';
-  
-  if (baseUrl) {
-    // Remove trailing slash if present
-    const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-    return `${cleanBaseUrl}${apiPrefix}`;
-  }
-  
-  // Development default
-  if (import.meta.env.DEV) {
-    return 'http://localhost:8000/api/v1';
-  }
-  
-  // Production fallback (should not happen if env var is set)
-  console.warn('VITE_API_BASE_URL not set, using default');
-  return '/api/v1';
-};
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+const API_PREFIX = import.meta.env.VITE_API_PREFIX || "/api/v1"
+
+// Stop build if env variable is missing
+if (!API_BASE_URL) {
+  throw new Error(
+    "❌ VITE_API_BASE_URL is not defined in .env file"
+  )
+}
+
+// Clean trailing slash
+const cleanBaseUrl = API_BASE_URL.replace(/\/$/, "")
 
 export const API_CONFIG = {
-  BASE_URL: getApiBaseUrl(),
-  TIMEOUT: 30000, // 30 seconds
-};
+  BASE_URL: `${cleanBaseUrl}${API_PREFIX}`,
+  TIMEOUT: 30000
+}
 
-// Helper to build full API endpoint URLs
-export const buildApiUrl = (endpoint) => {
-  // Remove leading slash if present to avoid double slashes
-  const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
-  return `${API_CONFIG.BASE_URL}/${cleanEndpoint}`;
-};
+/**
+ * Build full API URL
+ */
+export const buildApiUrl = (endpoint = "") => {
+  const cleanEndpoint = endpoint.startsWith("/")
+    ? endpoint.slice(1)
+    : endpoint
 
-// Log API config in development
-if (import.meta.env.DEV) {
-  console.log('🔧 API Configuration:', {
-    baseUrl: API_CONFIG.BASE_URL,
-    env: import.meta.env.MODE,
-  });
+  return `${API_CONFIG.BASE_URL}/${cleanEndpoint}`
 }
