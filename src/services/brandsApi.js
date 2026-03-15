@@ -8,6 +8,7 @@ export const getBrands = async (params = {}) => {
     search: params.search,
     sort_by: params.sort_by || 'created_at',
     sort_order: params.sort_order || 'desc',
+    is_available: params.is_available,
   });
   return { items: response.items || [], pagination: response.pagination || {} };
 };

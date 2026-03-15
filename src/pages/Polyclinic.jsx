@@ -51,7 +51,7 @@ const Polyclinic = () => {
             <header className="page-header polyclinic-header">
                 <div className="container">
                     <h1 style={{ color: '#fff' }}>Polyclinic Services</h1>
-                    <p>Comprehensive diagnostic tests and health checkups under one roof.</p>
+                    <p>No booking required - contact at the store for polyclinic services.</p>
                 </div>
             </header>
 
@@ -60,7 +60,7 @@ const Polyclinic = () => {
                 <div className="container">
                     <div className="section-header-compact">
                         <h2>Available Tests & Services</h2>
-                        <p>Book your diagnostic tests with us. Fast, accurate, and affordable healthcare diagnostics.</p>
+                        <p>No prior booking required. For tests and services, please contact us directly at the store.</p>
                     </div>
 
                     {loading && (
@@ -134,8 +134,8 @@ const Polyclinic = () => {
                             <Phone size={32} />
                         </div>
                         <div className="booking-info-content">
-                            <h3>Book Your Test</h3>
-                            <p>Call us directly to schedule your diagnostic test. Our staff will guide you through the process.</p>
+                            <h3>Polyclinic Test Enquiries</h3>
+                            <p>No booking required for polyclinic services. For any questions, you can call us or visit the store directly.</p>
                             <a href="tel:+919894880598" className="booking-phone-link">
                                 <Phone size={20} />
                                 +91 9894880598

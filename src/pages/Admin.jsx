@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, User, Pill, ShoppingCart, Search, Plus, Trash2, Check, X, Menu, Clock, MapPin, Phone, Pencil, AlertCircle, Eye, EyeOff, CheckCircle, XCircle, LogOut, Bell, Truck, Ticket, UserCheck, Filter, IndianRupee, ArrowLeft, ChevronRight, Loader2, Shield, Key, Link2, FileText, Package, FlaskConical, Warehouse, CreditCard, Tags, BarChart3, ClipboardList, Calendar, Home } from 'lucide-react';
+import { LayoutDashboard, Users, User, Pill, ShoppingCart, Search, Plus, Trash2, Check, X, Menu, Clock, MapPin, Phone, Pencil, AlertCircle, Eye, EyeOff, CheckCircle, XCircle, LogOut, Bell, Truck, Ticket, UserCheck, Filter, IndianRupee, ArrowLeft, ChevronRight, Loader2, Shield, Key, Link2, FileText, Package, FlaskConical, Warehouse, CreditCard, Tags, BarChart3, ClipboardList, Calendar, Home, TrendingUp } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getDoctors, createDoctor, updateDoctor, deleteDoctor as deleteDoctorApi } from '../services/doctorsApi';
 import { getMedicines, getAllMedicinesForSelect, createMedicine, updateMedicine, deleteMedicine as deleteMedicineApi } from '../services/medicinesApi';
@@ -58,6 +58,8 @@ import InventoryTab from './admin/InventoryTab';
 import MyProfileTab from './admin/MyProfileTab';
 import OrderDetailPage from './admin/OrderDetailPage';
 import AdminLayout from './admin/AdminLayout';
+import DatePicker from '../components/common/DatePicker';
+import TimeInput from '../components/common/TimeInput';
 import './Admin.css';
 import './admin/StatisticsDashboard.css';
 
@@ -272,8 +274,11 @@ const Admin = () => {
                             getUsers({ limit: 100 }).catch(() => ({ items: [] })),
                             roles.length === 0 ? getRoles({ limit: 100 }).catch(() => ({ items: [] })) : Promise.resolve({ items: roles })
                         ]);
+                        const rolesList = roles.length === 0 && (rolesRes.items || []).length ? rolesRes.items : roles;
                         if (roles.length === 0 && (rolesRes.items || []).length) setRoles(rolesRes.items || []);
-                        setManagers((usersRes.items || []).map(user => ({
+                        const customerRoleId = (rolesList || []).find(r => (r.name || '').toUpperCase() === 'CUSTOMER')?.id;
+                        const staffOnly = (usersRes.items || []).filter(u => !customerRoleId || u.role_id !== customerRoleId);
+                        setManagers(staffOnly.map(user => ({
                             ...user,
                             name: user.name || user.full_name || '',
                             role_id: user.role_id
@@ -569,8 +574,9 @@ const Admin = () => {
         experience: '',
         education: '',
         specializations: '',
-        morning: '10:00 AM - 1:00 PM', 
-        evening: '5:00 PM - 9:00 PM', 
+        morning: '', 
+        evening: '', 
+        morningStart: '', morningEnd: '', eveningStart: '', eveningEnd: '',
         consultationFee: '',
         phone: '',
         email: '',
@@ -578,19 +584,23 @@ const Admin = () => {
         available: true 
     });
     const [productForm, setProductForm] = useState({ name: '', category: categories?.[0] || 'OTC', price: '', image: '', discount: '0', requiresPrescription: false, stock: true });
-    const [medicineForm, setMedicineForm] = useState({ name: '', therapeutic_category_id: '', dosage_form: 'Tablet', schedule_type: 'OTC', is_controlled: false, description: '' });
+    const [medicineForm, setMedicineForm] = useState({ name: '', therapeutic_category_id: '', dosage_form: 'Tablet', schedule_type: 'OTC', is_controlled: false, description: '', is_available: true });
     const [orderForm, setOrderForm] = useState({ customerId: '', customerName: '', phone: '', address: '', total: '', paymentMethod: 'cash' });
     const [appointmentForm, setAppointmentForm] = useState({ patientName: '', phone: '', doctorId: '', message: '', status: 'CONFIRMED', date: new Date().toISOString().slice(0, 10), time: '' });
     const [slotForm, setSlotForm] = useState({ start: '09:00', end: '11:00', active: true });
     const [couponForm, setCouponForm] = useState({ code: '', discount: 5, isActive: true, expiryDate: '', firstOrderOnly: false });
     const [managerForm, setManagerForm] = useState({ name: '', email: '', password: '', mobile_number: '', role_id: '' });
     const [categoryName, setCategoryName] = useState('');
-    const [brandForm, setBrandForm] = useState({ brand_name: '', manufacturer: '', mrp: '', medicine_id: '', description: '' });
+    const [brandForm, setBrandForm] = useState({ brand_name: '', manufacturer: '', mrp: '', medicine_id: '', description: '', is_available: true });
+    const [brandMedicineSearch, setBrandMedicineSearch] = useState('');
+    const [brandModalSubView, setBrandModalSubView] = useState('brand'); // 'brand' | 'add_medicine'
     const [compositionForm, setCompositionForm] = useState({ medicine_id: '', salt_name: '', strength: '', unit: '' });
     const [batchForm, setBatchForm] = useState({ medicine_brand_id: '', batch_number: '', expiry_date: '', purchase_price: '', quantity_available: '' });
     const [batchBrandSearch, setBatchBrandSearch] = useState('');
     const [batchBrandsLoadError, setBatchBrandsLoadError] = useState(null);
     const [showAddBrandFromBatchModal, setShowAddBrandFromBatchModal] = useState(false);
+    const [quickAddBrandSubView, setQuickAddBrandSubView] = useState('brand'); // 'brand' | 'add_medicine'
+    const [quickAddBrandMedicineSearch, setQuickAddBrandMedicineSearch] = useState('');
     const [quickAddBrandForm, setQuickAddBrandForm] = useState({ medicine_id: '', brand_name: '', manufacturer: '', mrp: '', description: '' });
     const [therapeuticCategoryForm, setTherapeuticCategoryForm] = useState({ name: '', description: '' });
     const [inventoryTransactionForm, setInventoryTransactionForm] = useState({ medicine_brand_id: '', product_batch_id: '', transaction_type: 'PURCHASE', quantity_change: '', remarks: '' });
@@ -713,6 +723,8 @@ const Admin = () => {
         } catch (error) { showNotify('Failed: ' + (error?.message || ''), 'error'); return false; }
     };
     const openQuickAddBrandFromBatch = async () => {
+        setQuickAddBrandSubView('brand');
+        setQuickAddBrandMedicineSearch('');
         if ((medicinesForDropdown || []).length === 0) {
             const res = await getMedicines({ limit: 500 }).catch(() => ({ items: [] }));
             const meds = res.items || [];
@@ -721,10 +733,43 @@ const Admin = () => {
         } else {
             setQuickAddBrandForm({ medicine_id: (medicinesForDropdown[0]?.id) || '', brand_name: '', manufacturer: '', mrp: '', description: '' });
         }
+        if ((therapeuticCategories || []).length === 0) {
+            getTherapeuticCategories({ limit: 100 }).then(r => setTherapeuticCategories(r.items || [])).catch(() => {});
+        }
         setShowAddBrandFromBatchModal(true);
     };
-    const submitQuickAddBrandFromBatch = async (e) => {
+    const submitQuickAddBrandModal = async (e) => {
         e?.preventDefault?.();
+        if (quickAddBrandSubView === 'add_medicine') {
+            const tcId = medicineForm.therapeutic_category_id && String(medicineForm.therapeutic_category_id).trim();
+            if (!tcId) {
+                showNotify('Please select a therapeutic category', 'error');
+                return;
+            }
+            const sched = medicineForm.schedule_type || 'OTC';
+            const payload = {
+                name: medicineForm.name,
+                dosage_form: medicineForm.dosage_form || 'Tablet',
+                schedule_type: sched,
+                is_prescription_required: ['H', 'H1', 'Prescription'].includes(sched),
+                is_controlled: medicineForm.is_controlled === true,
+                description: medicineForm.description || null,
+                therapeutic_category_id: tcId,
+            };
+            try {
+                const created = await createMedicine(payload);
+                const newId = created?.id ? String(created.id) : null;
+                const meds = await getAllMedicinesForSelect();
+                setMedicinesForDropdown(meds);
+                setQuickAddBrandForm(prev => ({ ...prev, medicine_id: newId || prev.medicine_id }));
+                setQuickAddBrandSubView('brand');
+                setMedicineForm({ name: '', therapeutic_category_id: (therapeuticCategories && therapeuticCategories[0]?.id) ? String(therapeuticCategories[0].id) : '', dosage_form: 'Tablet', schedule_type: 'OTC', is_controlled: false, description: '', is_available: true });
+                showNotify('Medicine added. You can now complete the brand below.', 'success');
+            } catch (err) {
+                showNotify('Failed to add medicine: ' + (err?.message || ''), 'error');
+            }
+            return;
+        }
         if (!quickAddBrandForm.medicine_id || !quickAddBrandForm.brand_name?.trim() || !quickAddBrandForm.manufacturer?.trim() || quickAddBrandForm.mrp === '' || quickAddBrandForm.mrp == null) {
             showNotify('Please fill Medicine, Brand name, Company and MRP', 'error');
             return;
@@ -1259,54 +1304,63 @@ const Admin = () => {
         e.preventDefault();
         const mode = modalMode;
 
+        if (!(doctorForm.bio && doctorForm.bio.trim())) {
+            showNotify('About / Biography is required for each doctor', 'error');
+            return;
+        }
+
         setShowModal(false);
 
+        const morning = (doctorForm.morningStart != null && doctorForm.morningEnd != null && doctorForm.morningStart !== '' && doctorForm.morningEnd !== '')
+            ? `${formatTimeTo12h(doctorForm.morningStart)} - ${formatTimeTo12h(doctorForm.morningEnd)}` : (doctorForm.morning || '');
+        const evening = (doctorForm.eveningStart != null && doctorForm.eveningEnd != null && doctorForm.eveningStart !== '' && doctorForm.eveningEnd !== '')
+            ? `${formatTimeTo12h(doctorForm.eveningStart)} - ${formatTimeTo12h(doctorForm.eveningEnd)}` : (doctorForm.evening || '');
+
         if (mode === 'add') {
-            await addDoctor(doctorForm);
+            await addDoctor({ ...doctorForm, morning, evening });
             showNotify('Doctor added');
         } else {
-            await updateDoctorFn(editingId, doctorForm);
+            await updateDoctorFn(editingId, { ...doctorForm, morning, evening });
             showNotify('Doctor updated');
         }
 
-        setDoctorForm({ 
-            name: '', 
-            specialty: '', 
-            subSpecialty: '',
-            qualification: '',
-            bio: '',
-            experience: '',
-            education: '',
-            specializations: '',
-            morning: '', 
-            evening: '', 
-            consultationFee: '',
-            phone: '',
-            email: '',
-            address: '',
-            available: true 
+        setDoctorForm({
+            name: '', specialty: '', subSpecialty: '', qualification: '', bio: '', experience: '', education: '', specializations: '',
+            morning: '', evening: '', morningStart: '', morningEnd: '', eveningStart: '', eveningEnd: '',
+            consultationFee: '', phone: '', email: '', address: '', available: true,
         });
     };
 
     const startEditDoctor = (doc) => {
+        const parseRange = (s) => {
+            if (!s || typeof s !== 'string') return ['', ''];
+            const parts = s.split(/\s*-\s*/).map((t) => parseTimeToHHmm(t.trim()));
+            return [parts[0] || '', parts[1] || ''];
+        };
+        const [morningStart, morningEnd] = parseRange(doc.morning);
+        const [eveningStart, eveningEnd] = parseRange(doc.evening);
         setModalMode('edit');
         setEditingId(doc.id);
-        setDoctorForm({ 
-            name: doc.name, 
-            specialty: doc.specialty, 
+        setDoctorForm({
+            name: doc.name,
+            specialty: doc.specialty,
             subSpecialty: doc.subSpecialty || '',
             qualification: doc.qualification || '',
             bio: doc.bio || '',
             experience: doc.experience || '',
             education: Array.isArray(doc.education) ? doc.education.join(', ') : (doc.education || ''),
             specializations: Array.isArray(doc.specializations) ? doc.specializations.join(', ') : (doc.specializations || ''),
-            morning: doc.morning || '', 
-            evening: doc.evening || '', 
+            morning: doc.morning || '',
+            evening: doc.evening || '',
+            morningStart,
+            morningEnd,
+            eveningStart,
+            eveningEnd,
             consultationFee: doc.consultationFee != null && doc.consultationFee !== '' ? String(doc.consultationFee) : '',
             phone: doc.phone || '',
             email: doc.email || '',
             address: doc.address || '',
-            available: doc.available 
+            available: doc.available,
         });
         setShowModal(true);
     };
@@ -1535,6 +1589,39 @@ const Admin = () => {
     const handleNewEntitySubmit = async (e) => {
         e.preventDefault();
         let success = false;
+
+        if (activeTab === 'brands' && brandModalSubView === 'add_medicine') {
+            const sched = medicineForm.schedule_type || 'OTC';
+            const isPrescriptionRequired = ['H', 'H1', 'Prescription'].includes(sched);
+            const tcId = medicineForm.therapeutic_category_id && String(medicineForm.therapeutic_category_id).trim();
+            if (!tcId) {
+                showNotify('Please select a therapeutic category', 'error');
+                return;
+            }
+            const payload = {
+                name: medicineForm.name,
+                dosage_form: medicineForm.dosage_form || 'Tablet',
+                schedule_type: sched,
+                is_prescription_required: isPrescriptionRequired,
+                is_controlled: medicineForm.is_controlled === true,
+                description: medicineForm.description || null,
+                ...(tcId && { therapeutic_category_id: tcId }),
+            };
+            try {
+                const created = await createMedicine(payload);
+                const newId = created?.id ? String(created.id) : null;
+                const meds = await getAllMedicinesForSelect();
+                setMedicinesForDropdown(meds);
+                setBrandForm(prev => ({ ...prev, medicine_id: newId || prev.medicine_id }));
+                setBrandModalSubView('brand');
+                setMedicineForm({ name: '', therapeutic_category_id: '', dosage_form: 'Tablet', schedule_type: 'OTC', is_controlled: false, description: '', is_available: true });
+                showNotify('Medicine added. You can now complete the brand below.', 'success');
+            } catch (err) {
+                showNotify('Failed to add medicine: ' + (err?.message || ''), 'error');
+            }
+            return;
+        }
+
         if (activeTab === 'medicines') {
             const sched = medicineForm.schedule_type || 'OTC';
             const isPrescriptionRequired = ['H', 'H1', 'Prescription'].includes(sched);
@@ -1550,6 +1637,7 @@ const Admin = () => {
                 is_prescription_required: isPrescriptionRequired,
                 is_controlled: medicineForm.is_controlled === true,
                 description: medicineForm.description || null,
+                is_available: medicineForm.is_available !== false,
                 ...(tcId && { therapeutic_category_id: tcId }),
             };
             success = modalMode === 'add' ? await addMedicineGeneric(payload) : await updateMedicineGenericFn(editingId, payload);
@@ -1851,10 +1939,10 @@ const Admin = () => {
                             {/* Dashboard Tab */}
                             {activeTab === 'dashboard' && (
                                 tabPermissionDenied.has('dashboard') ? (
-                                    <div className="admin-table-card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--admin-text-secondary)' }}>
-                                        <Shield size={48} style={{ marginBottom: '1rem', opacity: 0.6 }} />
-                                        <p style={{ fontWeight: 600, marginBottom: '0.5rem' }}>You don&apos;t have permission to view Statistics.</p>
-                                        <p style={{ fontSize: '0.9rem' }}>Contact your administrator to get access.</p>
+                                    <div className="admin-table-card admin-message-card">
+                                        <Shield size={48} />
+                                        <p>You don&apos;t have permission to view Statistics.</p>
+                                        <p>Contact your administrator to get access.</p>
                                     </div>
                                 ) : (
                                 <div className="dashboard-view animate-slide-up">
@@ -1864,46 +1952,46 @@ const Admin = () => {
                                             className={`statistics-tab ${dashboardSubTab === 'finance' ? 'active' : ''}`}
                                             onClick={() => { setDashboardSubTab('finance'); fetchTabData('dashboard', true); }}
                                         >
-                                            Finance
+                                            <IndianRupee size={18} style={{ flexShrink: 0 }} /> Finance
                                         </button>
                                         <button
                                             type="button"
                                             className={`statistics-tab ${dashboardSubTab === 'inventory' ? 'active' : ''}`}
                                             onClick={() => { setDashboardSubTab('inventory'); fetchTabData('dashboard', true); }}
                                         >
-                                            Inventory
+                                            <Package size={18} style={{ flexShrink: 0 }} /> Inventory
                                         </button>
                                         <button
                                             type="button"
                                             className={`statistics-tab ${dashboardSubTab === 'sales' ? 'active' : ''}`}
                                             onClick={() => { setDashboardSubTab('sales'); fetchTabData('dashboard', true); }}
                                         >
-                                            Sales
+                                            <TrendingUp size={18} style={{ flexShrink: 0 }} /> Sales
                                         </button>
                                     </div>
 
                                     {/* Statistics content per sub-tab */}
                                     {dashboardSubTab === 'finance' && (
                                         dashboardSubTabDenied.finance ? (
-                                            <div className="admin-table-card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--admin-text-secondary)' }}>
-                                                <Shield size={32} style={{ marginBottom: '0.75rem', opacity: 0.6 }} />
-                                                <p style={{ fontWeight: 600 }}>You don&apos;t have permission to view Finance statistics.</p>
+                                            <div className="admin-table-card admin-message-card">
+                                                <Shield size={40} />
+                                                <p>You don&apos;t have permission to view Finance statistics.</p>
                                             </div>
                                         ) : <FinanceDashboard data={financeDashboard} />
                                     )}
                                     {dashboardSubTab === 'inventory' && (
                                         dashboardSubTabDenied.inventory ? (
-                                            <div className="admin-table-card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--admin-text-secondary)' }}>
-                                                <Shield size={32} style={{ marginBottom: '0.75rem', opacity: 0.6 }} />
-                                                <p style={{ fontWeight: 600 }}>You don&apos;t have permission to view Inventory statistics.</p>
+                                            <div className="admin-table-card admin-message-card">
+                                                <Shield size={40} />
+                                                <p>You don&apos;t have permission to view Inventory statistics.</p>
                                             </div>
                                         ) : <InventoryDashboard data={inventoryDashboard} />
                                     )}
                                     {dashboardSubTab === 'sales' && (
                                         dashboardSubTabDenied.sales ? (
-                                            <div className="admin-table-card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--admin-text-secondary)' }}>
-                                                <Shield size={32} style={{ marginBottom: '0.75rem', opacity: 0.6 }} />
-                                                <p style={{ fontWeight: 600 }}>You don&apos;t have permission to view Sales statistics.</p>
+                                            <div className="admin-table-card admin-message-card">
+                                                <Shield size={40} />
+                                                <p>You don&apos;t have permission to view Sales statistics.</p>
                                             </div>
                                         ) : <SalesDashboard data={salesDashboard} />
                                     )}
@@ -1919,21 +2007,9 @@ const Admin = () => {
                                 <button className="btn-add" onClick={() => { 
                                     setModalMode('add'); 
                                     setDoctorForm({ 
-                                        name: '', 
-                                        specialty: '', 
-                                        subSpecialty: '',
-                                        qualification: '',
-                                        bio: '',
-                                        experience: '',
-                                        education: '',
-                                        specializations: '',
-                                        morning: '', 
-                                        evening: '', 
-                                        consultationFee: '',
-                                        phone: '',
-                                        email: '',
-                                        address: '',
-                                        available: true 
+                                        name: '', specialty: '', subSpecialty: '', qualification: '', bio: '', experience: '', education: '', specializations: '',
+                                        morning: '', evening: '', morningStart: '', morningEnd: '', eveningStart: '', eveningEnd: '',
+                                        consultationFee: '', phone: '', email: '', address: '', available: true 
                                     }); 
                                     setShowModal(true); 
                                 }}><Plus size={18} /> Add Doctor</button>
@@ -1996,13 +2072,13 @@ const Admin = () => {
                                             <option value={5}>5</option><option value={10}>10</option><option value={20}>20</option><option value={50}>50</option><option value={100}>100</option>
                                         </select>
                                     </label>
-                                    <button className="btn-add" onClick={() => { setModalMode('add'); setMedicineForm({ name: '', therapeutic_category_id: (therapeuticCategories && therapeuticCategories[0]) ? String(therapeuticCategories[0].id) : '', dosage_form: 'Tablet', schedule_type: 'OTC', is_controlled: false, description: '' }); setShowModal(true); }}><Plus size={18} /> Add Medicine</button>
+                                    <button className="btn-add" onClick={() => { setModalMode('add'); setMedicineForm({ name: '', therapeutic_category_id: (therapeuticCategories && therapeuticCategories[0]) ? String(therapeuticCategories[0].id) : '', dosage_form: 'Tablet', schedule_type: 'OTC', is_controlled: false, description: '', is_available: true }); setShowModal(true); }}><Plus size={18} /> Add Medicine</button>
                                 </div>
                             </div>
                             <div className="scrollable-section-wrapper">
                                 <div className="table-wrapper">
                                     <table className="admin-table">
-                                        <thead><tr><th>Name</th><th>Therapeutic Category</th><th>Dosage Form</th><th>Schedule</th><th>Rx</th><th>Active</th><th>Actions</th></tr></thead>
+                                        <thead><tr><th>Name</th><th>Therapeutic Category</th><th>Dosage Form</th><th>Schedule</th><th>Rx</th><th>Active</th><th>Available</th><th>Actions</th></tr></thead>
                                         <tbody>{(medicinesList || []).filter(m => !getSearchForTab('medicines') || (m.name || '').toLowerCase().includes((getSearchForTab('medicines') || '').toLowerCase()) || (m.therapeutic_category_name || '').toLowerCase().includes((getSearchForTab('medicines') || '').toLowerCase())).map(med => (
                                                 <tr key={med.id}>
                                                     <td data-label="Name">{med.name || '—'}</td>
@@ -2011,8 +2087,30 @@ const Admin = () => {
                                                     <td data-label="Schedule">{med.schedule_type || '—'}</td>
                                                     <td data-label="Rx">{med.is_prescription_required ? 'Yes' : 'No'}</td>
                                                     <td data-label="Active"><span className={`status-tag ${med.is_active !== false ? 'active' : 'inactive'}`}>{med.is_active !== false ? 'Yes' : 'No'}</span></td>
+                                                    <td data-label="Available">
+                                                        <select
+                                                            value={med.is_available !== false ? 'yes' : 'no'}
+                                                            onChange={async (e) => {
+                                                                const newValue = e.target.value === 'yes';
+                                                                const prevList = [...(medicinesList || [])];
+                                                                setMedicinesList(prev => prev.map(m => m.id === med.id ? { ...m, is_available: newValue } : m));
+                                                                try {
+                                                                    await updateMedicine(med.id, { is_available: newValue });
+                                                                    showNotify(newValue ? 'Medicine marked available' : 'Medicine marked not available', 'success');
+                                                                } catch (err) {
+                                                                    setMedicinesList(prevList);
+                                                                    showNotify(err?.message || 'Update failed', 'error');
+                                                                }
+                                                            }}
+                                                            style={{ padding: '0.35rem 0.5rem', borderRadius: '6px', border: '1px solid var(--admin-border)', background: 'var(--admin-bg)', color: 'var(--admin-text)', cursor: 'pointer', minWidth: '6rem' }}
+                                                            title="Available for sale"
+                                                        >
+                                                            <option value="yes">Available</option>
+                                                            <option value="no">Not available</option>
+                                                        </select>
+                                                    </td>
                                                     <td data-label="Actions" className="actions">
-                                                        <button className="action-btn" onClick={() => { setModalMode('edit'); setEditingId(med.id); setMedicineForm({ name: med.name || '', therapeutic_category_id: med.therapeutic_category_id ? String(med.therapeutic_category_id) : '', dosage_form: med.dosage_form || 'Tablet', schedule_type: med.schedule_type || 'OTC', is_controlled: med.is_controlled === true, description: med.description || '' }); setShowModal(true); }}><Pencil size={16} /></button>
+                                                        <button className="action-btn" onClick={() => { setModalMode('edit'); setEditingId(med.id); setMedicineForm({ name: med.name || '', therapeutic_category_id: med.therapeutic_category_id ? String(med.therapeutic_category_id) : '', dosage_form: med.dosage_form || 'Tablet', schedule_type: med.schedule_type || 'OTC', is_controlled: med.is_controlled === true, description: med.description || '', is_available: med.is_available !== false }); setShowModal(true); }}><Pencil size={16} /></button>
                                                         <button className="action-btn delete" onClick={() => requestDelete('medicine', med.id, med.name)}><Trash2 size={16} /></button>
                                                     </td>
                                                 </tr>
@@ -2047,10 +2145,10 @@ const Admin = () => {
                     {/* Orders Tab */}
                     {activeTab === 'orders' && (
                         tabPermissionDenied.has('orders') ? (
-                            <div className="admin-table-card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--admin-text-secondary)' }}>
-                                <Shield size={48} style={{ marginBottom: '1rem', opacity: 0.6 }} />
-                                <p style={{ fontWeight: 600, marginBottom: '0.5rem' }}>You don&apos;t have permission to view orders</p>
-                                <p style={{ fontSize: '0.9rem' }}>Contact your administrator to get access.</p>
+                            <div className="admin-table-card admin-message-card">
+                                <Shield size={48} />
+                                <p>You don&apos;t have permission to view orders.</p>
+                                <p>Contact your administrator to get access.</p>
                             </div>
                         ) : (
                         <OrdersTab
@@ -2283,7 +2381,7 @@ const Admin = () => {
                                                         </td>
                                                     </tr>
                                                 ))}
-                                                {coupons.length === 0 && <tr><td colSpan="6" style={{ textAlign: 'center', padding: '3rem' }}>No coupons created yet.</td></tr>}
+                                                {coupons.length === 0 && <tr><td colSpan="6" className="table-empty-cell">No coupons created yet.</td></tr>}
                                             </tbody>
                                         </table>
                                     </div>
@@ -2294,6 +2392,7 @@ const Admin = () => {
                     {/* Staff Tab */}
                     {activeTab === 'staff' && (
                         <div className="admin-table-card staff-table-card animate-slide-up">
+                            <p className="staff-tab-note" style={{ margin: '0 0 0.75rem 0', fontSize: '0.875rem', color: 'var(--admin-text-muted)' }}>Customers sign up on the website; this section is for staff only.</p>
                             <div className="table-actions">
                                 <div className="table-search"><Search size={18} /><input type="text" placeholder="Search staff..." value={getSearchForTab('staff')} onChange={(e) => setSearchForTab('staff', e.target.value)} /></div>
                                 <button className="btn-add" onClick={async () => { setModalMode('add'); setManagerForm({ name: '', email: '', password: '', mobile_number: '', role_id: '' }); if (roles.length === 0) await fetchTabData('roles', true); setShowModal(true); }}><Plus size={18} /> Add Staff</button>
@@ -2330,7 +2429,7 @@ const Admin = () => {
                                                     </td>
                                                 </tr>
                                             ))}
-                                            {(!managers || managers.length === 0) && <tr><td colSpan="4" style={{ textAlign: 'center', padding: '3rem' }}>No staff added yet.</td></tr>}
+                                            {(!managers || managers.length === 0) && <tr><td colSpan="4" className="table-empty-cell">No staff added yet.</td></tr>}
                                         </tbody>
                                     </table>
                                 </div>
@@ -2477,8 +2576,13 @@ const Admin = () => {
                             onAddClick={async () => {
                                         const meds = await getAllMedicinesForSelect();
                                         setMedicinesForDropdown(meds);
+                                        if ((therapeuticCategories || []).length === 0) {
+                                            getTherapeuticCategories({ limit: 100 }).then(r => setTherapeuticCategories(r.items || [])).catch(() => {});
+                                        }
                                         setModalMode('add');
-                                        setBrandForm({ medicine_id: (meds[0] && meds[0].id) ? String(meds[0].id) : '', brand_name: '', manufacturer: '', mrp: '', description: '' });
+                                        setBrandModalSubView('brand');
+                                        setBrandMedicineSearch('');
+                                        setBrandForm({ medicine_id: (meds[0] && meds[0].id) ? String(meds[0].id) : '', brand_name: '', manufacturer: '', mrp: '', description: '', is_available: true });
                                         setShowModal(true);
                                     }}
                             onEditClick={async (b) => {
@@ -2486,10 +2590,23 @@ const Admin = () => {
                                         setMedicinesForDropdown(meds);
                                         setModalMode('edit');
                                         setEditingId(b.id);
-                                        setBrandForm({ brand_name: b.brand_name || '', manufacturer: b.manufacturer || '', mrp: b.mrp || '', medicine_id: b.medicine_id ? String(b.medicine_id) : '', description: b.description || '' });
+                                        setBrandModalSubView('brand');
+                                        setBrandMedicineSearch('');
+                                        setBrandForm({ brand_name: b.brand_name || '', manufacturer: b.manufacturer || '', mrp: b.mrp || '', medicine_id: b.medicine_id ? String(b.medicine_id) : '', description: b.description || '', is_available: b.is_available !== false });
                                         setShowModal(true);
                                     }}
                             onDeleteClick={requestDelete}
+                            onToggleAvailability={async (brand, newValue) => {
+                                const prevBrands = [...(brands || [])];
+                                setBrands(prev => prev.map(x => x.id === brand.id ? { ...x, is_available: newValue } : x));
+                                try {
+                                    await updateBrand(brand.id, { is_available: newValue });
+                                    showNotify(newValue ? 'Brand marked available' : 'Brand marked not available', 'success');
+                                } catch (e) {
+                                    setBrands(prevBrands);
+                                    showNotify(e?.message || 'Update failed', 'error');
+                                }
+                            }}
                         />
                     )}
                     {activeTab === 'compositions' && (
@@ -2550,10 +2667,10 @@ const Admin = () => {
                     )}
                     {activeTab === 'payments' && (
                         tabPermissionDenied.has('payments') ? (
-                            <div className="admin-table-card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--admin-text-secondary)' }}>
-                                <Shield size={48} style={{ marginBottom: '1rem', opacity: 0.6 }} />
-                                <p style={{ fontWeight: 600, marginBottom: '0.5rem' }}>You don&apos;t have permission to view payments</p>
-                                <p style={{ fontSize: '0.9rem' }}>Contact your administrator to get access.</p>
+                            <div className="admin-table-card admin-message-card">
+                                <Shield size={48} />
+                                <p>You don&apos;t have permission to view payments.</p>
+                                <p>Contact your administrator to get access.</p>
                             </div>
                         ) : (
                         <PaymentsTab
@@ -2626,22 +2743,32 @@ const Admin = () => {
                 <div className="admin-modal-overlay">
                     <div className={`admin-modal ${activeTab !== 'dashboard' ? 'compact-modal' : ''}`}>
                         <div className="modal-header">
-                            <h3>{modalMode === 'add' ? 'New' : 'Update'} {
-                                activeTab === 'staff' ? 'Staff' :
-                                activeTab === 'categories' ? 'Category' :
-                                activeTab === 'roles' ? 'Role' :
-                                activeTab === 'permissions' ? 'Permission' :
-                                activeTab === 'role-permissions' ? 'Role Permission' :
-                                activeTab === 'medicines' ? 'Medicine' :
-                                activeTab === 'brands' ? 'Brand' :
-                                activeTab === 'compositions' ? 'Composition' :
-                                activeTab === 'batches' ? 'Batch' :
-                                activeTab === 'therapeutic-categories' ? 'Therapeutic Category' :
-                                activeTab === 'inventory' ? 'Inventory Transaction' :
-                                activeTab === 'test-bookings' ? 'Test Booking' :
-                                activeTab.slice(0, -1)
-                            }</h3>
-                            <button onClick={() => setShowModal(false)} style={{ color: 'var(--admin-text-muted)' }}><X size={24} /></button>
+                            {activeTab === 'brands' && brandModalSubView === 'add_medicine' ? (
+                                <>
+                                    <button type="button" onClick={() => setBrandModalSubView('brand')} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.95rem' }}><ArrowLeft size={20} /> Back</button>
+                                    <h3 style={{ margin: 0 }}>Add medicine</h3>
+                                    <button onClick={() => { setBrandModalSubView('brand'); setShowModal(false); }} style={{ color: 'var(--admin-text-muted)' }}><X size={24} /></button>
+                                </>
+                            ) : (
+                                <>
+                                    <h3>{modalMode === 'add' ? 'New' : 'Update'} {
+                                        activeTab === 'staff' ? 'Staff' :
+                                        activeTab === 'categories' ? 'Category' :
+                                        activeTab === 'roles' ? 'Role' :
+                                        activeTab === 'permissions' ? 'Permission' :
+                                        activeTab === 'role-permissions' ? 'Role Permission' :
+                                        activeTab === 'medicines' ? 'Medicine' :
+                                        activeTab === 'brands' ? 'Brand' :
+                                        activeTab === 'compositions' ? 'Composition' :
+                                        activeTab === 'batches' ? 'Batch' :
+                                        activeTab === 'therapeutic-categories' ? 'Therapeutic Category' :
+                                        activeTab === 'inventory' ? 'Inventory Transaction' :
+                                        activeTab === 'test-bookings' ? 'Test Booking' :
+                                        activeTab.slice(0, -1)
+                                    }</h3>
+                                    <button onClick={() => setShowModal(false)} style={{ color: 'var(--admin-text-muted)' }}><X size={24} /></button>
+                                </>
+                            )}
                         </div>
                         <form onSubmit={
                             activeTab === 'doctors' ? handleDoctorSubmit :
@@ -2668,12 +2795,12 @@ const Admin = () => {
                                     <div className="form-group"><label>Specialization*</label><input type="text" required value={doctorForm.specialty} onChange={e => setDoctorForm({ ...doctorForm, specialty: e.target.value })} /></div>
                                     <div className="form-group"><label>Sub-Specialty</label><input type="text" value={doctorForm.subSpecialty} onChange={e => setDoctorForm({ ...doctorForm, subSpecialty: e.target.value })} placeholder="e.g., Cardiology" /></div>
                                     <div className="form-group"><label>Qualifications</label><input type="text" value={doctorForm.qualification} onChange={e => setDoctorForm({ ...doctorForm, qualification: e.target.value })} placeholder="e.g., MBBS, MD" /></div>
-                                    <div className="form-group"><label>About / Biography</label><textarea rows="4" value={doctorForm.bio} onChange={e => setDoctorForm({ ...doctorForm, bio: e.target.value })} placeholder="Doctor's biography and background..." /></div>
+                                    <div className="form-group"><label>About / Biography*</label><textarea rows="4" required value={doctorForm.bio} onChange={e => setDoctorForm({ ...doctorForm, bio: e.target.value })} placeholder="Doctor's biography and background (required for display on website)..." /></div>
                                     <div className="form-group"><label>Experience</label><textarea rows="2" value={doctorForm.experience} onChange={e => setDoctorForm({ ...doctorForm, experience: e.target.value })} placeholder="e.g., 15+ years of experience in general medicine" /></div>
                                     <div className="form-group"><label>Education</label><input type="text" value={Array.isArray(doctorForm.education) ? doctorForm.education.join(', ') : (doctorForm.education ?? '')} onChange={e => setDoctorForm({ ...doctorForm, education: e.target.value })} placeholder="Comma-separated: MBBS from ABC, MD from XYZ" /></div>
                                     <div className="form-group"><label>Specializations</label><input type="text" value={Array.isArray(doctorForm.specializations) ? doctorForm.specializations.join(', ') : (doctorForm.specializations ?? '')} onChange={e => setDoctorForm({ ...doctorForm, specializations: e.target.value })} placeholder="Comma-separated: Cardiology, Diabetes Management" /></div>
-                                    <div className="form-group"><label>Morning Slot (optional)</label><input type="text" value={doctorForm.morning || ''} onChange={e => setDoctorForm({ ...doctorForm, morning: e.target.value })} placeholder="e.g., 10:00 - 13:00 (24h)" /></div>
-                                    <div className="form-group"><label>Evening Slot (optional)</label><input type="text" value={doctorForm.evening || ''} onChange={e => setDoctorForm({ ...doctorForm, evening: e.target.value })} placeholder="e.g., 17:00 - 21:00 (24h)" /></div>
+                                    <div className="form-group"><label>Morning Slot (optional)</label><div className="form-row-time"><TimeInput value={doctorForm.morningStart || ''} onChange={v => setDoctorForm({ ...doctorForm, morningStart: v })} placeholder="Start" /><span className="time-sep">–</span><TimeInput value={doctorForm.morningEnd || ''} onChange={v => setDoctorForm({ ...doctorForm, morningEnd: v })} placeholder="End" /></div></div>
+                                    <div className="form-group"><label>Evening Slot (optional)</label><div className="form-row-time"><TimeInput value={doctorForm.eveningStart || ''} onChange={v => setDoctorForm({ ...doctorForm, eveningStart: v })} placeholder="Start" /><span className="time-sep">–</span><TimeInput value={doctorForm.eveningEnd || ''} onChange={v => setDoctorForm({ ...doctorForm, eveningEnd: v })} placeholder="End" /></div></div>
                                     <div className="form-group"><label>Consultation Fee (₹)</label><input type="number" step="0.01" min="0" value={doctorForm.consultationFee} onChange={e => setDoctorForm({ ...doctorForm, consultationFee: e.target.value })} placeholder="e.g., 500" /></div>
                                     <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--admin-border)' }}>
                                         <h4 style={{ marginBottom: '1rem', color: 'var(--admin-text)', fontSize: '1rem' }}>Contact Information</h4>
@@ -2706,11 +2833,15 @@ const Admin = () => {
                                             <option value="Prescription">Prescription</option>
                                         </select>
                                     </div>
-                                    <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <div className="form-group form-group-checkbox">
                                         <input type="checkbox" id="med-controlled" checked={medicineForm.is_controlled === true} onChange={e => setMedicineForm({ ...medicineForm, is_controlled: e.target.checked })} />
-                                        <label htmlFor="med-controlled" style={{ marginBottom: 0 }}>Controlled substance</label>
+                                        <label htmlFor="med-controlled">Controlled substance</label>
                                     </div>
                                     <div className="form-group"><label>Description</label><textarea rows={2} value={medicineForm.description || ''} placeholder="Optional" onChange={e => setMedicineForm({ ...medicineForm, description: e.target.value })} /></div>
+                                    <div className="form-group form-group-checkbox" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                                        <input type="checkbox" id="med-available" checked={medicineForm.is_available !== false} onChange={e => setMedicineForm({ ...medicineForm, is_available: e.target.checked })} />
+                                        <label htmlFor="med-available">Available for sale (show to customers)</label>
+                                    </div>
                                 </>
                             )}
                             {activeTab === 'orders' && (
@@ -2744,8 +2875,8 @@ const Admin = () => {
                                         </select>
                                         {(doctors || []).length === 0 && <small style={{ color: 'var(--admin-text-muted)', marginTop: '0.25rem', display: 'block' }}>Loading doctors… Add doctors in Manage Doctors if the list is empty.</small>}
                                     </div>
-                                    <div className="form-group"><label>Date*</label><input type="date" required value={appointmentForm.date || ''} onChange={e => setAppointmentForm({ ...appointmentForm, date: e.target.value })} /></div>
-                                    <div className="form-group"><label>Time</label><input type="time" value={timeToHHmm(appointmentForm.time) || ''} onChange={e => setAppointmentForm({ ...appointmentForm, time: e.target.value })} placeholder="Optional" /></div>
+                                    <div className="form-group"><label>Date*</label><DatePicker required value={appointmentForm.date || ''} onChange={v => setAppointmentForm({ ...appointmentForm, date: v })} placeholder="Select date" /></div>
+                                    <div className="form-group"><label>Time</label><TimeInput value={timeToHHmm(appointmentForm.time) || ''} onChange={v => setAppointmentForm({ ...appointmentForm, time: v })} placeholder="Optional" /></div>
                                     <div className="form-group"><label>Status</label><select value={appointmentForm.status} onChange={e => setAppointmentForm({ ...appointmentForm, status: e.target.value })} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--admin-border)' }}><option value="PENDING">Pending</option><option value="CONFIRMED">Confirmed</option><option value="CANCELLED">Cancelled</option><option value="COMPLETED">Completed</option></select></div>
                                     <div className="form-group"><label>Patient Message</label><textarea value={appointmentForm.message} onChange={e => setAppointmentForm({ ...appointmentForm, message: e.target.value })} placeholder="Message from patient (optional)"></textarea></div>
                                 </>
@@ -2754,11 +2885,11 @@ const Admin = () => {
                                 <>
                                     <div className="form-group">
                                         <label>Start (e.g., 09:00)</label>
-                                        <input type="time" required value={slotForm.start} onChange={e => setSlotForm({ ...slotForm, start: e.target.value })} />
+                                        <TimeInput required value={slotForm.start} onChange={v => setSlotForm({ ...slotForm, start: v })} placeholder="Start time" />
                                     </div>
                                     <div className="form-group">
                                         <label>End (e.g., 11:00)</label>
-                                        <input type="time" required value={slotForm.end} onChange={e => setSlotForm({ ...slotForm, end: e.target.value })} />
+                                        <TimeInput required value={slotForm.end} onChange={v => setSlotForm({ ...slotForm, end: v })} placeholder="End time" />
                                     </div>
                                 </>
                             )}
@@ -2775,8 +2906,8 @@ const Admin = () => {
                                     </div>
                                     <div className="form-group">
                                         <label>Expiry Date (Optional)</label>
-                                        <input type="date" value={couponForm.expiryDate} onChange={e => setCouponForm({ ...couponForm, expiryDate: e.target.value })} />
-                                        <small style={{ color: 'var(--admin-text-muted)', marginTop: '0.25rem', display: 'block' }}>After this date the coupon will be terminated and cannot be used</small>
+                                        <DatePicker value={couponForm.expiryDate} onChange={v => setCouponForm({ ...couponForm, expiryDate: v })} placeholder="Select expiry date" />
+                                        <small style={{ color: 'var(--admin-text-muted)', marginTop: '0.25rem', display: 'block' }}>After this date the coupon cannot be used and will not be shown at checkout.</small>
                                     </div>
                                     <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
                                         <label style={{ marginBottom: 0 }}>Enable Coupon:</label>
@@ -2897,32 +3028,74 @@ const Admin = () => {
                                     </div>
                                 </>
                             )}
-                            {activeTab === 'brands' && (
+                            {activeTab === 'brands' && brandModalSubView === 'add_medicine' && (
                                 <>
+                                    <div className="form-group"><label>Medicine name*</label><input type="text" required value={medicineForm.name} placeholder="e.g. Paracetamol" onChange={e => setMedicineForm({ ...medicineForm, name: e.target.value })} /></div>
+                                    <div className="form-group">
+                                        <label>Therapeutic category*</label>
+                                        <select required value={String(medicineForm.therapeutic_category_id || '')} onChange={e => setMedicineForm({ ...medicineForm, therapeutic_category_id: e.target.value })} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--admin-border)' }}>
+                                            <option value="">Select category</option>
+                                            {(therapeuticCategories || []).map(c => <option key={c.id} value={String(c.id || '')}>{c.name || '—'}</option>)}
+                                        </select>
+                                        {(therapeuticCategories || []).length === 0 && <small style={{ color: 'var(--admin-text-muted)', marginTop: '0.25rem', display: 'block' }}>Add categories in Therapeutic Cat. tab first.</small>}
+                                    </div>
+                                    <div className="form-group"><label>Dosage form*</label><input type="text" required value={medicineForm.dosage_form} placeholder="e.g. Tablet, Syrup" onChange={e => setMedicineForm({ ...medicineForm, dosage_form: e.target.value })} /></div>
+                                    <div className="form-group">
+                                        <label>Schedule*</label>
+                                        <select value={medicineForm.schedule_type} onChange={e => setMedicineForm({ ...medicineForm, schedule_type: e.target.value })} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--admin-border)' }}>
+                                            <option value="OTC">OTC</option><option value="G">G</option><option value="H">H</option><option value="H1">H1</option><option value="Prescription">Prescription</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-group form-group-checkbox">
+                                        <input type="checkbox" id="med-controlled-from-brand" checked={medicineForm.is_controlled === true} onChange={e => setMedicineForm({ ...medicineForm, is_controlled: e.target.checked })} />
+                                        <label htmlFor="med-controlled-from-brand">Controlled substance</label>
+                                    </div>
+                                    <div className="form-group"><label>Description</label><textarea rows={2} value={medicineForm.description || ''} placeholder="Optional" onChange={e => setMedicineForm({ ...medicineForm, description: e.target.value })} /></div>
+                                </>
+                            )}
+                            {activeTab === 'brands' && brandModalSubView === 'brand' && (
+                                <>
+                                    <div className="form-group">
+                                        <label>Search medicine</label>
+                                        <input
+                                            type="text"
+                                            value={brandMedicineSearch}
+                                            onChange={e => setBrandMedicineSearch(e.target.value)}
+                                            placeholder="Type to search medicine..."
+                                            style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--admin-border)' }}
+                                        />
+                                    </div>
                                     <div className="form-group">
                                         <label>Medicine (drug name)*</label>
                                         <select
                                             required
-                                            value={String(brandForm.medicine_id || '')}
-                                            onChange={e => setBrandForm({ ...brandForm, medicine_id: e.target.value })}
+                                            value={brandForm.medicine_id === '__add_new__' ? '' : String(brandForm.medicine_id || '')}
+                                            onChange={e => {
+                                                const v = e.target.value;
+                                                if (v === '__add_new__') {
+                                                    setMedicineForm({ name: '', therapeutic_category_id: (therapeuticCategories && therapeuticCategories[0]?.id) ? String(therapeuticCategories[0].id) : '', dosage_form: 'Tablet', schedule_type: 'OTC', is_controlled: false, description: '', is_available: true });
+                                                    setBrandModalSubView('add_medicine');
+                                                } else setBrandForm({ ...brandForm, medicine_id: v });
+                                            }}
                                             style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--admin-border)' }}
                                         >
                                             <option value="">Select medicine (e.g. Paracetamol)</option>
-                                            {(medicinesForDropdown || []).map(m => (
+                                            {((medicinesForDropdown || []).filter(m => !brandMedicineSearch.trim() || (m.name || '').toLowerCase().includes(brandMedicineSearch.toLowerCase().trim()))).map(m => (
                                                 <option key={m.id} value={String(m.id || '')}>{m.name || '—'}</option>
                                             ))}
+                                            <option value="__add_new__">+ Add new medicine</option>
                                         </select>
-                                        {(medicinesForDropdown || []).length === 0 && <small style={{ color: 'var(--admin-text-muted)', marginTop: '0.25rem', display: 'block' }}>Add medicines in Manage Medicines first.</small>}
-                                        {(medicinesForDropdown || []).length > 0 && (
-                                            <small style={{ color: 'var(--admin-text-muted)', marginTop: '0.25rem', display: 'block' }}>
-                                                {(medicinesForDropdown || []).length} medicine(s) available
-                                            </small>
-                                        )}
+                                        {(medicinesForDropdown || []).length === 0 && !brandMedicineSearch && <small style={{ color: 'var(--admin-text-muted)', marginTop: '0.25rem', display: 'block' }}>No medicines yet. Use &quot;Add new medicine&quot; below to add one, then complete the brand.</small>}
+                                        {brandMedicineSearch.trim() && (medicinesForDropdown || []).filter(m => (m.name || '').toLowerCase().includes(brandMedicineSearch.toLowerCase().trim())).length === 0 && <small style={{ color: 'var(--admin-warning, #b45309)', marginTop: '0.25rem', display: 'block' }}>No match. Select &quot;+ Add new medicine&quot; to create it.</small>}
                                     </div>
                                     <div className="form-group"><label>Brand / Manufacturer*</label><input type="text" required value={brandForm.brand_name} onChange={e => setBrandForm({ ...brandForm, brand_name: e.target.value })} placeholder="e.g. Dolo, Crocin" /></div>
                                     <div className="form-group"><label>Company*</label><input type="text" required value={brandForm.manufacturer} onChange={e => setBrandForm({ ...brandForm, manufacturer: e.target.value })} placeholder="e.g. Micro Labs, GSK" /></div>
                                     <div className="form-group"><label>MRP (₹)*</label><input type="number" step="0.01" required value={brandForm.mrp} onChange={e => setBrandForm({ ...brandForm, mrp: e.target.value })} placeholder="0.00" /></div>
                                     <div className="form-group"><label>Description</label><textarea rows="2" value={brandForm.description} onChange={e => setBrandForm({ ...brandForm, description: e.target.value })} placeholder="Optional" /></div>
+                                    <div className="form-group form-group-checkbox" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                                        <input type="checkbox" id="brand-available" checked={brandForm.is_available !== false} onChange={e => setBrandForm({ ...brandForm, is_available: e.target.checked })} />
+                                        <label htmlFor="brand-available">Available for sale (show to customers)</label>
+                                    </div>
                                 </>
                             )}
                             {activeTab === 'compositions' && (
@@ -2990,7 +3163,7 @@ const Admin = () => {
                                         </small>
                                     </div>
                                     <div className="form-group"><label>Batch Number*</label><input type="text" required value={batchForm.batch_number} onChange={e => setBatchForm({ ...batchForm, batch_number: e.target.value })} placeholder="e.g. BATCH-001" /></div>
-                                    <div className="form-group"><label>Expiry Date*</label><input type="date" required value={batchForm.expiry_date} onChange={e => setBatchForm({ ...batchForm, expiry_date: e.target.value })} /></div>
+                                    <div className="form-group"><label>Expiry Date*</label><DatePicker required value={batchForm.expiry_date} onChange={v => setBatchForm({ ...batchForm, expiry_date: v })} placeholder="Select expiry date" /></div>
                                     <div className="form-group"><label>Quantity*</label><input type="number" required min="0" value={batchForm.quantity_available} onChange={e => setBatchForm({ ...batchForm, quantity_available: e.target.value })} placeholder="0" /></div>
                                     <div className="form-group"><label>Purchase Price (₹)*</label><input type="number" step="0.01" required value={batchForm.purchase_price} onChange={e => setBatchForm({ ...batchForm, purchase_price: e.target.value })} placeholder="0.00" /></div>
                                 </>
@@ -3065,8 +3238,8 @@ const Admin = () => {
                                     </div>
                                     <div className="form-group"><label>Patient Name*</label><input type="text" required value={testBookingForm.patient_name} onChange={e => setTestBookingForm({ ...testBookingForm, patient_name: e.target.value })} placeholder="Full name" /></div>
                                     <div className="form-group"><label>Phone*</label><input type="tel" required value={testBookingForm.patient_phone} onChange={e => setTestBookingForm({ ...testBookingForm, patient_phone: e.target.value })} placeholder="Phone number" /></div>
-                                    <div className="form-group"><label>Date*</label><input type="date" required value={testBookingForm.booking_date} min={dateMin} onChange={e => setTestBookingForm({ ...testBookingForm, booking_date: e.target.value })} title={modalMode === 'add' ? 'Only future dates allowed for new bookings' : ''} /></div>
-                                    <div className="form-group"><label>Time</label><input type="time" value={timeToHHmm(testBookingForm.booking_time) || ''} min={modalMode === 'add' ? timeMin : undefined} onChange={e => setTestBookingForm({ ...testBookingForm, booking_time: e.target.value })} placeholder="Optional" title={modalMode === 'add' && testBookingForm.booking_date === todayStr ? 'Only future time when date is today' : ''} /></div>
+                                    <div className="form-group"><label>Date*</label><DatePicker required value={testBookingForm.booking_date} min={dateMin} onChange={v => setTestBookingForm({ ...testBookingForm, booking_date: v })} placeholder="Select date" title={modalMode === 'add' ? 'Only future dates allowed for new bookings' : ''} /></div>
+                                    <div className="form-group"><label>Time</label><TimeInput value={timeToHHmm(testBookingForm.booking_time) || ''} onChange={v => setTestBookingForm({ ...testBookingForm, booking_time: v })} placeholder="Optional" title={modalMode === 'add' && testBookingForm.booking_date === todayStr ? 'Only future time when date is today' : ''} /></div>
                                     <div className="form-group"><label>Status</label>
                                         <select value={testBookingForm.status} onChange={e => setTestBookingForm({ ...testBookingForm, status: e.target.value })} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--admin-border)' }}>
                                             <option value="PENDING">PENDING</option><option value="CONFIRMED">CONFIRMED</option><option value="CANCELLED">CANCELLED</option><option value="COMPLETED">COMPLETED</option>
@@ -3087,11 +3260,13 @@ const Admin = () => {
                                             className="admin-select"
                                         >
                                             <option value="">Select role</option>
-                                            {(roles || []).map(r => (
-                                                <option key={r.id} value={r.id}>{r.name || r.id}</option>
-                                            ))}
+                                            {(roles || [])
+                                                .filter(r => (r.name || '').toUpperCase() !== 'CUSTOMER')
+                                                .map(r => (
+                                                    <option key={r.id} value={r.id}>{r.name || r.id}</option>
+                                                ))}
                                         </select>
-                                        <small style={{ color: 'var(--admin-text-muted)', marginTop: '0.25rem', display: 'block' }}>Staff will get all permissions assigned to this role.</small>
+                                        <small style={{ color: 'var(--admin-text-muted)', marginTop: '0.25rem', display: 'block' }}>Staff roles only. Customers are separate and cannot be added here.</small>
                                     </div>
                                     <div className="form-group"><label>Full Name*</label><input type="text" required value={managerForm.name || ''} onChange={e => setManagerForm({ ...managerForm, name: e.target.value })} /></div>
                                     <div className="form-group"><label>Email Address*</label><input type="email" required value={managerForm.email || ''} onChange={e => setManagerForm({ ...managerForm, email: e.target.value })} /></div>
@@ -3118,11 +3293,13 @@ const Admin = () => {
                                 </>
                             )}
                             <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                                <button type="button" className="btn-add btn-cancel" style={{ flex: 1 }} onClick={() => setShowModal(false)}>
-                                    Cancel
+                                <button type="button" className="btn-add btn-cancel" style={{ flex: 1 }} onClick={() => activeTab === 'brands' && brandModalSubView === 'add_medicine' ? setBrandModalSubView('brand') : setShowModal(false)}>
+                                    {activeTab === 'brands' && brandModalSubView === 'add_medicine' ? 'Back' : 'Cancel'}
                                 </button>
                                 <button type="submit" className="btn-add" style={{ flex: 2 }}>
-                                    {modalMode === 'add' ? 'Confirm Addition' : 'Save Changes'}
+                                    {activeTab === 'brands' && brandModalSubView === 'add_medicine'
+                                        ? 'Add medicine'
+                                        : (modalMode === 'add' ? 'Confirm Addition' : 'Save Changes')}
                                 </button>
                             </div>
                         </form>
@@ -3133,35 +3310,103 @@ const Admin = () => {
             {/* Quick-add brand from Product Batch form (nested modal) */}
             {showAddBrandFromBatchModal && (
                 <div className="admin-modal-overlay" style={{ zIndex: 10001 }}>
-                    <div className="admin-modal" style={{ maxWidth: '420px' }}>
+                    <div className="admin-modal" style={{ maxWidth: quickAddBrandSubView === 'add_medicine' ? '480px' : '420px' }}>
                         <div className="admin-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                            <h3 style={{ margin: 0 }}>Add new brand</h3>
-                            <button type="button" onClick={() => setShowAddBrandFromBatchModal(false)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--admin-text-muted)', cursor: 'pointer' }}><X size={24} /></button>
+                            {quickAddBrandSubView === 'add_medicine' ? (
+                                <>
+                                    <button type="button" onClick={() => setQuickAddBrandSubView('brand')} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.95rem' }}><ArrowLeft size={20} /> Back</button>
+                                    <h3 style={{ margin: 0 }}>Add medicine</h3>
+                                    <button type="button" onClick={() => setShowAddBrandFromBatchModal(false)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--admin-text-muted)', cursor: 'pointer' }}><X size={24} /></button>
+                                </>
+                            ) : (
+                                <>
+                                    <h3 style={{ margin: 0 }}>Add new brand</h3>
+                                    <button type="button" onClick={() => setShowAddBrandFromBatchModal(false)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--admin-text-muted)', cursor: 'pointer' }}><X size={24} /></button>
+                                </>
+                            )}
                         </div>
-                        <p style={{ fontSize: '0.9rem', color: 'var(--admin-text-muted)', marginBottom: '1rem' }}>Add a medicine brand so you can select it in the batch form. Medicine must exist first.</p>
-                        <form onSubmit={submitQuickAddBrandFromBatch} className="modal-form">
-                            <div className="form-group">
-                                <label>Medicine*</label>
-                                <select
-                                    required
-                                    value={String(quickAddBrandForm.medicine_id || '')}
-                                    onChange={e => setQuickAddBrandForm({ ...quickAddBrandForm, medicine_id: e.target.value })}
-                                    style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--admin-border)' }}
-                                >
-                                    <option value="">Select medicine</option>
-                                    {(medicinesForDropdown || []).map(m => (
-                                        <option key={m.id} value={String(m.id || '')}>{m.name || '—'}</option>
-                                    ))}
-                                </select>
-                                {(medicinesForDropdown || []).length === 0 && <small style={{ color: 'var(--admin-text-muted)', marginTop: '0.25rem', display: 'block' }}>Add medicines in Manage Medicines first.</small>}
-                            </div>
-                            <div className="form-group"><label>Brand name*</label><input type="text" required value={quickAddBrandForm.brand_name} onChange={e => setQuickAddBrandForm({ ...quickAddBrandForm, brand_name: e.target.value })} placeholder="e.g. Dolo, Crocin" /></div>
-                            <div className="form-group"><label>Company*</label><input type="text" required value={quickAddBrandForm.manufacturer} onChange={e => setQuickAddBrandForm({ ...quickAddBrandForm, manufacturer: e.target.value })} placeholder="e.g. Micro Labs, GSK" /></div>
-                            <div className="form-group"><label>MRP (₹)*</label><input type="number" step="0.01" required value={quickAddBrandForm.mrp} onChange={e => setQuickAddBrandForm({ ...quickAddBrandForm, mrp: e.target.value })} placeholder="0.00" /></div>
-                            <div className="form-group"><label>Description</label><textarea rows="2" value={quickAddBrandForm.description || ''} onChange={e => setQuickAddBrandForm({ ...quickAddBrandForm, description: e.target.value })} placeholder="Optional" /></div>
+                        {quickAddBrandSubView === 'brand' && (
+                            <p style={{ fontSize: '0.9rem', color: 'var(--admin-text-muted)', marginBottom: '1rem' }}>Add a medicine brand so you can select it in the batch form. Add the medicine first if it doesn&apos;t exist.</p>
+                        )}
+                        <form onSubmit={submitQuickAddBrandModal} className="modal-form">
+                            {quickAddBrandSubView === 'add_medicine' && (
+                                <>
+                                    <div className="form-group"><label>Medicine name*</label><input type="text" required value={medicineForm.name} placeholder="e.g. Paracetamol" onChange={e => setMedicineForm({ ...medicineForm, name: e.target.value })} /></div>
+                                    <div className="form-group">
+                                        <label>Therapeutic category*</label>
+                                        <select required value={String(medicineForm.therapeutic_category_id || '')} onChange={e => setMedicineForm({ ...medicineForm, therapeutic_category_id: e.target.value })} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--admin-border)' }}>
+                                            <option value="">Select category</option>
+                                            {(therapeuticCategories || []).map(c => <option key={c.id} value={String(c.id || '')}>{c.name || '—'}</option>)}
+                                        </select>
+                                        {(therapeuticCategories || []).length === 0 && <small style={{ color: 'var(--admin-text-muted)', marginTop: '0.25rem', display: 'block' }}>Add categories in Therapeutic Cat. tab first.</small>}
+                                    </div>
+                                    <div className="form-group"><label>Dosage form*</label><input type="text" required value={medicineForm.dosage_form} placeholder="e.g. Tablet, Syrup" onChange={e => setMedicineForm({ ...medicineForm, dosage_form: e.target.value })} /></div>
+                                    <div className="form-group">
+                                        <label>Schedule*</label>
+                                        <select value={medicineForm.schedule_type} onChange={e => setMedicineForm({ ...medicineForm, schedule_type: e.target.value })} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--admin-border)' }}>
+                                            <option value="OTC">OTC</option><option value="G">G</option><option value="H">H</option><option value="H1">H1</option><option value="Prescription">Prescription</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-group form-group-checkbox">
+                                        <input type="checkbox" id="quick-add-med-controlled" checked={medicineForm.is_controlled === true} onChange={e => setMedicineForm({ ...medicineForm, is_controlled: e.target.checked })} />
+                                        <label htmlFor="quick-add-med-controlled">Controlled substance</label>
+                                    </div>
+                                    <div className="form-group"><label>Description</label><textarea rows={2} value={medicineForm.description || ''} placeholder="Optional" onChange={e => setMedicineForm({ ...medicineForm, description: e.target.value })} /></div>
+                                </>
+                            )}
+                            {quickAddBrandSubView === 'brand' && (
+                                <>
+                                    <div className="form-group">
+                                        <label>Search medicine</label>
+                                        <input
+                                            type="text"
+                                            value={quickAddBrandMedicineSearch}
+                                            onChange={e => setQuickAddBrandMedicineSearch(e.target.value)}
+                                            placeholder="Type to search medicine..."
+                                            style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--admin-border)' }}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Medicine (drug name)*</label>
+                                        <select
+                                            required
+                                            value={quickAddBrandForm.medicine_id === '__add_new__' ? '' : String(quickAddBrandForm.medicine_id || '')}
+                                            onChange={e => {
+                                                const v = e.target.value;
+                                                if (v === '__add_new__') {
+                                                    setMedicineForm({ name: '', therapeutic_category_id: (therapeuticCategories && therapeuticCategories[0]?.id) ? String(therapeuticCategories[0].id) : '', dosage_form: 'Tablet', schedule_type: 'OTC', is_controlled: false, description: '', is_available: true });
+                                                    setQuickAddBrandSubView('add_medicine');
+                                                } else setQuickAddBrandForm({ ...quickAddBrandForm, medicine_id: v });
+                                            }}
+                                            style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--admin-border)' }}
+                                        >
+                                            <option value="">Select medicine (e.g. Paracetamol)</option>
+                                            {((medicinesForDropdown || []).filter(m => !quickAddBrandMedicineSearch.trim() || (m.name || '').toLowerCase().includes(quickAddBrandMedicineSearch.toLowerCase().trim()))).map(m => (
+                                                <option key={m.id} value={String(m.id || '')}>{m.name || '—'}</option>
+                                            ))}
+                                            <option value="__add_new__">+ Add new medicine</option>
+                                        </select>
+                                        {(medicinesForDropdown || []).length === 0 && !quickAddBrandMedicineSearch && <small style={{ color: 'var(--admin-text-muted)', marginTop: '0.25rem', display: 'block' }}>No medicines yet. Use &quot;+ Add new medicine&quot; to add one, then complete the brand.</small>}
+                                        {quickAddBrandMedicineSearch.trim() && (medicinesForDropdown || []).filter(m => (m.name || '').toLowerCase().includes(quickAddBrandMedicineSearch.toLowerCase().trim())).length === 0 && <small style={{ color: 'var(--admin-warning, #b45309)', marginTop: '0.25rem', display: 'block' }}>No match. Select &quot;+ Add new medicine&quot; to create it.</small>}
+                                    </div>
+                                    <div className="form-group"><label>Brand name*</label><input type="text" required value={quickAddBrandForm.brand_name} onChange={e => setQuickAddBrandForm({ ...quickAddBrandForm, brand_name: e.target.value })} placeholder="e.g. Dolo, Crocin" /></div>
+                                    <div className="form-group"><label>Company*</label><input type="text" required value={quickAddBrandForm.manufacturer} onChange={e => setQuickAddBrandForm({ ...quickAddBrandForm, manufacturer: e.target.value })} placeholder="e.g. Micro Labs, GSK" /></div>
+                                    <div className="form-group"><label>MRP (₹)*</label><input type="number" step="0.01" required value={quickAddBrandForm.mrp} onChange={e => setQuickAddBrandForm({ ...quickAddBrandForm, mrp: e.target.value })} placeholder="0.00" /></div>
+                                    <div className="form-group"><label>Description</label><textarea rows="2" value={quickAddBrandForm.description || ''} onChange={e => setQuickAddBrandForm({ ...quickAddBrandForm, description: e.target.value })} placeholder="Optional" /></div>
+                                </>
+                            )}
                             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                                <button type="button" className="btn-add btn-cancel" style={{ flex: 1 }} onClick={() => setShowAddBrandFromBatchModal(false)}>Cancel</button>
-                                <button type="submit" className="btn-add" style={{ flex: 1 }}>Add brand</button>
+                                {quickAddBrandSubView === 'add_medicine' ? (
+                                    <>
+                                        <button type="button" className="btn-add btn-cancel" style={{ flex: 1 }} onClick={() => setQuickAddBrandSubView('brand')}>Back</button>
+                                        <button type="submit" className="btn-add" style={{ flex: 1 }}>Add medicine</button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button type="button" className="btn-add btn-cancel" style={{ flex: 1 }} onClick={() => setShowAddBrandFromBatchModal(false)}>Cancel</button>
+                                        <button type="submit" className="btn-add" style={{ flex: 1 }}>Add brand</button>
+                                    </>
+                                )}
                             </div>
                         </form>
                     </div>

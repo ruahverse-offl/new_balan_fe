@@ -17,6 +17,7 @@ export const getMedicines = async (params = {}) => {
     search: params.search,
     sort_by: params.sort_by || 'created_at',
     sort_order: params.sort_order || 'desc',
+    is_available: params.is_available,
   });
   
   // Map backend response to frontend format

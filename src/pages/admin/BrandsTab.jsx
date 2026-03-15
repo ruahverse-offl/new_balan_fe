@@ -11,7 +11,8 @@ const BrandsTab = ({
     setBrandsRowsPerPage,
     onAddClick,
     onEditClick,
-    onDeleteClick
+    onDeleteClick,
+    onToggleAvailability
 }) => {
     const filteredBrands = (brands || []).filter(b =>
         b && (
@@ -49,6 +50,7 @@ const BrandsTab = ({
                                 <th>Brand Name</th>
                                 <th>Company</th>
                                 <th>MRP</th>
+                                <th>Available</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -61,6 +63,21 @@ const BrandsTab = ({
                                         <td data-label="Brand Name">{b.brand_name}</td>
                                         <td data-label="Company">{b.manufacturer}</td>
                                         <td data-label="MRP">{b.mrp != null ? `₹${Number(b.mrp).toFixed(2)}` : '—'}</td>
+                                        <td data-label="Available">
+                                            {onToggleAvailability ? (
+                                                <select
+                                                    value={b.is_available !== false ? 'yes' : 'no'}
+                                                    onChange={(e) => onToggleAvailability(b, e.target.value === 'yes')}
+                                                    style={{ padding: '0.35rem 0.5rem', borderRadius: '6px', border: '1px solid var(--admin-border)', background: 'var(--admin-bg)', color: 'var(--admin-text)', cursor: 'pointer', minWidth: '6rem' }}
+                                                    title="Available for sale"
+                                                >
+                                                    <option value="yes">Available</option>
+                                                    <option value="no">Not available</option>
+                                                </select>
+                                            ) : (
+                                                <span className={`status-tag ${b.is_available !== false ? 'active' : 'inactive'}`}>{b.is_available !== false ? 'Yes' : 'No'}</span>
+                                            )}
+                                        </td>
                                         <td data-label="Actions" className="actions">
                                             <button
                                                 className="action-btn"

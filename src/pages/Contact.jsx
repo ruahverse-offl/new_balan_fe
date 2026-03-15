@@ -22,24 +22,15 @@ const Contact = () => {
             external: true
         },
         {
-            icon: <Mail size={20} />,
-            title: "Email",
-            desc: "Send us an email anytime",
-            value: "Send Email",
-            link: "mailto:newbalanmedicals@gmail.com",
-            color: "#e11d48"
-        },
-        {
             icon: <Clock size={24} />,
             title: "Store Timings",
             desc: "We're open for you",
-            value: "Mon-Sat: 9 AM - 11 PM",
+            value: "Morning & Evening Sessions",
             link: null,
             color: "#f59e0b",
             details: [
-                "Mon - Sat: 9:00 AM - 11:00 PM",
-                "Sunday: 10:00 AM - 11:00 PM",
-                "Medicine orders: 9:00 AM - 9:00 PM only"
+                "Morning: 10:00 AM - 1:30 PM",
+                "Evening: 6:30 PM - 9:30 PM"
             ]
         }
     ];

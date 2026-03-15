@@ -4,6 +4,76 @@
     min-height: 90vh;
 }
 
+/* Mock payment screen (replaces Razorpay) */
+.mock-payment-screen .container {
+    max-width: 480px;
+    margin: 0 auto;
+}
+.mock-payment-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.08);
+    padding: 2rem;
+}
+.mock-payment-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    color: #1e293b;
+}
+.mock-payment-desc {
+    color: #64748b;
+    font-size: 0.95rem;
+    margin-bottom: 1.5rem;
+}
+.mock-payment-details {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+.mock-payment-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95rem;
+}
+.mock-payment-row + .mock-payment-row {
+    margin-top: 0.75rem;
+}
+.mock-payment-total {
+    font-size: 1.15rem;
+    padding-top: 0.75rem;
+    margin-top: 0.75rem;
+    border-top: 1px solid #e2e8f0;
+}
+.mock-payment-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+.btn-mock-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-mock-back:hover:not(:disabled) {
+    background: #f1f5f9;
+    color: #334155;
+}
+.mock-payment-actions .btn-place-order {
+    flex: 1;
+    margin-top: 0;
+}
+
 
 .back-link {
     background: transparent;
@@ -39,7 +109,7 @@
 
 .checkout-grid {
     display: grid;
-    grid-template-columns: 1.2fr 0.8fr;
+    grid-template-columns: 1.1fr 1fr;
     gap: 3rem;
     align-items: start;
 }
@@ -208,55 +278,105 @@
 
 .summary-card {
     background: #fff;
-    padding: 1.5rem;
-    border-radius: 16px;
-    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.05);
+    padding: 2rem;
+    border-radius: 18px;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.06);
     position: sticky;
     top: 100px;
 }
 
 @media (min-width: 768px) {
     .summary-card {
-        padding: 2.5rem;
+        padding: 3rem;
     }
 }
 
 .summary-title {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.75rem;
     border-bottom: 2px solid #f1f5f9;
-    padding-bottom: 1rem;
+    padding-bottom: 1.25rem;
     color: #333;
     font-weight: 800;
-    font-size: 1.3rem;
+    font-size: 1.5rem;
 }
 
 .summary-items {
-    max-height: 40vh;
+    max-height: 50vh;
     overflow-y: auto;
-    margin-bottom: 2rem;
+    margin-bottom: 2.25rem;
     padding-right: 0.5rem;
 }
 
 .summary-item {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 1.25rem;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    gap: 1.25rem;
+}
+
+.summary-item-info {
+    flex: 1;
+    min-width: 0;
 }
 
 .summary-item-name {
     font-weight: 600;
     color: #333;
-    font-size: 1rem;
+    font-size: 1.12rem;
+    margin-bottom: 0.35rem;
 }
 
 .summary-item-qty {
-    font-size: 0.85rem;
+    font-size: 0.95rem;
     color: #888;
+    margin-bottom: 0.5rem;
+}
+
+.checkout-qty-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.15rem;
+    background: #f8fafc;
+}
+
+.checkout-qty-btn {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: #fff;
+    color: #334155;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.checkout-qty-btn:hover {
+    background: var(--primary, #2563eb);
+    color: #fff;
+}
+
+.checkout-qty-value {
+    min-width: 1.75rem;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: #333;
 }
 
 .summary-item-price {
     font-weight: 700;
     color: #333;
+    font-size: 1.1rem;
+    flex-shrink: 0;
 }
 
 .coupon-box {
@@ -283,17 +403,72 @@
     transition: all 0.2s;
 }
 
+.btn-remove-coupon {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+    padding: 0.35rem 0;
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.btn-remove-coupon:hover {
+    color: #ef4444;
+}
+
+.applied-coupons-list {
+    margin-top: 0.75rem;
+}
+
+.applied-coupon-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.4rem 0.5rem;
+    background: #ecfdf5;
+    border-radius: 8px;
+    margin-bottom: 0.35rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #065f46;
+}
+
+.btn-remove-one-coupon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2rem;
+    background: none;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: color 0.2s, background 0.2s;
+}
+
+.btn-remove-one-coupon:hover {
+    color: #ef4444;
+    background: #fef2f2;
+}
+
 .summary-totals {
     border-top: 2px solid #f1f5f9;
-    padding-top: 1.5rem;
+    padding-top: 1.75rem;
 }
 
 .summary-row {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.85rem;
     color: #666;
     font-weight: 600;
+    font-size: 1.05rem;
 }
 
 .delivery-fee {
@@ -303,11 +478,11 @@
 .total-row {
     display: flex;
     justify-content: space-between;
-    font-size: 1.6rem;
+    font-size: 1.85rem;
     font-weight: 900;
-    margin-top: 1rem;
-    padding-top: 1.25rem;
-    border-top: 1px dashed #e2e8f0;
+    margin-top: 1.25rem;
+    padding-top: 1.5rem;
+    border-top: 2px dashed #e2e8f0;
 }
 
 .total-row span:last-child {
@@ -875,6 +1050,66 @@
 
 .address-card.add-new:hover {
     background: rgba(7, 101, 255, 0.04);
+}
+
+.btn-add-new-address {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.25rem;
+    margin-top: 0.5rem;
+    background: #fff;
+    border: 2px solid var(--primary, #2563eb);
+    border-radius: 10px;
+    color: var(--primary, #2563eb);
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.btn-add-new-address:hover {
+    background: var(--primary, #2563eb);
+    color: #fff;
+}
+
+.checkout-address-form-block {
+    margin-top: 1rem;
+    padding: 1.25rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.checkout-address-form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.checkout-form-block-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #334155;
+    margin: 0;
+}
+
+.btn-cancel-new-address {
+    padding: 0.35rem 0.75rem;
+    background: transparent;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    color: #64748b;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+.btn-cancel-new-address:hover {
+    color: #334155;
+    border-color: #94a3b8;
 }
 
 .save-address-option {

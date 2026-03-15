@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { login as apiLogin, register as apiRegister, getCustomerRoleId, getUserPermissions, logoutApi } from '../services/authApi';
+import { login as apiLogin, register as apiRegister, getUserPermissions, logoutApi } from '../services/authApi';
 import { getCurrentUser, updateCurrentUser } from '../services/usersApi';
 import { mapBackendPermissionsToFrontend } from '../utils/permissionMapper';
 
@@ -140,14 +140,11 @@ export const AuthProvider = ({ children }) => {
     const register = async (userData) => {
         setIsLoading(true);
         try {
-            // Get CUSTOMER role ID for registration
-            const customerRoleId = await getCustomerRoleId();
-            
-            // Prepare registration data
+            // Backend always assigns CUSTOMER role and only customer permissions; role_id is not required
             const registrationData = {
-                ...userData,
-                role_id: customerRoleId,
                 full_name: userData.name || userData.full_name,
+                email: userData.email,
+                password: userData.password,
                 mobile_number: userData.phone || userData.mobile_number,
             };
             

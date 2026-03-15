@@ -18,8 +18,9 @@ const FinanceDashboard = ({ data }) => {
 
     return (
         <div className="dashboard-container">
-            {/* KPIs */}
-            <div className="stats-grid" style={{ marginBottom: '2rem' }}>
+            <section className="dashboard-section">
+                <h2 className="dashboard-section-title">Key metrics</h2>
+                <div className="stats-grid">
                 <div className="stat-card">
                     <div className="stat-icon purple">
                         <IndianRupee size={24} />
@@ -116,15 +117,13 @@ const FinanceDashboard = ({ data }) => {
                         <p className="stat-value">{parseFloat(kpis.revenue_growth_rate || 0).toFixed(2)}%</p>
                     </div>
                 </div>
-            </div>
+                </div>
+            </section>
 
-            {/* Alerts */}
             {alerts && alerts.length > 0 && (
-                <div className="admin-table-card" style={{ marginBottom: '2rem' }}>
-                    <div className="chart-header">
-                        <AlertTriangle size={20} color="var(--admin-text-muted)" />
-                        <h3 className="chart-title">Alerts</h3>
-                    </div>
+                <section className="dashboard-section">
+                    <h2 className="dashboard-section-title">Alerts</h2>
+                    <div className="admin-table-card">
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                         {alerts.map((alert, idx) => (
                             <div key={idx} className={`alert-item ${alert.severity === 'CRITICAL' ? 'critical' : 'warning'}`}>
@@ -132,11 +131,13 @@ const FinanceDashboard = ({ data }) => {
                             </div>
                         ))}
                     </div>
-                </div>
+                    </div>
+                </section>
             )}
 
-            {/* Charts */}
-            <div className="dashboard-grid-activity">
+            <section className="dashboard-section">
+                <h2 className="dashboard-section-title">Insights</h2>
+                <div className="dashboard-grid-activity">
                 {charts.revenue_trend && charts.revenue_trend.length > 0 && (
                     <div className="admin-table-card">
                         <div className="chart-header">
@@ -292,7 +293,8 @@ const FinanceDashboard = ({ data }) => {
                         </ResponsiveContainer>
                     </div>
                 )}
-            </div>
+                </div>
+            </section>
         </div>
     );
 };

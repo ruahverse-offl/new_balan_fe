@@ -16,8 +16,9 @@ const SalesDashboard = ({ data }) => {
 
     return (
         <div className="dashboard-container">
-            {/* KPIs */}
-            <div className="stats-grid" style={{ marginBottom: '2rem' }}>
+            <section className="dashboard-section">
+                <h2 className="dashboard-section-title">Key metrics</h2>
+                <div className="stats-grid">
                 <div className="stat-card">
                     <div className="stat-icon purple">
                         <Package size={24} />
@@ -104,10 +105,12 @@ const SalesDashboard = ({ data }) => {
                         <p className="stat-value">{kpis.customer_count || 0}</p>
                     </div>
                 </div>
-            </div>
+                </div>
+            </section>
 
-            {/* Charts */}
-            <div className="dashboard-grid-activity">
+            <section className="dashboard-section">
+                <h2 className="dashboard-section-title">Insights</h2>
+                <div className="dashboard-grid-activity">
                 {charts.top_products && charts.top_products.length > 0 && (
                     <div className="admin-table-card">
                         <div className="chart-header">
@@ -293,7 +296,8 @@ const SalesDashboard = ({ data }) => {
                         </ResponsiveContainer>
                     </div>
                 )}
-            </div>
+                </div>
+            </section>
         </div>
     );
 };

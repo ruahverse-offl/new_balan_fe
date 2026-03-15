@@ -68,9 +68,9 @@ export const updateDeliverySettings = async (settingsData) => {
  */
 export const getDeliverySlots = async (params = {}) => {
   try {
-    return await apiGet('/delivery-slots', params);
+    return await apiGet('/delivery-slots', params, { timeout: 60000 });
   } catch (error) {
-    console.error('Error fetching delivery slots:', error);
+    if (import.meta.env.DEV) console.warn('Delivery slots unavailable:', error?.message || error);
     return { items: [], total: 0 };
   }
 };

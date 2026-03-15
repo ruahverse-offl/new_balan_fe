@@ -26,11 +26,6 @@ const Home = () => {
                             <p>Specialized healthcare for infants, children, and adolescents.</p>
                         </div>
                         <div className="specialty-card">
-                            <div className="card-icon"><Eye size={32} /></div>
-                            <h3>Ophthalmology</h3>
-                            <p>Complete eye care services and vision correction consultations.</p>
-                        </div>
-                        <div className="specialty-card">
                             <div className="card-icon"><Activity size={32} /></div>
                             <h3>Diabetology</h3>
                             <p>Expert management and screening for diabetes and related conditions.</p>

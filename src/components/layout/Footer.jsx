@@ -44,12 +44,12 @@ const Footer = () => {
                     <div className="timing-item">
                         <Clock size={18} className="timing-icon" />
                         <div>
-                            <p>Mon - Sat: 9:00 AM - 11:00 PM</p>
-                            <p>Sunday: 10:00 AM - 11:00 PM</p>
+                            <p>Morning: 10:00 AM - 1:30 PM</p>
+                            <p>Evening: 6:30 PM - 9:30 PM</p>
                         </div>
                     </div>
                     <div className="order-limit-info">
-                        <p>Note: Medicine orders are accepted 9:00 AM - 9:00 PM only.</p>
+                        <p>Note: Please visit during the above store timings.</p>
                     </div>
                 </div>
 

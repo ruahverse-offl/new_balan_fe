@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Clock, CheckCircle2, Award, Phone, Mail, MapPin } from 'lucide-react';
+import { ArrowLeft, Clock, CheckCircle2, Award, Phone, MapPin, Loader2 } from 'lucide-react';
 import { getDoctorById } from '../services/doctorsApi';
 import { mapDoctorToFrontend } from '../utils/dataMapper';
 import { formatTimeRangeTo12h } from '../utils/timeFormatters';
 import './SpecialistDetail.css';
+
+const STORE_PHONE = '+919894880598';
 
 const SpecialistDetail = () => {
     const { id } = useParams();
@@ -171,37 +173,20 @@ const SpecialistDetail = () => {
                                 </div>
                             )}
 
-                            <div className="info-section">
-                                <h3>Contact Information</h3>
-                                <div className="contact-info-grid">
-                                    {specialist.phone && (
-                                        <a href={`tel:${specialist.phone.replace(/\s+/g, '')}`} className="contact-item">
-                                            <Phone size={20} />
-                                            <span>{specialist.phone}</span>
-                                        </a>
-                                    )}
-                                    {specialist.email && (
-                                        <a href={`mailto:${specialist.email}`} className="contact-item">
-                                            <Mail size={20} />
-                                            <span>{specialist.email}</span>
-                                        </a>
-                                    )}
-                                    {specialist.address && (
+                            {specialist.address && (
+                                <div className="info-section">
+                                    <h3>Address</h3>
+                                    <div className="contact-info-grid">
                                         <div className="contact-item">
                                             <MapPin size={20} />
                                             <span>{specialist.address}</span>
                                         </div>
-                                    )}
-                                    {!specialist.phone && !specialist.email && !specialist.address && (
-                                        <div className="contact-item">
-                                            <span style={{ color: 'var(--gray-600)' }}>Contact information not available</span>
-                                        </div>
-                                    )}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             <div className="action-buttons">
-                                <a href="tel:+919894880598" className="btn btn-primary">
+                                <a href={`tel:${STORE_PHONE.replace(/\s+/g, '')}`} className="btn btn-primary">
                                     <Phone size={20} />
                                     Call to Book
                                 </a>

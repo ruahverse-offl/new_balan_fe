@@ -64,7 +64,7 @@ export const login = async (email, password) => {
  * @param {string} userData.email - User email address
  * @param {string} userData.password - User password
  * @param {string} userData.mobile_number - User mobile number
- * @param {string} userData.role_id - Role ID (UUID) - typically CUSTOMER role
+ * Backend always assigns the CUSTOMER role; only customer permissions are granted on signup.
  * @returns {Promise<Object>} Auth response with token, refresh_token, and user info
  * @throws {Error} If registration fails
  */
@@ -76,7 +76,6 @@ export const register = async (userData) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        role_id: userData.role_id,
         full_name: userData.full_name,
         mobile_number: userData.mobile_number || userData.phone,
         email: userData.email,

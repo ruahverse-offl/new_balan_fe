@@ -1,12 +1,45 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Pill, ShieldCheck, ChevronRight, LogIn } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { getDeliverySettings, getDeliverySlots } from '../../services/deliveryApi';
 import './Hero.css';
 import heroImg from '../../assets/images/hero-banner.png';
 
+const DEFAULT_DELIVERY_LABEL = '9 am to 9 pm · Pharmacy';
+
 const Hero = () => {
     const { isAuthenticated } = useAuth();
+    const [deliveryLabel, setDeliveryLabel] = useState(DEFAULT_DELIVERY_LABEL);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const settings = await getDeliverySettings();
+                if (cancelled) return;
+                // Backend returns 404 when no delivery settings exist → frontend returns object without id; then we keep default
+                if (!settings?.id) return;
+                const res = await getDeliverySlots({
+                    delivery_settings_id: settings.id,
+                    is_active: true,
+                    limit: 20,
+                    sort_by: 'slot_order',
+                    sort_order: 'asc',
+                });
+                if (cancelled) return;
+                const items = res?.items ?? [];
+                const timings = items
+                    .filter((s) => s && s.slot_time)
+                    .map((s) => s.slot_time)
+                    .join(', ');
+                if (timings) setDeliveryLabel(`Delivery: ${timings}`);
+            } catch {
+                // keep default on error (e.g. network, backend down)
+            }
+        })();
+        return () => { cancelled = true; };
+    }, []);
 
     return (
         <section className="hero">
@@ -43,7 +76,7 @@ const Hero = () => {
                         </div>
                         <div className="h-feature">
                             <ChevronRight className="feature-icon" />
-                            <span>9 AM - 9 PM Pharmacy</span>
+                            <span>{deliveryLabel}</span>
                         </div>
                     </div>
                 </div>

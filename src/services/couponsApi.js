@@ -78,19 +78,23 @@ export const validateCoupon = async (code, orderAmount = 0) => {
 };
 
 /**
- * Get active coupons
- * @returns {Promise<Array>} List of active coupons
+ * Get active coupons for display at checkout.
+ * Only returns coupons that are active and not yet expired.
+ * Coupons that have reached their expiry date are not displayed when ordering.
+ * @returns {Promise<Array>} List of active, non-expired coupons
  */
 export const getActiveCoupons = async () => {
   const response = await getCoupons({ is_active: true, limit: 100 });
-  const now = new Date();
-  
-  // Filter out expired coupons
-  return response.items.filter(coupon => {
-    if (!coupon.is_active) return false;
-    if (coupon.expiry_date) {
-      const expiryDate = new Date(coupon.expiry_date);
-      return expiryDate > now;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return (response.items || []).filter((coupon) => {
+    if (coupon.is_active === false) return false;
+    const expiry = coupon.expiry_date || coupon.expiryDate;
+    if (expiry) {
+      const expiryDate = new Date(expiry);
+      expiryDate.setHours(0, 0, 0, 0);
+      if (expiryDate < today) return false; // expired: do not show when ordering
     }
     return true;
   });

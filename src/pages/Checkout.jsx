@@ -5,18 +5,19 @@ import { useNavigate } from 'react-router-dom';
 import { prodCheck } from '../config';
 import { getDeliverySettings } from '../services/deliveryApi';
 import { validateCoupon as validateCouponApi, getActiveCoupons } from '../services/couponsApi';
-import { initiatePayment, verifyPayment, loadRazorpayScript } from '../services/razorpayApi';
+import { mockInitiatePayment, mockCompletePayment, initiatePayment, verifyPayment, loadRazorpayScript } from '../services/razorpayApi';
 import { getMyAddresses, createAddress } from '../services/addressesApi';
-import { ShoppingBag, ArrowLeft, Loader2, Plus, MapPin } from 'lucide-react';
+import { ShoppingBag, ArrowLeft, Loader2, Plus, MapPin, FileText, X } from 'lucide-react';
+import PrescriptionUpload from '../components/common/PrescriptionUpload';
 import './Checkout.css';
 
 const Checkout = () => {
-    const { cart, subtotal } = useCart();
+    const { cart, subtotal, updateQuantity, removeFromCart } = useCart();
     const { user } = useAuth();
     const navigate = useNavigate();
     const [deliverySettings, setDeliverySettings] = useState({ is_enabled: true, show_marquee: true });
 
-    const [appliedDiscount, setAppliedDiscount] = useState(0); // Discount amount in rupees
+    const [appliedCoupons, setAppliedCoupons] = useState([]); // [{ code, discountAmount }, ...]
     const [couponMsg, setCouponMsg] = useState({ text: '', type: '' });
     const [availableCoupons, setAvailableCoupons] = useState([]);
 
@@ -69,6 +70,13 @@ const Checkout = () => {
 
     const [processingPayment, setProcessingPayment] = useState(false);
     const [formErrors, setFormErrors] = useState({});
+    // Mock payment screen (instead of Razorpay)
+    const [showMockPaymentScreen, setShowMockPaymentScreen] = useState(false);
+    const [mockOrderId, setMockOrderId] = useState(null);
+    const [mockOrderRef, setMockOrderRef] = useState(null);
+    const [mockAmount, setMockAmount] = useState(0);
+    const [mockCompleting, setMockCompleting] = useState(false);
+    const [prescriptionId, setPrescriptionId] = useState(null);
 
     // Saved addresses state
     const [savedAddresses, setSavedAddresses] = useState([]);
@@ -135,37 +143,50 @@ const Checkout = () => {
         }
         if (e.target.name === 'coupon') {
             setCouponMsg({ text: '', type: '' });
-            setAppliedDiscount(0);
         }
     };
 
-    const handleApplyCoupon = async () => {
-        if (!formData.coupon) {
+    const handleApplyCoupon = async (codeFromChip) => {
+        const code = ((codeFromChip ?? formData.coupon) || '').trim();
+        if (!code) {
             setCouponMsg({ text: 'Please enter a coupon code', type: 'error' });
+            return;
+        }
+        const codeUpper = code.toUpperCase();
+        if (appliedCoupons.some(ac => ac.code.toUpperCase() === codeUpper)) {
+            setCouponMsg({ text: 'This coupon is already applied.', type: 'error' });
             return;
         }
 
         try {
-            const result = await validateCouponApi(formData.coupon, subtotal);
+            const result = await validateCouponApi(code, subtotal);
             if (result.valid) {
-                // Use discount_amount directly (in rupees)
                 const discountAmount = Number(result.discount_amount) || 0;
-                setAppliedDiscount(discountAmount);
-                setCouponMsg({ text: result.message || `Success! ₹${discountAmount.toFixed(2)} discount applied.`, type: 'success' });
+                setAppliedCoupons(prev => [...prev, { code: codeUpper, discountAmount }]);
+                setFormData(prev => ({ ...prev, coupon: '' }));
+                setCouponMsg({ text: result.message || `Added! ₹${discountAmount.toFixed(2)} off.`, type: 'success' });
             } else {
-                setAppliedDiscount(0);
                 setCouponMsg({ text: result.message || 'Invalid coupon code', type: 'error' });
             }
         } catch (error) {
-            setAppliedDiscount(0);
             setCouponMsg({ text: error.message || 'Failed to validate coupon', type: 'error' });
         }
     };
 
+    const handleRemoveCoupon = (codeToRemove) => {
+        if (codeToRemove !== undefined) {
+            setAppliedCoupons(prev => prev.filter(ac => ac.code.toUpperCase() !== (codeToRemove || '').toUpperCase()));
+        } else {
+            setAppliedCoupons([]);
+            setFormData(prev => ({ ...prev, coupon: '' }));
+        }
+        setCouponMsg({ text: '', type: '' });
+    };
+
     const deliveryFee = deliverySettings.is_enabled !== false ? 40 : 0;
-    // appliedDiscount is already in rupees (from backend validation)
-    const discountAmount = appliedDiscount;
+    const discountAmount = appliedCoupons.reduce((sum, ac) => sum + (Number(ac.discountAmount) || 0), 0);
     const finalTotal = subtotal + deliveryFee - discountAmount;
+    const cartRequiresPrescription = cart.some(item => item.requiresPrescription || item.requires_prescription);
 
     const validateForm = () => {
         const errors = {};
@@ -267,63 +288,148 @@ const Checkout = () => {
                 delivery_fee: deliveryFee,
                 discount_amount: discountAmount,
                 final_amount: finalTotal,
-                coupon_code: appliedDiscount > 0 ? formData.coupon : null,
-                prescription_id: null,
+                coupon_code: appliedCoupons.length > 0 ? appliedCoupons[0].code : null,
+                applied_coupons: appliedCoupons.length > 0 ? appliedCoupons.map(ac => ({ code: ac.code, discount_amount: Number(ac.discountAmount) || 0 })) : null,
+                prescription_id: prescriptionId || null,
             };
 
-            const result = await initiatePayment(orderData);
+            let result;
+            try {
+                result = await mockInitiatePayment(orderData);
+            } catch (mockErr) {
+                // Backend may not have mock-initiate (e.g. older deploy); try real Razorpay initiate
+                const is404 = mockErr.status === 404 || (mockErr.message && String(mockErr.message).includes('Not Found'));
+                if (is404) {
+                    try {
+                        result = await initiatePayment(orderData);
+                        if (result && result.order_id && result.razorpay_order_id && result.key_id != null) {
+                            await loadRazorpayScript();
+                            const Razorpay = window.Razorpay;
+                            if (!Razorpay) {
+                                setCouponMsg({ text: 'Payment script failed to load. Please try again.', type: 'error' });
+                                setProcessingPayment(false);
+                                return;
+                            }
+                            const orderId = result.order_id;
+                            sessionStorage.setItem('payment_order_id', orderId);
+                            new Razorpay({
+                                key: result.key_id,
+                                amount: result.amount,
+                                order_id: result.razorpay_order_id,
+                                name: 'New Balan Pharmacy',
+                                description: `Order ${result.order_reference || orderId}`,
+                                handler: async (res) => {
+                                    try {
+                                        await verifyPayment({
+                                            razorpay_payment_id: res.razorpay_payment_id,
+                                            razorpay_order_id: res.razorpay_order_id,
+                                            razorpay_signature: res.razorpay_signature,
+                                        });
+                                        navigate(`/payment-callback?orderId=${orderId}`);
+                                    } catch (verifyErr) {
+                                        console.error('Verify payment failed:', verifyErr);
+                                        setCouponMsg({ text: verifyErr.message || 'Payment verification failed.', type: 'error' });
+                                    }
+                                },
+                                modal: { ondismiss: () => setProcessingPayment(false) },
+                            }).open();
+                            setProcessingPayment(false);
+                            return;
+                        }
+                    } catch (initErr) {
+                        console.error('Razorpay initiate failed:', initErr);
+                        setCouponMsg({
+                            text: initErr.message || 'Payment service unavailable. Please try again or contact support.',
+                            type: 'error',
+                        });
+                        setProcessingPayment(false);
+                        return;
+                    }
+                }
+                throw mockErr;
+            }
 
-            if (!result.order_id || !result.razorpay_order_id || !result.key_id) {
-                setCouponMsg({ text: 'Payment gateway did not return required data. Please try again.', type: 'error' });
+            if (!result.order_id) {
+                setCouponMsg({ text: 'Could not create order. Please try again.', type: 'error' });
                 setProcessingPayment(false);
                 return;
             }
 
             sessionStorage.setItem('payment_order_id', result.order_id);
-
-            await loadRazorpayScript();
-
-            const options = {
-                key: result.key_id,
-                amount: result.amount,
-                currency: 'INR',
-                name: 'NEW BALAN',
-                description: 'Order payment',
-                order_id: result.razorpay_order_id,
-                prefill: {
-                    name: formData.name,
-                    email: (formData.email || user?.email || '').trim() || undefined,
-                    contact: formData.phone,
-                },
-                handler: async (res) => {
-                    try {
-                        await verifyPayment({
-                            razorpay_payment_id: res.razorpay_payment_id,
-                            razorpay_order_id: res.razorpay_order_id,
-                            razorpay_signature: res.razorpay_signature,
-                        });
-                        navigate(`/payment-callback?orderId=${result.order_id}`);
-                    } catch (err) {
-                        console.error('Verify payment failed:', err);
-                        setCouponMsg({ text: 'Payment verification failed. Please contact support.', type: 'error' });
-                        setProcessingPayment(false);
-                    }
-                },
-                modal: { ondismiss: () => setProcessingPayment(false) },
-            };
-
-            const rz = new window.Razorpay(options);
-            rz.on('payment.failed', () => {
-                setCouponMsg({ text: 'Payment failed or was cancelled.', type: 'error' });
-                setProcessingPayment(false);
-            });
-            rz.open();
+            setMockOrderId(result.order_id);
+            setMockOrderRef(result.order_reference || result.order_id);
+            setMockAmount(Number(result.amount) || finalTotal);
+            setShowMockPaymentScreen(true);
+            setProcessingPayment(false);
         } catch (error) {
-            console.error('Error initiating payment:', error);
-            setCouponMsg({ text: `Failed to initiate payment: ${error.message || 'Please try again.'}`, type: 'error' });
+            console.error('Error creating order:', error);
+            setCouponMsg({ text: `Failed to create order: ${error.message || 'Please try again.'}`, type: 'error' });
             setProcessingPayment(false);
         }
     };
+
+    const handleMockProceed = async () => {
+        if (!mockOrderId) return;
+        setMockCompleting(true);
+        try {
+            await mockCompletePayment(mockOrderId);
+            navigate(`/payment-callback?orderId=${mockOrderId}`);
+        } catch (err) {
+            console.error('Mock complete failed:', err);
+            setCouponMsg({ text: err.message || 'Could not complete order. Please try again.', type: 'error' });
+        } finally {
+            setMockCompleting(false);
+        }
+    };
+
+    // Mock payment screen (instead of Razorpay)
+    if (showMockPaymentScreen) {
+        return (
+            <div className="checkout-page animate-fade mock-payment-screen">
+                <div className="container">
+                    <div className="mock-payment-card">
+                        <h2 className="mock-payment-title">Complete your order</h2>
+                        <p className="mock-payment-desc">Order has been created. Click Proceed to confirm and save.</p>
+                        <div className="mock-payment-details">
+                            <div className="mock-payment-row">
+                                <span>Order reference</span>
+                                <strong>{mockOrderRef}</strong>
+                            </div>
+                            <div className="mock-payment-row mock-payment-total">
+                                <span>Amount to pay</span>
+                                <strong>₹{mockAmount.toFixed(2)}</strong>
+                            </div>
+                        </div>
+                        <div className="mock-payment-actions">
+                            <button
+                                type="button"
+                                className="btn-mock-back"
+                                onClick={() => { setShowMockPaymentScreen(false); setMockOrderId(null); }}
+                                disabled={mockCompleting}
+                            >
+                                <ArrowLeft size={18} /> Back
+                            </button>
+                            <button
+                                type="button"
+                                className="btn-place-order"
+                                onClick={handleMockProceed}
+                                disabled={mockCompleting}
+                            >
+                                {mockCompleting ? (
+                                    <>
+                                        <Loader2 size={20} className="animate-spin" style={{ marginRight: '8px' }} />
+                                        Completing...
+                                    </>
+                                ) : (
+                                    'Proceed'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="checkout-page animate-fade">
@@ -384,7 +490,7 @@ const Checkout = () => {
                                 <MapPin size={20} /> {user ? 'Select delivery address' : 'Shipping Address'}
                             </h3>
 
-                            {/* For logged-in users: Select address block (saved addresses from profile + Add address) */}
+                            {/* For logged-in users: Select address block (saved addresses + Add new address button) */}
                             {user && !loadingAddresses && (
                                 <div className="checkout-select-address-block">
                                     {savedAddresses.length > 0 ? (
@@ -420,13 +526,6 @@ const Checkout = () => {
                                                         </div>
                                                     </div>
                                                 ))}
-                                                <div
-                                                    className={`address-card add-new ${showNewAddressForm ? 'selected' : ''}`}
-                                                    onClick={handleAddNewAddress}
-                                                >
-                                                    <Plus size={20} />
-                                                    <span>Add address</span>
-                                                </div>
                                             </div>
                                             {selectedAddressId && !showNewAddressForm && (() => {
                                                 const addr = savedAddresses.find(a => a.id === selectedAddressId);
@@ -436,6 +535,11 @@ const Checkout = () => {
                                                     </p>
                                                 ) : null;
                                             })()}
+                                            {!showNewAddressForm && (
+                                                <button type="button" className="btn-add-new-address" onClick={handleAddNewAddress}>
+                                                    <Plus size={18} /> Add new address
+                                                </button>
+                                            )}
                                         </>
                                     ) : (
                                         <p className="checkout-select-address-hint">You don&apos;t have any saved addresses. Add your delivery address below.</p>
@@ -450,9 +554,17 @@ const Checkout = () => {
                                 </div>
                             )}
 
-                            {/* Address form: when no saved addresses, or "Add address" chosen, or guest */}
+                            {/* Address form: when no saved addresses, or "Add new address" clicked, or guest */}
                             {(savedAddresses.length === 0 || showNewAddressForm || !user) && !loadingAddresses && (
-                                <>
+                                <div className="checkout-address-form-block">
+                                    {user && savedAddresses.length > 0 && showNewAddressForm && (
+                                        <div className="checkout-address-form-header">
+                                            <p className="checkout-form-block-title">New delivery address</p>
+                                            <button type="button" className="btn-cancel-new-address" onClick={() => setShowNewAddressForm(false)}>
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    )}
                                     <div className="checkout-input-group">
                                         <label className="checkout-label">Street Address *</label>
                                         <textarea
@@ -539,9 +651,29 @@ const Checkout = () => {
                                             )}
                                         </div>
                                     )}
-                                </>
+                                </div>
                             )}
 
+                            {cartRequiresPrescription && (
+                                <>
+                                    <h3 className="checkout-section-title checkout-section-divider">
+                                        <FileText size={20} /> Prescription (required)
+                                    </h3>
+                                    <p className="checkout-label" style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '1rem' }}>
+                                        Your cart has prescription-only items. Please upload a clear image or PDF of your prescription.
+                                    </p>
+                                    <PrescriptionUpload
+                                        maxSizeMB={5}
+                                        onUploadSuccess={(data) => setPrescriptionId(data.prescriptionId || data.id)}
+                                        onUploadError={() => setPrescriptionId(null)}
+                                    />
+                                    {prescriptionId && (
+                                        <p style={{ fontSize: '0.85rem', color: '#22c55e', marginTop: '0.5rem', fontWeight: 600 }}>
+                                            Prescription attached. It will be sent with your order.
+                                        </p>
+                                    )}
+                                </>
+                            )}
 
                         </form>
                     </div>
@@ -554,9 +686,28 @@ const Checkout = () => {
                             <div className="summary-items">
                                 {cart.map(item => (
                                     <div key={item.id} className="summary-item">
-                                        <div>
+                                        <div className="summary-item-info">
                                             <p className="summary-item-name">{item.name}</p>
-                                            <p className="summary-item-qty">Qty: {item.quantity} × ₹{item.price}</p>
+                                            <p className="summary-item-qty">₹{item.price} each</p>
+                                            <div className="checkout-qty-controls">
+                                                <button
+                                                    type="button"
+                                                    className="checkout-qty-btn"
+                                                    onClick={() => item.quantity <= 1 ? removeFromCart(item.id) : updateQuantity(item.id, item.quantity - 1)}
+                                                    aria-label="Decrease quantity"
+                                                >
+                                                    −
+                                                </button>
+                                                <span className="checkout-qty-value">{item.quantity}</span>
+                                                <button
+                                                    type="button"
+                                                    className="checkout-qty-btn"
+                                                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                                    aria-label="Increase quantity"
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
                                         </div>
                                         <p className="summary-item-price">₹{(item.price * item.quantity).toFixed(2)}</p>
                                     </div>
@@ -570,31 +721,32 @@ const Checkout = () => {
                                     <div className="available-coupons" style={{ marginBottom: '0.75rem' }}>
                                         <span className="checkout-label" style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.5rem' }}>Available coupons:</span>
                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                            {availableCoupons.map((c) => (
+                                            {availableCoupons.map((c) => {
+                                                const isApplied = appliedCoupons.some(ac => ac.code.toUpperCase() === (c.code || '').toUpperCase());
+                                                return (
                                                 <button
                                                     key={c.id}
                                                     type="button"
                                                     className="coupon-chip"
                                                     onClick={() => {
-                                                        setFormData(prev => ({ ...prev, coupon: c.code }));
-                                                        setCouponMsg({ text: '', type: '' });
-                                                        setAppliedDiscount(0);
+                                                        if (isApplied) return;
+                                                        handleApplyCoupon(c.code);
                                                     }}
                                                     style={{
                                                         padding: '0.35rem 0.6rem',
                                                         borderRadius: '8px',
                                                         border: '1px solid var(--primary, #2563eb)',
-                                                        background: formData.coupon?.toUpperCase() === c.code?.toUpperCase() ? 'var(--primary, #2563eb)' : 'transparent',
-                                                        color: formData.coupon?.toUpperCase() === c.code?.toUpperCase() ? '#fff' : 'var(--primary, #2563eb)',
+                                                        background: isApplied ? 'var(--primary, #2563eb)' : 'transparent',
+                                                        color: isApplied ? '#fff' : 'var(--primary, #2563eb)',
                                                         fontSize: '0.8rem',
-                                                        cursor: 'pointer',
+                                                        cursor: isApplied ? 'default' : 'pointer',
                                                         fontWeight: 600,
+                                                        opacity: isApplied ? 0.9 : 1,
                                                     }}
                                                 >
-                                                    {c.code} ({Number(c.discount) ?? 0}% off){c.firstOrderOnly ? ' · First order only' : ''}
-                                                    {c.expiryDate ? ` · Valid till ${new Date(c.expiryDate).toLocaleDateString()}` : ''}
+                                                    {c.code} ({(Number(c.discount_percentage ?? c.discount) || 0)}% off){c.first_order_only ? ' · First order only' : ''}
                                                 </button>
-                                            ))}
+                                            ); })}
                                         </div>
                                     </div>
                                 )}
@@ -609,6 +761,23 @@ const Checkout = () => {
                                     />
                                     <button type="button" className="btn-apply-coupon" onClick={handleApplyCoupon}>Apply</button>
                                 </div>
+                                {appliedCoupons.length > 0 && (
+                                    <div className="applied-coupons-list">
+                                        {appliedCoupons.map((ac) => (
+                                            <div key={ac.code} className="applied-coupon-row">
+                                                <span>{ac.code} &ndash; ₹{Number(ac.discountAmount).toFixed(2)} off</span>
+                                                <button type="button" className="btn-remove-one-coupon" onClick={() => handleRemoveCoupon(ac.code)} aria-label={`Remove ${ac.code}`}>
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        {appliedCoupons.length > 1 && (
+                                            <button type="button" className="btn-remove-coupon" onClick={() => handleRemoveCoupon()}>
+                                                <X size={14} /> Remove all coupons
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                                 {couponMsg.text && (
                                     <p style={{
                                         fontSize: '0.8rem',
@@ -631,7 +800,7 @@ const Checkout = () => {
                                     <span>Delivery Fee</span>
                                     <span className="delivery-fee">{deliverySettings.is_enabled !== false ? '₹40.00' : 'Free'}</span>
                                 </div>
-                                {appliedDiscount > 0 && (
+                                {discountAmount > 0 && (
                                     <div className="summary-row" style={{ color: '#22c55e' }}>
                                         <span>Discount</span>
                                         <span>-₹{discountAmount.toFixed(2)}</span>

@@ -15,6 +15,24 @@ export const initiatePayment = async (orderData) => {
 };
 
 /**
+ * Mock: create order without Razorpay (for demo). Returns order_id for mock-complete.
+ * @param {Object} orderData - Same as initiatePayment
+ * @returns {Promise<Object>} { order_id, order_reference, amount }
+ */
+export const mockInitiatePayment = async (orderData) => {
+  return await apiPost('/razorpay/mock-initiate', orderData);
+};
+
+/**
+ * Mock: mark order as paid (no real payment). Call after user clicks Proceed on mock screen.
+ * @param {string} orderId - Order UUID from mock-initiate
+ * @returns {Promise<Object>} { order_id, payment_status, amount, transaction_id, order_status }
+ */
+export const mockCompletePayment = async (orderId) => {
+  return await apiPost('/razorpay/mock-complete', { order_id: orderId });
+};
+
+/**
  * Verify payment after Razorpay checkout success
  * @param {Object} data - { razorpay_payment_id, razorpay_order_id, razorpay_signature }
  * @returns {Promise<Object>} { order_id, payment_status, amount, transaction_id, order_status }

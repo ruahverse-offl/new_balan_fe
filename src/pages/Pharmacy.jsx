@@ -72,9 +72,10 @@ const Pharmacy = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
+                // Fetch enough medicines and brands so every medicine gets a price (prices come from brands)
                 const [medicinesResponse, brandsResponse, categoriesResponse, settings] = await Promise.all([
-                    getMedicines({ limit: 100, is_active: true }).catch((err) => { toast.error('Failed to load medicines'); return { items: [] }; }),
-                    getBrands({ limit: 100 }).catch(() => ({ items: [] })),
+                    getMedicines({ limit: 500, is_available: true }).catch((err) => { toast.error('Failed to load medicines'); return { items: [] }; }),
+                    getBrands({ limit: 500, is_available: true }).catch(() => ({ items: [] })),
                     getCategories({ limit: 100, is_active: true }).catch(() => ({ items: [] })),
                     getDeliverySettings().catch(() => ({ is_enabled: true }))
                 ]);
@@ -95,12 +96,14 @@ const Pharmacy = () => {
                 Object.values(bMap).forEach(arr => arr.sort((a, b) => parseFloat(a.mrp) - parseFloat(b.mrp)));
                 setBrandsMap(bMap);
 
-                // Map medicines to frontend format with actual prices
-                const mappedProducts = medicinesResponse.items.map(med => {
-                    const mapped = mapMedicineToFrontend(med);
-                    mapped.price = priceMap[med.id] || 0;
-                    return mapped;
-                });
+                // Map medicines to frontend format with actual prices; only show medicines that have at least one available brand (and thus a price)
+                const mappedProducts = medicinesResponse.items
+                    .map(med => {
+                        const mapped = mapMedicineToFrontend(med);
+                        mapped.price = priceMap[med.id] || 0;
+                        return mapped;
+                    })
+                    .filter(p => p.price > 0);
                 setProducts(mappedProducts);
                 
                 // Extract category names
@@ -141,7 +144,7 @@ const Pharmacy = () => {
         setShowSuggestions(true);
         debounceRef.current = setTimeout(async () => {
             try {
-                const response = await getMedicines({ search: query, limit: 5, is_active: true });
+                const response = await getMedicines({ search: query, limit: 5, is_available: true });
                 const mapped = response.items.map(med => {
                     const m = mapMedicineToFrontend(med);
                     // Use prices from already-loaded products
