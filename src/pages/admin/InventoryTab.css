@@ -1,0 +1,133 @@
+/* Medicine–brand inventory / catalogue (offerings + stock) */
+
+.inventory-tab-card {
+    overflow: hidden;
+}
+
+.inventory-tab-hint {
+    margin: 0;
+    padding: 0 1.5rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: var(--admin-text-muted, #64748b);
+    border-bottom: 1px solid var(--admin-border, #e2e8f0);
+    background: linear-gradient(180deg, #fafbfc 0%, var(--admin-card, #fff) 100%);
+}
+
+.inventory-tab-hint code {
+    font-size: 0.78em;
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+}
+
+.inventory-tab-card .scrollable-section-wrapper.inventory-tab-scroll-wrap {
+    padding: 0 1.5rem 1rem;
+}
+
+.inventory-table-scroll {
+    border: 1px solid var(--admin-border, #e2e8f0);
+    border-radius: 12px;
+    background: var(--white, #fff);
+    overflow: auto;
+    max-height: min(520px, 62vh);
+}
+
+.inventory-tab-card .inventory-table-scroll .inventory-offerings-table {
+    margin: 0;
+    min-width: 0;
+    width: 100%;
+    table-layout: fixed;
+}
+
+.inventory-offerings-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.inventory-offerings-table .inv-col-medicine {
+    width: 26%;
+    min-width: 8rem;
+}
+
+.inventory-offerings-table .inv-col-brand {
+    width: 14%;
+    min-width: 5rem;
+}
+
+.inventory-offerings-table .inv-col-mfr {
+    width: 18%;
+    min-width: 6rem;
+}
+
+.inventory-offerings-table .inv-col-mrp {
+    width: 5.25rem;
+    text-align: right;
+}
+
+.inventory-offerings-table td.inv-col-mrp {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.inventory-offerings-table .inv-col-stock {
+    width: 8.75rem;
+}
+
+.inventory-offerings-table .inv-col-avail {
+    width: 5.5rem;
+    white-space: nowrap;
+}
+
+.inventory-offerings-table .inv-col-actions {
+    width: auto;
+    min-width: 13.5rem;
+}
+
+.inventory-medicine-cell {
+    font-weight: 700;
+    color: var(--admin-text-main, #0f172a);
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.inv-stock-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.inv-stock-input {
+    width: 5.25rem;
+    padding: 0.4rem 0.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--admin-border, #e2e8f0);
+    background: var(--admin-bg, #fff);
+    color: var(--admin-text, #0f172a);
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.inv-stock-input:focus {
+    outline: none;
+    border-color: var(--primary, #6366f1);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary, #6366f1) 22%, transparent);
+}
+
+.inventory-offerings-table td.actions {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    vertical-align: middle;
+}
+
+/* Eye + View: reuse .medicines-view-btn from MedicinesTab.css; keep from shrinking in tight action cells */
+.inventory-offerings-table td.actions .action-btn.inventory-view-btn--eye {
+    flex-shrink: 0;
+}
+
+@media (max-width: 1024px) {
+    .inventory-offerings-table {
+        min-width: 720px;
+    }
+}

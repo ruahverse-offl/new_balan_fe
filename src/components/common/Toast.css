@@ -1,0 +1,120 @@
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+    max-width: 400px;
+}
+
+.toast-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+    pointer-events: all;
+    font-size: 0.9rem;
+    font-weight: 500;
+    backdrop-filter: blur(8px);
+    min-width: 280px;
+}
+
+.toast-enter {
+    animation: toastSlideIn 0.3s ease forwards;
+}
+
+.toast-exit {
+    animation: toastSlideOut 0.3s ease forwards;
+}
+
+@keyframes toastSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes toastSlideOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+.toast-success {
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    color: #166534;
+}
+
+.toast-error {
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
+    color: #991b1b;
+}
+
+.toast-warning {
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    color: #92400e;
+}
+
+.toast-info {
+    background: #eff6ff;
+    border: 1px solid #93c5fd;
+    color: #1e40af;
+}
+
+.toast-icon {
+    display: flex;
+    flex-shrink: 0;
+}
+
+.toast-message {
+    flex: 1;
+    line-height: 1.4;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    opacity: 0.5;
+    display: flex;
+    padding: 2px;
+    color: inherit;
+    flex-shrink: 0;
+    transition: opacity 0.2s;
+}
+
+.toast-close:hover {
+    opacity: 1;
+}
+
+@media (max-width: 480px) {
+    .toast-container {
+        top: 12px;
+        right: 12px;
+        left: 12px;
+        max-width: unset;
+    }
+
+    .toast-item {
+        min-width: unset;
+        font-size: 0.85rem;
+        padding: 10px 14px;
+    }
+}

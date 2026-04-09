@@ -1,0 +1,167 @@
+/* Coupons + marquee — used with AdminCatalogTabs.css */
+
+.coupons-toolbar-filters {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.coupons-tab-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.coupons-marquee-card .catalog-tab-header {
+    padding-bottom: 1rem;
+}
+
+.coupons-marquee-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0 1.5rem 1.25rem;
+}
+
+.coupons-marquee-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.coupons-actions-split {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.coupons-marquee-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--admin-text-muted, #64748b);
+}
+
+.coupons-marquee-status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.coupons-marquee-status-dot.on {
+    background: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+}
+
+.coupons-marquee-status-dot.off {
+    background: #94a3b8;
+    box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.25);
+}
+
+.coupons-table tbody tr {
+    transition: background 0.15s ease;
+}
+
+.coupons-table tbody tr:hover {
+    background: rgba(99, 102, 241, 0.04);
+}
+
+.coupons-code-pill {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 0.3rem 0.7rem;
+    border-radius: 10px;
+    font-size: 0.8125rem;
+    font-weight: 800;
+    font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
+    letter-spacing: 0.04em;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    color: #1d4ed8;
+    border: 1px solid rgba(59, 130, 246, 0.28);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.coupons-discount-value {
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: var(--admin-text-main, #0f172a);
+}
+
+.coupons-expiry-muted {
+    font-size: 0.875rem;
+    color: var(--admin-text-muted, #64748b);
+}
+
+.coupons-first-order-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.coupons-first-order-pill.no {
+    background: #f1f5f9;
+    color: var(--admin-text-muted, #64748b);
+    border-color: var(--admin-border, #e2e8f0);
+}
+
+.coupons-min-order {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.875rem;
+    color: var(--admin-text-muted, #64748b);
+}
+
+.coupons-status-btn {
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+}
+
+.coupons-status-btn:focus-visible {
+    outline: 2px solid var(--primary, #6366f1);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+@media (max-width: 640px) {
+    .coupons-marquee-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .coupons-marquee-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .coupons-marquee-row .status-toggle-group {
+        flex: 1;
+        justify-content: stretch;
+    }
+
+    .coupons-marquee-row .toggle-btn {
+        flex: 1;
+    }
+}

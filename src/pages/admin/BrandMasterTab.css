@@ -1,0 +1,41 @@
+/* Brand catalog — View details; override .action-btn fixed square so icon + label fit */
+.admin-table td.actions .action-btn.brand-master-view-btn {
+    width: auto;
+    min-width: auto;
+    height: auto;
+    min-height: 36px;
+    padding: 0.45rem 0.75rem;
+}
+
+.brand-master-view-btn svg {
+    flex-shrink: 0;
+    color: var(--primary, #6366f1);
+}
+
+.brand-master-view-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--primary, #6366f1);
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--primary, #6366f1) 30%, var(--admin-border, #e5e7eb));
+    background: color-mix(in srgb, var(--primary, #6366f1) 8%, var(--white, #fff));
+}
+
+.brand-master-view-btn:hover {
+    background: color-mix(in srgb, var(--primary, #6366f1) 16%, var(--white, #fff));
+    border-color: color-mix(in srgb, var(--primary, #6366f1) 45%, var(--admin-border, #e5e7eb));
+    color: var(--primary, #6366f1);
+}
+
+.brand-master-view-btn:focus-visible {
+    outline: 2px solid var(--primary, #6366f1);
+    outline-offset: 2px;
+}
+
+.brand-master-view-btn-label {
+    line-height: 1;
+}

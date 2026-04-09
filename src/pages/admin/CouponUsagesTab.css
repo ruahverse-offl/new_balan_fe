@@ -1,0 +1,77 @@
+/* Coupon usages — catalog chrome via AdminCatalogTabs.css; stats reuse .coupon-usages-stats from Admin.css */
+
+.coupon-usages-tab-card .coupon-usages-stats {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--admin-border, #e2e8f0);
+    background: linear-gradient(180deg, #fafbfc 0%, #ffffff 100%);
+}
+
+.cu-toolbar-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+}
+
+.cu-date-filter-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.cu-date-filter-wrap label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--admin-text-muted, #64748b);
+    margin: 0;
+}
+
+.cu-date-input {
+    padding: 0.45rem 0.65rem;
+    border-radius: 10px;
+    border: 2px solid var(--admin-border, #e2e8f0);
+    background: #fff;
+    color: var(--admin-text-main, #0f172a);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.cu-date-input:focus {
+    outline: none;
+    border-color: var(--primary, #6366f1);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.cu-clear-date {
+    padding: 0.35rem 0.65rem;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--primary, #6366f1);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.cu-clear-date:hover {
+    text-decoration: underline;
+}
+
+.coupon-usages-tab-card .coupon-usages-table tbody tr.coupon-usage-row-clickable {
+    cursor: pointer;
+}
+
+.coupon-usages-tab-card .coupon-usages-table tbody tr.coupon-usage-row-clickable:hover {
+    background: rgba(99, 102, 241, 0.06);
+}
+
+.cu-customer-name {
+    font-weight: 700;
+    color: var(--admin-text-main, #0f172a);
+}
+
+.cu-customer-phone {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.875rem;
+}

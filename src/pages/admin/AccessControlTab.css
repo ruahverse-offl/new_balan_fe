@@ -1,0 +1,729 @@
+/* Roles & access — premium layout, KPIs, filters, copy actions */
+
+.access-control-tab {
+    --access-accent: var(--primary, #6366f1);
+    --access-accent-soft: color-mix(in srgb, var(--primary-light) 45%, var(--white));
+    --access-radius: 14px;
+}
+
+.access-control-tab .animate-spin {
+    animation: spin-smooth 0.9s linear infinite;
+    transform-origin: center;
+}
+
+.access-control-tab-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-width: 1180px;
+}
+
+.access-control-tab-stack .admin-table-card.catalog-tab-card {
+    margin-bottom: 0;
+}
+
+.access-control-tab-stack .access-control-panel.admin-table-card.catalog-tab-card {
+    padding: 0;
+    background: var(--admin-card);
+    border: 1px solid var(--admin-border);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    border-radius: var(--access-radius);
+    transition: box-shadow 0.2s ease;
+}
+
+.access-control-tab-stack .access-control-panel.admin-table-card.catalog-tab-card:hover {
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.07);
+}
+
+.access-control-intro-card {
+    border-radius: var(--access-radius);
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--access-accent) 18%, var(--admin-border));
+    box-shadow: 0 4px 24px color-mix(in srgb, var(--access-accent) 8%, transparent);
+}
+
+.access-control-hero-header {
+    background: linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--primary-light) 42%, var(--white)) 0%,
+        var(--white) 48%,
+        color-mix(in srgb, var(--gray-50) 90%, var(--white)) 100%
+    );
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.access-control-hero-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.access-control-hero-icon-wrap {
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--access-accent);
+    background: color-mix(in srgb, var(--white) 70%, var(--primary-light));
+    border: 1px solid color-mix(in srgb, var(--access-accent) 15%, transparent);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--access-accent) 10%, transparent);
+}
+
+.access-control-hero-copy {
+    min-width: 0;
+    flex: 1;
+}
+
+.access-kpi-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-top: 1.1rem;
+}
+
+.access-kpi-card {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.55rem 0.85rem;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--white) 88%, var(--gray-50));
+    border: 1px solid var(--admin-border);
+    min-width: 0;
+}
+
+.access-kpi-card--accent {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.45rem;
+    border-color: color-mix(in srgb, var(--access-accent) 22%, var(--admin-border));
+    background: linear-gradient(180deg, var(--white) 0%, var(--access-accent-soft) 100%);
+}
+
+.access-kpi-icon {
+    color: var(--access-accent);
+    flex-shrink: 0;
+    opacity: 0.9;
+}
+
+.access-kpi-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.access-kpi-value {
+    font-size: 1.2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--admin-text-main);
+    line-height: 1.1;
+}
+
+.access-kpi-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--admin-text-muted);
+}
+
+.access-kpi-role {
+    font-weight: 800;
+    color: var(--admin-text-main);
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.access-kpi-mini-bar {
+    height: 4px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--admin-border) 65%, transparent);
+    overflow: hidden;
+}
+
+.access-kpi-mini-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--access-accent), color-mix(in srgb, var(--access-accent) 65%, #22c55e));
+    transition: width 0.35s ease;
+}
+
+.access-control-section-header .access-control-section-title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+}
+
+.access-control-section-header .access-control-section-title-row > div {
+    min-width: 0;
+    flex: 1;
+}
+
+.access-control-section-header .catalog-tab-title {
+    font-size: 1.15rem;
+    margin-bottom: 0.25rem;
+}
+
+.access-control-section-header .catalog-tab-subtitle {
+    font-size: 0.8125rem;
+}
+
+.access-control-intro-card .catalog-tab-toolbar {
+    justify-content: flex-start;
+    background: var(--admin-card);
+}
+
+.access-control-intro-card .catalog-tab-toolbar .access-control-refresh-top {
+    margin-left: auto;
+}
+
+.access-control-forbidden-catalog {
+    padding: 2.75rem 1.5rem;
+}
+
+.access-control-forbidden-catalog .access-control-forbidden-hint {
+    margin-top: 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--admin-text-muted);
+}
+
+.access-control-loading-card .catalog-loading {
+    min-height: 220px;
+}
+
+.access-control-loading-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--admin-text-main);
+    text-align: center;
+}
+
+.access-control-loading-sub {
+    margin: 0.35rem 0 0;
+    font-size: 0.875rem;
+    color: var(--admin-text-muted);
+    text-align: center;
+}
+
+.access-control-empty-icon {
+    opacity: 0.35;
+    margin-bottom: 0.75rem;
+}
+
+.access-control-section-header .catalog-tab-subtitle code {
+    font-size: 0.8em;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    background: var(--gray-100);
+    font-family: ui-monospace, monospace;
+}
+
+.access-control-perms-no-role-meta {
+    margin-left: 0;
+    width: 100%;
+}
+
+.access-control-perms-toolbar {
+    align-items: center;
+}
+
+.access-control-perms-toolbar--rich {
+    align-items: flex-start;
+}
+
+.access-control-perms-summary {
+    flex-basis: 100%;
+    margin-top: 0.25rem;
+}
+
+.access-control-meta-role {
+    color: var(--admin-text-main);
+    font-weight: 800;
+}
+
+.access-quick-role {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--admin-text-muted);
+}
+
+.access-quick-role-select {
+    padding: 0.45rem 0.65rem;
+    border-radius: 10px;
+    border: 2px solid var(--admin-border);
+    background: var(--white);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--admin-text-main);
+    min-width: 10rem;
+    max-width: 14rem;
+    cursor: pointer;
+}
+
+.access-quick-role-select:focus {
+    outline: none;
+    border-color: var(--access-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--access-accent) 18%, transparent);
+}
+
+.access-grant-filter {
+    display: inline-flex;
+    flex-wrap: wrap;
+    border-radius: 10px;
+    border: 2px solid var(--admin-border);
+    overflow: hidden;
+    background: var(--gray-50);
+}
+
+.access-grant-filter-btn {
+    border: none;
+    margin: 0;
+    padding: 0.45rem 0.75rem;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--admin-text-muted);
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.access-grant-filter-btn + .access-grant-filter-btn {
+    border-left: 1px solid var(--admin-border);
+}
+
+.access-grant-filter-btn:hover {
+    background: color-mix(in srgb, var(--access-accent) 8%, transparent);
+    color: var(--admin-text-main);
+}
+
+.access-grant-filter-btn.active {
+    background: var(--white);
+    color: var(--access-accent);
+    box-shadow: inset 0 -2px 0 var(--access-accent);
+}
+
+.access-grant-filter-btn:focus-visible {
+    outline: 2px solid var(--access-accent);
+    outline-offset: 2px;
+    z-index: 1;
+}
+
+/* Roles block */
+.access-control-roles-wrap {
+    padding: 0 1.5rem 1.25rem;
+}
+
+.access-control-roles-empty {
+    padding: 2rem 1rem;
+}
+
+.access-control-roles-scroll {
+    max-height: min(320px, 42vh);
+    overflow: auto;
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    background: var(--white);
+}
+
+.access-control-roles-scroll .access-control-role-table {
+    margin: 0;
+    table-layout: fixed;
+    width: 100%;
+    min-width: 0;
+}
+
+/* Tight column widths — Note/Status stay compact; Role uses remaining space */
+.access-control-role-table .access-role-col-role {
+    width: 34%;
+    min-width: 0;
+}
+
+.access-control-role-table .access-role-col-note {
+    width: 9.5rem;
+    max-width: 11rem;
+}
+
+.access-control-role-table .access-role-col-status {
+    width: 5.25rem;
+    white-space: nowrap;
+}
+
+.access-control-roles-scroll .access-control-role-table th.access-role-col-actions {
+    width: 11.5rem;
+    min-width: 11.5rem;
+    max-width: 13rem;
+    white-space: nowrap;
+}
+
+.access-control-role-table td[data-label='Role'],
+.access-control-role-table td[data-label='Note'],
+.access-control-role-table td[data-label='Status'] {
+    vertical-align: top;
+}
+
+.access-control-role-table .access-role-hint {
+    display: block;
+    font-size: 0.8125rem;
+    line-height: 1.35;
+    color: var(--admin-text-muted);
+    word-break: break-word;
+}
+
+.access-control-role-table .access-role-desc {
+    max-width: 100%;
+    word-break: break-word;
+}
+
+.access-control-roles-scroll .access-control-role-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--gray-50);
+    box-shadow: 0 1px 0 var(--admin-border);
+}
+
+/* Matrix + catalog scroll regions */
+.access-control-matrix-outer {
+    padding: 0 1.5rem 1.25rem;
+    min-height: 120px;
+}
+
+.access-control-matrix-scroll,
+.access-control-catalog-scroll {
+    max-height: min(520px, 58vh);
+    overflow: auto;
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    background: var(--white);
+}
+
+.access-control-catalog-scroll {
+    max-height: min(640px, 65vh);
+}
+
+.access-matrix-table,
+.access-catalog-readonly-table {
+    margin: 0;
+}
+
+.access-matrix-table tbody + tbody .access-matrix-group-row,
+.access-catalog-readonly-table tbody + tbody .access-matrix-group-row {
+    border-top: 2px solid var(--admin-border);
+}
+
+.access-matrix-group-row .access-matrix-group-cell {
+    text-align: left;
+    padding: 0;
+    background: linear-gradient(180deg, var(--gray-50) 0%, color-mix(in srgb, var(--primary-light) 22%, var(--white)) 100%);
+    border-bottom: 1px solid var(--admin-border);
+    vertical-align: middle;
+}
+
+.access-matrix-group-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.85rem;
+    width: 100%;
+    padding: 0.5rem 0.65rem 0.35rem;
+}
+
+.access-catalog-group-bar {
+    justify-content: flex-start;
+}
+
+.access-catalog-group-copy-all {
+    margin-left: auto;
+}
+
+.access-matrix-group-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0.35rem 0.5rem;
+    border: none;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--white) 55%, transparent);
+    font: inherit;
+    font-weight: 800;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--admin-text-main);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.12s ease;
+}
+
+.access-matrix-group-toggle:hover {
+    background: color-mix(in srgb, var(--white) 85%, transparent);
+}
+
+.access-matrix-group-toggle:focus-visible {
+    outline: 2px solid var(--access-accent);
+    outline-offset: 2px;
+}
+
+.access-matrix-group-toggle:active {
+    transform: scale(0.98);
+}
+
+.access-matrix-group-toggle .access-matrix-group-name {
+    margin: 0;
+}
+
+.access-matrix-group-bar .access-matrix-group-count {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--admin-text-muted);
+}
+
+.access-matrix-group-bar .access-matrix-group-actions {
+    margin-left: auto;
+}
+
+.access-matrix-group-progress {
+    height: 3px;
+    margin: 0 0.65rem 0.5rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--admin-border) 55%, transparent);
+    overflow: hidden;
+}
+
+.access-matrix-group-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--access-accent), color-mix(in srgb, var(--access-accent) 50%, #10b981));
+    transition: width 0.3s ease;
+}
+
+.access-control-expand-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.75rem;
+}
+
+.access-catalog-group-row .access-matrix-group-cell {
+    background: linear-gradient(180deg, var(--gray-50) 0%, var(--white) 100%);
+}
+
+.access-control-matrix-scroll thead th,
+.access-control-catalog-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    background: var(--gray-50);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--admin-text-muted);
+    box-shadow: 0 1px 0 var(--admin-border);
+}
+
+.access-matrix-col-check {
+    width: 3rem;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.access-matrix-row-on {
+    background: color-mix(in srgb, var(--primary-light) 28%, transparent);
+}
+
+.access-matrix-desc {
+    font-size: 0.875rem;
+    line-height: 1.45;
+    color: var(--admin-text-muted);
+}
+
+.access-code-with-copy {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.access-code-with-copy .access-perm-code {
+    flex: 1;
+    min-width: 0;
+}
+
+.access-copy-code-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--gray-100) 80%, transparent);
+    color: var(--admin-text-muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, transform 0.12s;
+}
+
+.access-copy-code-btn:hover {
+    background: color-mix(in srgb, var(--access-accent) 14%, var(--white));
+    color: var(--access-accent);
+}
+
+.access-copy-code-btn:focus-visible {
+    outline: 2px solid var(--access-accent);
+    outline-offset: 1px;
+}
+
+.access-copy-code-btn:active {
+    transform: scale(0.94);
+}
+
+.access-control-placeholder--flat {
+    min-height: 200px;
+    margin: 0;
+    border-radius: 12px;
+}
+
+.access-control-empty-groups {
+    margin: 0;
+    padding: 2rem 1rem;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--admin-text-muted);
+}
+
+.access-control-catalog-body {
+    padding: 0 1.5rem 1.25rem;
+}
+
+.access-control-catalog-body .access-perm-add-form {
+    margin-bottom: 1rem;
+}
+
+.access-control-perm-code-cell {
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    word-break: break-all;
+}
+
+.access-catalog-prefix-col {
+    width: 7rem;
+    vertical-align: top;
+}
+
+.access-catalog-copy-col {
+    width: 3.25rem;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.access-catalog-actions-col {
+    width: 3rem;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.access-catalog-prefix-pill {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.2rem 0.45rem;
+    border-radius: 6px;
+    background: var(--gray-100);
+    color: var(--admin-text-muted);
+}
+
+.access-catalog-full-desc {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--admin-text-main);
+    white-space: normal;
+    word-break: break-word;
+}
+
+.access-control-catalog-empty {
+    padding: 2rem 1rem;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (max-width: 900px) {
+    .access-control-perms-summary {
+        margin-top: 0.5rem;
+    }
+}
+
+@media (max-width: 720px) {
+    .access-control-intro-card .catalog-tab-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .access-control-intro-card .catalog-tab-toolbar .access-control-refresh-top {
+        margin-left: 0;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .access-kpi-strip {
+        flex-direction: column;
+    }
+
+    .access-grant-filter {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .access-grant-filter-btn {
+        flex: 1;
+        text-align: center;
+    }
+
+    .access-quick-role-select {
+        max-width: none;
+        width: 100%;
+    }
+
+    .access-matrix-group-bar .access-matrix-group-actions {
+        display: flex;
+        width: 100%;
+        margin-left: 0;
+        margin-top: 0.35rem;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .access-catalog-group-copy-all {
+        margin-left: 0;
+        width: 100%;
+    }
+}

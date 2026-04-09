@@ -1,0 +1,169 @@
+/* Shared by Contact + About (eager import from main.jsx — lazy chunks cannot rely on Contact.css alone). */
+
+.contact-methods-section {
+    padding: 3rem 0;
+    background: var(--white);
+}
+
+.section-header-compact {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.section-header-compact h2 {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    color: var(--primary);
+    margin-bottom: 0.75rem;
+    font-weight: 800;
+}
+
+.section-header-compact p {
+    color: var(--gray-600);
+    font-size: 1.05rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.contact-methods-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+    .contact-methods-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .contact-methods-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.contact-method-card {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-200);
+    text-align: center;
+    transition: transform 0.3s var(--ease-smooth, ease), box-shadow 0.3s var(--ease-smooth, ease), border-color 0.25s ease;
+}
+
+.contact-method-card:hover,
+.contact-method-card:focus-within {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-light);
+}
+
+.method-icon-wrapper {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.contact-method-card h3 {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+    color: var(--gray-900);
+    font-weight: 700;
+}
+
+.method-desc {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.method-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    font-weight: 700;
+    font-size: 1rem;
+    text-decoration: none;
+    border-radius: var(--radius);
+    transition: all 0.3s ease;
+    margin-top: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: none;
+    cursor: pointer;
+    width: 100%;
+}
+
+.method-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    opacity: 0.95;
+}
+
+.method-button:active {
+    transform: translateY(0);
+}
+
+.method-button svg {
+    flex-shrink: 0;
+}
+
+.method-value {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--gray-900);
+    margin-top: 0.5rem;
+}
+
+.method-details {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--gray-200);
+    text-align: left;
+}
+
+.method-details p {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+}
+
+.method-details p:last-child {
+    margin-bottom: 0;
+    font-style: italic;
+    color: var(--gray-500);
+}
+
+/* Phone / WhatsApp / Email line under action button */
+.contact-method-inline-detail {
+    margin-top: 0.85rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    word-break: break-all;
+    line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+    .contact-methods-section {
+        padding: 2rem 0;
+    }
+
+    .contact-method-card {
+        padding: 1.5rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .contact-methods-grid {
+        grid-template-columns: 1fr;
+    }
+}

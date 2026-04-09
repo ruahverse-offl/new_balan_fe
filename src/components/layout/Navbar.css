@@ -1,0 +1,555 @@
+.navbar {
+    height: var(--nav-height);
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    transition: all 0.3s var(--ease-smooth, ease);
+    border-bottom: 1px solid rgba(241, 245, 249, 0.6);
+}
+
+.navbar.scrolled {
+    background: rgba(255, 255, 255, 0.97);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 20px rgba(0, 0, 0, 0.06);
+    border-bottom-color: var(--gray-200);
+}
+
+.nav-content {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.navbar-logo-img {
+    height: 50px;
+    width: auto;
+    object-fit: contain;
+}
+
+.logo-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.logo-main {
+    font-size: clamp(1.1rem, 2vw, 1.4rem);
+    font-weight: 800;
+    color: #0056b3;
+    line-height: 1;
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+}
+
+.logo-sub {
+    font-size: clamp(0.7rem, 1.25vw, 0.85rem);
+    font-weight: 600;
+    color: #28a745;
+    line-height: 1.2;
+    margin-top: 1px;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.01em;
+}
+
+.nav-links {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    /* Keep main nav items (Home / Clinic / Polyclinic / Pharmacy / Insurance / About / Contact)
+       on a single row on desktop. Mobile uses the separate mobile menu. */
+    flex-wrap: nowrap;
+}
+
+@media (min-width: 1200px) {
+    .nav-links {
+        gap: 1rem;
+    }
+}
+
+@media (min-width: 1400px) {
+    .nav-links {
+        gap: 1.5rem;
+    }
+}
+
+@media (min-width: 1921px) {
+    .logo-main {
+        font-size: 1.8rem;
+    }
+
+    .logo-sub {
+        font-size: 1rem;
+    }
+
+    .nav-link {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 1400px) {
+    .nav-link {
+        font-size: 0.85rem;
+        padding: 0.5rem 0.6rem;
+    }
+}
+
+@media (max-width: 1200px) {
+    .nav-links {
+        gap: 0.5rem;
+    }
+    
+    .nav-link {
+        font-size: 0.8rem;
+        padding: 0.45rem 0.5rem;
+    }
+}
+
+.nav-link {
+    font-weight: 600;
+    color: var(--gray-700);
+    font-size: 0.9rem;
+    position: relative;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.nav-link:hover {
+    color: var(--primary);
+    background: var(--primary-light);
+}
+
+.nav-link.active {
+    color: var(--primary);
+    background: var(--primary-light);
+    font-weight: 700;
+}
+
+.nav-link.active::after {
+    display: none;
+}
+
+.nav-link:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    color: var(--primary);
+    background: var(--primary-light);
+}
+
+.pharmacy-cta:focus-visible,
+.profile-nav-btn:focus-visible,
+.login-nav-btn:focus-visible {
+    outline: 2px solid var(--primary-dark);
+    outline-offset: 3px;
+}
+
+.pharmacy-cta:focus-visible {
+    outline-color: var(--white);
+    box-shadow: 0 0 0 3px var(--secondary-dark);
+}
+
+.nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+}
+
+@media (min-width: 1400px) {
+    .nav-actions {
+        gap: 1.5rem;
+    }
+}
+
+.pharmacy-cta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--secondary);
+    color: var(--white);
+    padding: 0.65rem 1.25rem;
+    border-radius: var(--radius-full);
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
+}
+
+.pharmacy-cta:hover {
+    background: var(--secondary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.profile-nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
+    background: var(--gray-50);
+    color: var(--gray-700);
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: 1px solid var(--gray-200);
+}
+
+.profile-nav-btn:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+    border-color: var(--primary-light);
+    transform: translateY(-1px);
+}
+
+.profile-text {
+    display: inline-block;
+}
+
+/* Login Button Styles */
+.login-nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.25rem;
+    background: var(--primary);
+    color: var(--white);
+    border-radius: var(--radius-full);
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 86, 179, 0.2);
+}
+
+.login-nav-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 86, 179, 0.3);
+    color: var(--white);
+}
+
+/* Profile/Login Button Base */
+.login-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    background: var(--primary);
+    border-radius: 50%;
+    color: var(--white);
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.login-btn:hover {
+    background: var(--primary-dark, #004494);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 86, 179, 0.3);
+}
+
+/* Mobile Menu */
+.mobile-menu {
+    position: fixed;
+    top: var(--nav-height);
+    left: 0;
+    width: 100%;
+    background: var(--white);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    transform: translateY(-100%);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    box-shadow: var(--shadow-lg);
+    z-index: 999;
+    /* Lower than navbar (1000) so it appears from behind */
+}
+
+.mobile-menu.open {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: all;
+}
+
+.mobile-link {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.mobile-cta {
+    background: var(--secondary);
+    color: var(--white);
+    padding: 1rem;
+    text-align: center;
+    border-radius: var(--radius);
+    font-weight: 700;
+}
+
+.desktop-only {
+    display: flex;
+}
+
+@media (max-width: 1024px) {
+    .desktop-only {
+        display: none !important;
+    }
+
+    .mobile-toggle {
+        display: flex;
+    }
+}
+
+/* Cart Trigger Button in Navbar */
+.cart-nav-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.65rem;
+    background: var(--primary-light);
+    border-radius: 50%;
+    color: var(--primary);
+    transition: all 0.2s;
+    cursor: pointer;
+    width: 42px;
+    height: 42px;
+}
+
+.cart-nav-btn:hover {
+    background: var(--primary);
+    color: var(--white);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 86, 179, 0.25);
+}
+
+.cart-nav-btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+    background: var(--white);
+}
+
+.cart-nav-btn.mobile {
+    margin-right: 1rem;
+    color: var(--primary);
+}
+
+.cart-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--secondary);
+    color: var(--white);
+    font-size: 0.7rem;
+    font-weight: 800;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Mobile Actions Group (Menu, User, Cart) */
+.mobile-actions {
+    display: none;
+    /* Hidden on desktop */
+}
+
+@media (max-width: 1024px) {
+    .mobile-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        /* Perfect spacing */
+        margin-left: auto;
+    }
+
+    .mobile-toggle {
+        display: flex;
+        color: var(--gray-700);
+        background: transparent;
+        border: none;
+        padding: 0.5rem;
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+
+    .mobile-toggle:active {
+        background: #f1f5f9;
+        border-radius: 50%;
+    }
+
+    .mobile-toggle:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+        border-radius: var(--radius);
+    }
+
+    .mobile-link:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+        border-radius: var(--radius-sm);
+    }
+
+    .login-btn.mobile {
+        width: auto;
+        min-width: 36px;
+        height: 36px;
+        background: var(--primary);
+        color: var(--white);
+        border-radius: var(--radius-full);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        padding: 0 0.75rem;
+        transition: all 0.2s;
+        box-shadow: 0 2px 8px rgba(0, 86, 179, 0.2);
+        text-decoration: none;
+    }
+    
+    .login-btn.mobile.login-btn-text {
+        padding: 0 1rem;
+    }
+    
+    .login-text-mobile {
+        font-size: 0.85rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    
+    @media (max-width: 480px) {
+        .login-btn.mobile.login-btn-text .login-text-mobile {
+            display: none;
+        }
+        
+        .login-btn.mobile.login-btn-text {
+            width: 36px;
+            padding: 0;
+        }
+    }
+
+    .cart-nav-btn.mobile {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--primary-light, #eff6ff);
+        color: var(--primary);
+        border-radius: 50%;
+        position: relative;
+        margin-right: 0;
+        /* Clear existing margins */
+    }
+
+    .cart-nav-btn.mobile .cart-badge {
+        top: -2px;
+        right: -2px;
+        border: 2px solid white;
+    }
+}
+
+@media (min-width: 1025px) {
+    .mobile-actions {
+        display: none;
+    }
+
+    .mobile-menu {
+        display: none !important;
+    }
+}
+
+@media (max-width: 1024px) {
+    .cart-nav-btn.mobile {
+        color: var(--primary);
+        background: transparent;
+    }
+}
+
+@media (max-width: 640px) {
+    :root {
+        --nav-height: 65px;
+    }
+
+    .navbar {
+        height: 65px;
+    }
+
+    .navbar-logo-img {
+        height: 45px;
+    }
+
+    .logo-main {
+        font-size: 1.1rem;
+    }
+
+    .logo-sub {
+        font-size: 0.75rem;
+    }
+
+    .mobile-menu {
+        top: 65px;
+    }
+}
+
+@media (max-width: 360px) {
+    :root {
+        --nav-height: 55px;
+        /* Smaller navbar for very small screens */
+    }
+
+    .navbar {
+        height: 55px;
+    }
+
+    .mobile-menu {
+        top: 55px;
+        padding: 1.5rem;
+    }
+
+    .navbar-logo-img {
+        height: 35px;
+    }
+
+    .logo-main {
+        font-size: 1rem;
+    }
+
+    .mobile-actions {
+        gap: 0.4rem;
+    }
+
+    .cart-nav-btn.mobile,
+    .login-btn.mobile {
+        width: 32px;
+        height: 32px;
+    }
+}
