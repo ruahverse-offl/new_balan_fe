@@ -22,30 +22,48 @@ export const CartProvider = ({ children }) => {
         localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
     }, [cart]);
 
-    const addToCart = (product) => {
+    /**
+     * Add a line or increase quantity. Pass `{ quantity: n }` to add more than one unit at once
+     * (e.g. brand modal). Quantity is always capped by `product.maxStock` when set.
+     *
+     * @param {object} product - Cart line (must include stable `id` per SKU / medicine–brand line)
+     * @param {{ quantity?: number }} [opts]
+     */
+    const addToCart = (product, opts = {}) => {
+        const raw = opts.quantity;
+        const addUnits =
+            raw != null && Number.isFinite(Number(raw)) ? Math.max(1, Math.floor(Number(raw))) : 1;
         const maxStock =
             product.maxStock != null && product.maxStock !== undefined
                 ? Number(product.maxStock)
                 : null;
-        setCart(prev => {
-            const existing = prev.find(item => item.id === product.id);
+        const cap =
+            maxStock != null && !Number.isNaN(maxStock) && maxStock >= 0 ? maxStock : null;
+
+        setCart((prev) => {
+            const existing = prev.find((item) => item.id === product.id);
             if (existing) {
-                if (maxStock != null && !Number.isNaN(maxStock) && existing.quantity >= maxStock) {
+                if (cap != null && existing.quantity >= cap) {
                     return prev;
                 }
                 const nextQty =
-                    maxStock != null && !Number.isNaN(maxStock)
-                        ? Math.min(existing.quantity + 1, maxStock)
-                        : existing.quantity + 1;
+                    cap != null ? Math.min(existing.quantity + addUnits, cap) : existing.quantity + addUnits;
+                if (nextQty === existing.quantity) {
+                    return prev;
+                }
                 return prev.map((item) =>
                     item.id === product.id
-                        ? { ...item, ...product, quantity: nextQty, maxStock: maxStock ?? item.maxStock }
+                        ? {
+                              ...item,
+                              ...product,
+                              quantity: nextQty,
+                              maxStock: maxStock ?? item.maxStock,
+                          }
                         : item
                 );
             }
-            const firstQty =
-                maxStock != null && !Number.isNaN(maxStock) ? Math.min(1, Math.max(0, maxStock)) : 1;
-            if (maxStock != null && firstQty < 1) {
+            const firstQty = cap != null ? Math.min(addUnits, cap) : addUnits;
+            if (cap != null && firstQty < 1) {
                 return prev;
             }
             return [...prev, { ...product, quantity: firstQty, maxStock: maxStock ?? undefined }];
@@ -56,16 +74,23 @@ export const CartProvider = ({ children }) => {
         setCart(prev => prev.filter(item => item.id !== id));
     };
 
+    /**
+     * Set line quantity. Values &lt; 1 (including 0) remove the line from the cart.
+     */
     const updateQuantity = (id, quantity) => {
-        if (quantity < 1) return removeFromCart(id);
-        setCart(prev =>
-            prev.map(item => {
+        const n = Math.floor(Number(quantity));
+        if (!Number.isFinite(n) || n < 1) {
+            removeFromCart(id);
+            return;
+        }
+        setCart((prev) =>
+            prev.map((item) => {
                 if (item.id !== id) return item;
                 const max = item.maxStock != null ? Number(item.maxStock) : null;
                 if (max != null && !Number.isNaN(max)) {
-                    return { ...item, quantity: Math.min(quantity, max) };
+                    return { ...item, quantity: Math.min(n, max) };
                 }
-                return { ...item, quantity };
+                return { ...item, quantity: n };
             })
         );
     };

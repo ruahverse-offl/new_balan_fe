@@ -1,0 +1,55 @@
+.medicine-record-page-wrap {
+  min-height: 200px;
+}
+
+/* Reuse modal section styles without max-height clipping */
+.medicine-record-page-inner .medicine-details-modal__body.medicine-record-page-inner__body {
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+}
+
+.medicine-record-page-inner .medicine-details-modal__hero {
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.medicine-record-form .admin-medicine-brands-panel {
+  margin-top: 0.5rem;
+}
+
+/* Product image: clear loading state so users know upload is in progress */
+.medicine-record-image-field__wrap {
+  position: relative;
+  margin-top: 0.35rem;
+}
+
+.medicine-record-image-field__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 5.5rem;
+  padding: 1rem;
+  box-sizing: border-box;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--admin-surface, #fff) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--admin-border, #e2e8f0) 80%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.medicine-record-image-field__overlay-text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--admin-text, #0f172a);
+}
+
+.medicine-record-image-field__overlay-hint {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--admin-text-muted, #64748b);
+}

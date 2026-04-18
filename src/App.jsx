@@ -17,9 +17,7 @@ const ProtectedRoute = ({ children }) => {
 
   if (isLoading) {
     return (
-      <div className="loading-screen loading-screen--fullscreen" role="status" aria-live="polite">
-        <span className="loading-screen-label">Checking your session…</span>
-      </div>
+      <PageLoading variant="fullscreen" message="Checking your session…" />
     );
   }
 
@@ -36,9 +34,7 @@ const AdminRoute = ({ children }) => {
 
   if (isLoading) {
     return (
-      <div className="loading-screen loading-screen--fullscreen" role="status" aria-live="polite">
-        <span className="loading-screen-label">Loading account…</span>
-      </div>
+      <PageLoading variant="fullscreen" message="Loading account…" />
     );
   }
 
@@ -59,9 +55,7 @@ const CustomerRoute = ({ children }) => {
 
   if (isLoading) {
     return (
-      <div className="loading-screen loading-screen--fullscreen" role="status" aria-live="polite">
-        <span className="loading-screen-label">Loading…</span>
-      </div>
+      <PageLoading variant="fullscreen" message="Loading…" />
     );
   }
 
@@ -90,6 +84,7 @@ const PaymentCallback = lazy(() => import('./pages/PaymentCallback'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 import ScrollToTop from './components/common/ScrollToTop';
+import { PageLoading } from './components/common/PageLoading';
 
 function AppContent() {
   const location = useLocation();
@@ -118,11 +113,7 @@ function AppContent() {
       <CartDrawer />
       <main id="main-content" tabIndex={-1} className={isMarqueeVisible ? 'has-marquee-offset' : ''}>
         <Suspense
-          fallback={
-            <div className="loading-screen route-loading" role="status" aria-live="polite">
-              <span className="loading-screen-label">Loading page…</span>
-            </div>
-          }
+          fallback={<PageLoading variant="fullscreen" message="Loading page…" />}
         >
           <Routes>
             {/* Home is available to everyone (guests, customers, staff) */}
@@ -167,6 +158,46 @@ function AppContent() {
               </AdminRoute>
             } />
             <Route path="/admin/orders/:orderId" element={
+              <AdminRoute>
+                <Admin />
+              </AdminRoute>
+            } />
+            <Route path="/admin/medicine-categories/new" element={
+              <AdminRoute>
+                <Admin />
+              </AdminRoute>
+            } />
+            <Route path="/admin/medicine-categories/:categoryId/edit" element={
+              <AdminRoute>
+                <Admin />
+              </AdminRoute>
+            } />
+            <Route path="/admin/medicine-categories/:categoryId" element={
+              <AdminRoute>
+                <Admin />
+              </AdminRoute>
+            } />
+            <Route path="/admin/medicines/new" element={
+              <AdminRoute>
+                <Admin />
+              </AdminRoute>
+            } />
+            <Route path="/admin/medicines/:medicineId/edit" element={
+              <AdminRoute>
+                <Admin />
+              </AdminRoute>
+            } />
+            <Route path="/admin/medicines/:medicineId" element={
+              <AdminRoute>
+                <Admin />
+              </AdminRoute>
+            } />
+            <Route path="/admin/inventory-offerings/:medicineId/:offeringId/edit" element={
+              <AdminRoute>
+                <Admin />
+              </AdminRoute>
+            } />
+            <Route path="/admin/inventory-offerings/:medicineId/:offeringId" element={
               <AdminRoute>
                 <Admin />
               </AdminRoute>

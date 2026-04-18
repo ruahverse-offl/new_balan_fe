@@ -2,7 +2,8 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { checkPaymentStatus } from '../services/razorpayApi';
-import { CheckCircle, XCircle, Loader2, ShoppingBag, RefreshCw, Phone, MessageSquare, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, ShoppingBag, RefreshCw, Phone, MessageSquare, Clock } from 'lucide-react';
+import { PageLoading } from '../components/common/PageLoading';
 import './PaymentCallback.css';
 
 const MAX_POLL_ATTEMPTS = 5;
@@ -114,9 +115,12 @@ const PaymentCallback = () => {
         return (
             <div className="payment-callback-page">
                 <div className="callback-card">
-                    <Loader2 size={64} className="spin-icon callback-loader" />
-                    <h2>Verifying Payment...</h2>
-                    <p>Please wait while we confirm your payment with Razorpay.</p>
+                    <PageLoading
+                        variant="bare"
+                        message="Verifying payment…"
+                        subtitle="Please wait while we confirm your payment with Razorpay."
+                        className="payment-callback-verify-loading"
+                    />
                     {pollCount > 1 && (
                         <p className="poll-hint">Attempt {pollCount} of {MAX_POLL_ATTEMPTS}...</p>
                     )}

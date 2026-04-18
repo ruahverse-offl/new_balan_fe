@@ -104,8 +104,7 @@ const CouponsTab = ({
                 <div className="catalog-tab-header">
                     <h2 className="catalog-tab-title">Coupon marquee</h2>
                     <p className="catalog-tab-subtitle">
-                        Controls the scrolling promotional bar on the public site. When visible, active coupons can
-                        surface there depending on your theme. Turn it off anytime without deleting coupons.
+                        Toggles the scrolling promo bar on the public site. Hide it without deleting coupons.
                     </p>
                 </div>
                 <div className="coupons-marquee-row">
@@ -152,8 +151,8 @@ const CouponsTab = ({
                 <div className="catalog-tab-header">
                     <h2 className="catalog-tab-title">Discount coupons</h2>
                     <p className="catalog-tab-subtitle">
-                        Percent-off codes, optional expiry, and first-order-only rules. Search by code, filter by status,
-                        and use the table to enable, edit, or remove coupons.
+                        Discount codes with optional expiry and rules. Search by code; filter by status; edit or remove in
+                        the table.
                     </p>
                 </div>
 

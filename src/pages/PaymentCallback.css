@@ -35,6 +35,14 @@
     color: var(--primary);
 }
 
+.payment-callback-verify-loading.page-loading .page-loading__message {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin: 1.5rem 0 0.5rem;
+    max-width: none;
+}
+
 .poll-hint {
     font-size: 0.85rem !important;
     color: var(--gray-400) !important;

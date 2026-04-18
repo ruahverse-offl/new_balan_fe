@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, User, Pill, ShoppingCart, Search, Plus, Trash2, Check, X, Menu, Clock, MapPin, Phone, Pencil, AlertCircle, Eye, EyeOff, CheckCircle, XCircle, LogOut, Bell, Truck, Ticket, UserCheck, IndianRupee, ArrowLeft, ChevronRight, Loader2, Shield, CreditCard, Tags, BarChart3, Calendar, Home, Package, Tag } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { Link, useParams, useNavigate, useLocation, useMatch } from 'react-router-dom';
+import { LayoutDashboard, Users, User, Pill, ShoppingCart, Search, Plus, Trash2, Check, X, Menu, Clock, MapPin, Phone, Pencil, AlertCircle, Eye, EyeOff, CheckCircle, XCircle, LogOut, Bell, Truck, Ticket, UserCheck, IndianRupee, ArrowLeft, ChevronRight, Shield, CreditCard, Tags, BarChart3, Calendar, Home, Package, Tag } from 'lucide-react';
+import { PageLoading, InlineSpinner } from '../components/common/PageLoading';
 import { useAuth } from '../context/AuthContext';
 import { getDoctors, createDoctor, updateDoctor, deleteDoctor as deleteDoctorApi } from '../services/doctorsApi';
-import { getMedicines, getMedicineById, createMedicine, updateMedicine, deleteMedicine as deleteMedicineApi } from '../services/medicinesApi';
-import { fetchAllBrandMasters, createBrand as createMedicineBrandOffering, deleteBrand as deleteMedicineBrandOffering } from '../services/brandsApi';
+import { getMedicines, createMedicine, updateMedicine, deleteMedicine as deleteMedicineApi } from '../services/medicinesApi';
 import { getOrders, updateOrder } from '../services/ordersApi';
 import { getAppointments, createAppointment, updateAppointment, deleteAppointment as deleteAppointmentApi } from '../services/appointmentsApi';
 import { getCoupons, createCoupon, updateCoupon, deleteCoupon as deleteCouponApi } from '../services/couponsApi';
@@ -15,12 +15,11 @@ import { getRoles } from '../services/rolesApi';
 import { getKpiSummary } from '../services/kpiApi';
 import { getPayments } from '../services/paymentsApi';
 import { refundPayment } from '../services/razorpayApi';
-import { getTherapeuticCategories, createTherapeuticCategory, updateTherapeuticCategory, deleteTherapeuticCategory as deleteTherapeuticCategoryApi } from '../services/therapeuticCategoriesApi';
+import { getTherapeuticCategories, deleteTherapeuticCategory as deleteTherapeuticCategoryApi } from '../services/therapeuticCategoriesApi';
 import { getCouponUsages } from '../services/couponUsagesApi';
 import { getInventoryAlerts } from '../services/inventoryApi';
 import { getTestBookings, createTestBooking, updateTestBooking, deleteTestBooking as deleteTestBookingApi } from '../services/testBookingsApi';
 import { getPolyclinicTests } from '../services/polyclinicTestsApi';
-import { uploadMedicineImage } from '../services/uploadApi';
 import { buildApiUrl } from '../config/api';
 import { getStorageFileUrl } from '../utils/prescriptionUrl';
 import { mapDoctorToFrontend, mapDoctorToBackend, mapDoctorToBackendUpdatePayload, mapMedicineToFrontend, mapCouponToFrontend, mapCouponToBackend, mapAppointmentToFrontend, mapAppointmentToBackend, mapTestBookingToFrontend, mapTestBookingToBackend } from '../utils/dataMapper';
@@ -42,6 +41,9 @@ import TherapeuticCategoriesTab from './admin/TherapeuticCategoriesTab';
 import CouponUsagesTab from './admin/CouponUsagesTab';
 import MyProfileTab from './admin/MyProfileTab';
 import OrderDetailPage from './admin/OrderDetailPage';
+import MedicineCategoryRecordPage from './admin/MedicineCategoryRecordPage';
+import MedicineRecordPage from './admin/MedicineRecordPage';
+import InventoryOfferingRecordPage from './admin/InventoryOfferingRecordPage';
 import AdminLayout from './admin/AdminLayout';
 import InventoryTab from './admin/InventoryTab';
 import BrandMasterTab from './admin/BrandMasterTab';
@@ -300,6 +302,59 @@ const Admin = () => {
     const { orderId: orderIdFromUrl } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
+    const matchMedicineCategoryNew = useMatch({ path: '/admin/medicine-categories/new', end: true });
+    const matchMedicineCategoryEdit = useMatch({ path: '/admin/medicine-categories/:categoryId/edit', end: true });
+    const matchMedicineCategoryViewRaw = useMatch({ path: '/admin/medicine-categories/:categoryId', end: true });
+    const matchMedicineCategoryView =
+        matchMedicineCategoryViewRaw &&
+        matchMedicineCategoryViewRaw.params.categoryId &&
+        matchMedicineCategoryViewRaw.params.categoryId !== 'new'
+            ? matchMedicineCategoryViewRaw
+            : null;
+    const medicineCategoryRecordMode = matchMedicineCategoryNew
+        ? 'new'
+        : matchMedicineCategoryEdit
+          ? 'edit'
+          : matchMedicineCategoryView
+            ? 'view'
+            : null;
+    const medicineCategoryIdFromRoute =
+        matchMedicineCategoryEdit?.params?.categoryId || matchMedicineCategoryView?.params?.categoryId || null;
+
+    const matchMedicineNew = useMatch({ path: '/admin/medicines/new', end: true });
+    const matchMedicineEdit = useMatch({ path: '/admin/medicines/:medicineId/edit', end: true });
+    const matchMedicineViewRaw = useMatch({ path: '/admin/medicines/:medicineId', end: true });
+    const matchMedicineView =
+        matchMedicineViewRaw &&
+        matchMedicineViewRaw.params.medicineId &&
+        matchMedicineViewRaw.params.medicineId !== 'new'
+            ? matchMedicineViewRaw
+            : null;
+    const medicineRecordMode = matchMedicineNew
+        ? 'new'
+        : matchMedicineEdit
+          ? 'edit'
+          : matchMedicineView
+            ? 'view'
+            : null;
+    const medicineIdFromRoute =
+        matchMedicineEdit?.params?.medicineId || matchMedicineView?.params?.medicineId || null;
+
+    const matchInventoryOfferingEdit = useMatch({ path: '/admin/inventory-offerings/:medicineId/:offeringId/edit', end: true });
+    const matchInventoryOfferingView = useMatch({ path: '/admin/inventory-offerings/:medicineId/:offeringId', end: true });
+    const inventoryOfferingRecordMode = matchInventoryOfferingEdit
+        ? 'edit'
+        : matchInventoryOfferingView
+          ? 'view'
+          : null;
+    const inventoryOfferingMedicineIdFromRoute =
+        matchInventoryOfferingEdit?.params?.medicineId || matchInventoryOfferingView?.params?.medicineId || null;
+    const inventoryOfferingIdFromRoute =
+        matchInventoryOfferingEdit?.params?.offeringId || matchInventoryOfferingView?.params?.offeringId || null;
+
+    /** Bumps when inventory lines are saved from full-page flows so the list refetches. */
+    const [inventoryRefreshToken, setInventoryRefreshToken] = useState(0);
+
     const [activeTab, setActiveTab] = useState('dashboard');
     /** Mobile drawer open state. On desktop (≥1025px) the sidebar stays visible regardless (Admin.css). */
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -737,66 +792,22 @@ const Admin = () => {
 
     const [doctorForm, setDoctorForm] = useState(() => ({ ...INITIAL_DOCTOR_FORM }));
     const [productForm, setProductForm] = useState({ name: '', category: 'OTC', price: '', image: '', discount: '0', requiresPrescription: false, stock: true });
-    const [medicineForm, setMedicineForm] = useState({ name: '', medicine_category_id: '', is_prescription_required: false, description: '', is_available: true, image_path: '' });
-    const [medicineImageUploading, setMedicineImageUploading] = useState(false);
-    /** Shared brand master rows for medicine modal (Brand catalog tab). */
-    const [medicineBrandCatalog, setMedicineBrandCatalog] = useState([]);
-    /** Medicine–brand offerings for the medicine being edited (GET medicine?id&include_brands). */
-    const [medicineOfferings, setMedicineOfferings] = useState([]);
-    const [medicineOfferingsLoading, setMedicineOfferingsLoading] = useState(false);
-    /** Draft row: link catalog brand + manufacturer + MRP to this medicine. */
-    const [medicineNewOffering, setMedicineNewOffering] = useState({
-        brand_id: '',
-        manufacturer: '',
-        mrp: '',
-        description: '',
-    });
-
     const [orderForm, setOrderForm] = useState({ customerId: '', customerName: '', phone: '', address: '', total: '', paymentMethod: 'cash' });
     const [appointmentForm, setAppointmentForm] = useState({ patientName: '', phone: '', doctorId: '', message: '', status: 'CONFIRMED', date: new Date().toISOString().slice(0, 10), time: '' });
     const [couponForm, setCouponForm] = useState({ code: '', discount: 5, isActive: true, expiryDate: '', firstOrderOnly: false });
     const [managerForm, setManagerForm] = useState({ name: '', email: '', password: '', mobile_number: '', role_id: '' });
-    const [therapeuticCategoryForm, setTherapeuticCategoryForm] = useState({ name: '', description: '' });
     const [testBookingForm, setTestBookingForm] = useState({ test_id: '', patient_name: '', patient_phone: '', booking_date: '', booking_time: '', status: 'PENDING', notes: '' });
 
-    // Load brand catalog when opening Manage Medicines modal (for linking sellable lines).
-    useEffect(() => {
-        if (!showModal || activeTab !== 'medicines') return undefined;
-        let cancelled = false;
-        fetchAllBrandMasters({ is_active: true })
-            .then((list) => {
-                if (!cancelled) setMedicineBrandCatalog(list || []);
-            })
-            .catch(() => {
-                if (!cancelled) setMedicineBrandCatalog([]);
-            });
-        return () => {
-            cancelled = true;
-        };
-    }, [showModal, activeTab]);
-
-    const composerBrandOptions = useMemo(() => {
-        const catalog = medicineBrandCatalog || [];
-        if (modalMode !== 'edit') return catalog;
-        const used = new Set((medicineOfferings || []).map((o) => String(o.brand_id)));
-        return catalog.filter((b) => !used.has(String(b.id)));
-    }, [modalMode, medicineBrandCatalog, medicineOfferings]);
-
     // New entity CRUD handlers
-    const addTherapeuticCategory = async (data) => {
+    const refreshTherapeuticCategories = useCallback(async () => {
         try {
-            const created = await createTherapeuticCategory(data);
-            setTherapeuticCategories(prev => [...prev, created]);
-            showNotify('Category added', 'success'); return true;
-        } catch (error) { showNotify('Failed: ' + (error?.message || ''), 'error'); return false; }
-    };
-    const updateTherapeuticCategoryFn = async (id, data) => {
-        try {
-            const updated = await updateTherapeuticCategory(id, data);
-            setTherapeuticCategories(prev => prev.map(c => c.id === id ? updated : c));
-            showNotify('Category updated', 'success'); return true;
-        } catch (error) { showNotify('Failed: ' + (error?.message || ''), 'error'); return false; }
-    };
+            const tcRes = await getTherapeuticCategories({ limit: 100 });
+            setTherapeuticCategories(tcRes.items || []);
+        } catch {
+            /* ignore */
+        }
+    }, []);
+
     const deleteTherapeuticCategoryFn = async (id) => {
         try {
             await deleteTherapeuticCategoryApi(id);
@@ -934,31 +945,6 @@ const Admin = () => {
         }
     };
 
-    const addMedicineGeneric = async (payload) => {
-        try {
-            const created = await createMedicine(payload);
-            setMedicinesPage(1);
-            await fetchMedicines(1, getSearchForTab('medicines'), medicinesRowsPerPage);
-            showNotify('Medicine added successfully', 'success');
-            return created;
-        } catch (error) {
-            showNotify('Failed to add medicine: ' + (error?.message || ''), 'error');
-            return null;
-        }
-    };
-
-    const updateMedicineGenericFn = async (id, payload) => {
-        try {
-            await updateMedicine(id, payload);
-            await fetchMedicines(medicinesPage, getSearchForTab('medicines'), medicinesRowsPerPage);
-            showNotify('Medicine updated successfully', 'success');
-            return true;
-        } catch (error) {
-            showNotify('Failed to update medicine: ' + (error?.message || ''), 'error');
-            return false;
-        }
-    };
-
     const updateProductFn = async (id, productData) => {
         try {
             await updateMedicine(id, productData);
@@ -986,49 +972,6 @@ const Admin = () => {
         } catch (error) {
             showNotify('Failed to delete medicine: ' + error.message, 'error');
             return false;
-        }
-    };
-
-    const handleAddMedicineOffering = async () => {
-        if (!editingId) {
-            showNotify('Save the medicine first, then add brand lines from edit.', 'error');
-            return;
-        }
-        const bid = medicineNewOffering.brand_id;
-        const mfr = String(medicineNewOffering.manufacturer || '').trim();
-        const mrpRaw = medicineNewOffering.mrp;
-        if (!bid || !mfr || mrpRaw === '' || Number.isNaN(Number(mrpRaw))) {
-            showNotify('Select a catalog brand, enter manufacturer, and MRP.', 'error');
-            return;
-        }
-        if ((medicineOfferings || []).some((o) => String(o.brand_id) === String(bid))) {
-            showNotify('That catalog brand is already linked to this medicine.', 'error');
-            return;
-        }
-        try {
-            const row = await createMedicineBrandOffering({
-                medicine_id: editingId,
-                brand_id: bid,
-                manufacturer: mfr,
-                mrp: Number(mrpRaw),
-                description: String(medicineNewOffering.description || '').trim() || null,
-            });
-            setMedicineOfferings((prev) => [...(prev || []), row]);
-            setMedicineNewOffering({ brand_id: '', manufacturer: '', mrp: '', description: '' });
-            showNotify('Brand line added', 'success');
-        } catch (error) {
-            showNotify(error?.message || 'Failed to add brand line', 'error');
-        }
-    };
-
-    const handleRemoveMedicineOffering = async (offeringId) => {
-        if (!offeringId || !window.confirm('Remove this sellable brand line? Inventory for this SKU is separate.')) return;
-        try {
-            await deleteMedicineBrandOffering(offeringId);
-            setMedicineOfferings((prev) => (prev || []).filter((o) => o.id !== offeringId));
-            showNotify('Brand line removed', 'success');
-        } catch (error) {
-            showNotify(error?.message || 'Failed to remove brand line', 'error');
         }
     };
 
@@ -1661,63 +1604,7 @@ const Admin = () => {
         e.preventDefault();
         let success = false;
 
-        if (activeTab === 'medicines') {
-            const mcId = medicineForm.medicine_category_id && String(medicineForm.medicine_category_id).trim();
-            if (modalMode === 'add' && !mcId) {
-                showNotify('Please select a medicine category', 'error');
-                return;
-            }
-            const payload = {
-                name: medicineForm.name,
-                is_prescription_required: medicineForm.is_prescription_required === true,
-                description: medicineForm.description || null,
-                is_available: medicineForm.is_available !== false,
-                image_path: (medicineForm.image_path && String(medicineForm.image_path).trim()) || null,
-                ...(mcId && { medicine_category_id: mcId }),
-            };
-            if (modalMode === 'add') {
-                const created = await addMedicineGeneric(payload);
-                success = Boolean(created);
-                if (created) {
-                    const d = medicineNewOffering;
-                    const hasAny =
-                        d.brand_id ||
-                        String(d.manufacturer || '').trim() !== '' ||
-                        String(d.mrp || '') !== '';
-                    const hasAll =
-                        d.brand_id &&
-                        String(d.manufacturer || '').trim() !== '' &&
-                        d.mrp !== '' &&
-                        !Number.isNaN(Number(d.mrp));
-                    if (hasAny && !hasAll) {
-                        showNotify(
-                            'Medicine saved. To link a catalog brand, fill brand, manufacturer, and MRP — or edit this medicine to add lines.',
-                            'success'
-                        );
-                    } else if (hasAll) {
-                        try {
-                            await createMedicineBrandOffering({
-                                medicine_id: created.id,
-                                brand_id: d.brand_id,
-                                manufacturer: String(d.manufacturer).trim(),
-                                mrp: Number(d.mrp),
-                                description: String(d.description || '').trim() || null,
-                            });
-                            showNotify('Catalog brand linked as a sellable line', 'success');
-                        } catch (error) {
-                            showNotify(
-                                'Medicine saved; linking brand failed: ' + (error?.message || ''),
-                                'error'
-                            );
-                        }
-                    }
-                }
-            } else {
-                success = await updateMedicineGenericFn(editingId, payload);
-            }
-        } else if (activeTab === 'therapeutic-categories') {
-            success = modalMode === 'add' ? await addTherapeuticCategory(therapeuticCategoryForm) : await updateTherapeuticCategoryFn(editingId, therapeuticCategoryForm);
-        } else if (activeTab === 'test-bookings') {
+        if (activeTab === 'test-bookings') {
             const { booking_date, booking_time } = testBookingForm;
             const today = new Date().toISOString().slice(0, 10);
             if (modalMode === 'add') {
@@ -1739,8 +1626,7 @@ const Admin = () => {
         }
         if (success) {
             setShowModal(false);
-            if (activeTab === 'medicines') fetchMedicines(medicinesPage, getSearchForTab('medicines'), medicinesRowsPerPage);
-            else fetchTabData(activeTab, true);
+            fetchTabData(activeTab, true);
         }
     };
 
@@ -1765,49 +1651,6 @@ const Admin = () => {
         setEditingId(prod.id);
         setProductForm({ ...prod });
         setShowModal(true);
-    };
-
-    const openAddMedicineModal = () => {
-        setModalMode('add');
-        setEditingId(null);
-        setMedicineForm({
-            name: '',
-            medicine_category_id: therapeuticCategories?.[0] ? String(therapeuticCategories[0].id) : '',
-            is_prescription_required: false,
-            description: '',
-            is_available: true,
-            image_path: '',
-        });
-        setMedicineOfferings([]);
-        setMedicineNewOffering({ brand_id: '', manufacturer: '', mrp: '', description: '' });
-        setMedicineOfferingsLoading(false);
-        setShowModal(true);
-    };
-
-    const openEditMedicineModal = async (med) => {
-        setModalMode('edit');
-        setEditingId(med.id);
-        setMedicineForm({
-            name: med.name || '',
-            medicine_category_id: med.medicine_category_id ? String(med.medicine_category_id) : '',
-            is_prescription_required: med.is_prescription_required === true,
-            description: med.description || '',
-            is_available: med.is_available !== false,
-            image_path: med.image_path || '',
-        });
-        setMedicineNewOffering({ brand_id: '', manufacturer: '', mrp: '', description: '' });
-        setMedicineOfferings([]);
-        setMedicineOfferingsLoading(true);
-        setShowModal(true);
-        try {
-            const full = await getMedicineById(med.id, { include_brands: true });
-            setMedicineOfferings(full.brands || []);
-        } catch {
-            showNotify('Could not load brand lines', 'error');
-            setMedicineOfferings([]);
-        } finally {
-            setMedicineOfferingsLoading(false);
-        }
     };
 
     const handleMedicineAvailabilityChange = async (med, newValue) => {
@@ -1910,6 +1753,24 @@ const Admin = () => {
         }
     }, [orderIdFromUrl]);
 
+    useEffect(() => {
+        if (medicineCategoryRecordMode) {
+            setActiveTab('therapeutic-categories');
+        }
+    }, [medicineCategoryRecordMode]);
+
+    useEffect(() => {
+        if (medicineRecordMode) {
+            setActiveTab('medicines');
+        }
+    }, [medicineRecordMode]);
+
+    useEffect(() => {
+        if (inventoryOfferingRecordMode) {
+            setActiveTab('inventory');
+        }
+    }, [inventoryOfferingRecordMode]);
+
     // When returning from order detail page, show Orders tab
     useEffect(() => {
         if (location.pathname === '/admin' && location.state?.tab === 'orders') {
@@ -1917,6 +1778,12 @@ const Admin = () => {
         }
         if (location.pathname === '/admin' && location.state?.tab === 'coupon-usages') {
             setActiveTab('coupon-usages');
+        }
+        if (location.pathname === '/admin' && location.state?.tab === 'medicines') {
+            setActiveTab('medicines');
+        }
+        if (location.pathname === '/admin' && location.state?.tab === 'inventory') {
+            setActiveTab('inventory');
         }
     }, [location.pathname, location.state]);
 
@@ -1987,8 +1854,11 @@ const Admin = () => {
                         <button
                             type="button"
                             key={item.id}
-                            className={`nav-item ${activeTab === item.id || (item.id === 'orders' && orderIdFromUrl) ? 'active' : ''}`}
+                            className={`nav-item ${activeTab === item.id || (item.id === 'orders' && orderIdFromUrl) || (item.id === 'therapeutic-categories' && medicineCategoryRecordMode) || (item.id === 'medicines' && medicineRecordMode) || (item.id === 'inventory' && inventoryOfferingRecordMode) ? 'active' : ''}`}
                             onClick={() => {
+                                if (orderIdFromUrl || medicineCategoryRecordMode || medicineRecordMode || inventoryOfferingRecordMode) {
+                                    navigate('/admin');
+                                }
                                 setActiveTab(item.id);
                                 setIsMobileSidebarOpen(false);
                             }}
@@ -2050,7 +1920,17 @@ const Admin = () => {
                         <button className="mobile-hamburger" onClick={() => setIsMobileSidebarOpen(true)}>
                             <Menu size={24} />
                         </button>
-                        <h2>{orderIdFromUrl ? 'Order details' : (availableMenuItems.find(m => m.id === activeTab)?.label || 'Statistics')}</h2>
+                        <h2>
+                            {orderIdFromUrl
+                                ? 'Order details'
+                                : medicineRecordMode
+                                  ? 'Manage medicines'
+                                  : inventoryOfferingRecordMode
+                                    ? 'Inventory'
+                                    : medicineCategoryRecordMode
+                                      ? 'Medicine categories'
+                                      : availableMenuItems.find((m) => m.id === activeTab)?.label || 'Statistics'}
+                        </h2>
                     </div>
                     <div className="admin-user">
                         <div className="admin-user-info">
@@ -2069,7 +1949,32 @@ const Admin = () => {
 
                 {/* Content Area - Animated */}
                 <div className="admin-content">
-                    {orderIdFromUrl ? (
+                    {medicineRecordMode ? (
+                        <MedicineRecordPage
+                            mode={medicineRecordMode}
+                            medicineId={medicineIdFromRoute}
+                            therapeuticCategories={therapeuticCategories}
+                            showNotify={showNotify}
+                            onMedicinesChanged={() =>
+                                fetchMedicines(medicinesPage, getSearchForTab('medicines'), medicinesRowsPerPage)
+                            }
+                        />
+                    ) : inventoryOfferingRecordMode ? (
+                        <InventoryOfferingRecordPage
+                            mode={inventoryOfferingRecordMode}
+                            medicineId={inventoryOfferingMedicineIdFromRoute}
+                            offeringId={inventoryOfferingIdFromRoute}
+                            showNotify={showNotify}
+                            onInventoryChanged={() => setInventoryRefreshToken((n) => n + 1)}
+                        />
+                    ) : medicineCategoryRecordMode ? (
+                        <MedicineCategoryRecordPage
+                            mode={medicineCategoryRecordMode}
+                            categoryId={medicineCategoryIdFromRoute}
+                            showNotify={showNotify}
+                            onCategoriesChanged={refreshTherapeuticCategories}
+                        />
+                    ) : orderIdFromUrl ? (
                         <OrderDetailPage
                             onOrderLifecycleIntent={handleOrderLifecycleIntent}
                             backendPermissions={user?.backendPermissions || []}
@@ -2078,17 +1983,11 @@ const Admin = () => {
                             lifecycleRefreshKey={orderDetailRefreshKey}
                         />
                     ) : loading ? (
-                        <div className="content-loading" style={{ 
-                            display: 'flex', 
-                            flexDirection: 'column', 
-                            alignItems: 'center', 
-                            justifyContent: 'center', 
-                            minHeight: '400px',
-                            padding: '2rem'
-                        }}>
-                            <Loader2 size={48} className="spinning" style={{ animation: 'spin 1s linear infinite', color: 'var(--primary)' }} />
-                            <p style={{ marginTop: '1.5rem', fontSize: '1rem', color: '#666' }}>Loading...</p>
-                        </div>
+                        <PageLoading
+                            variant="block"
+                            message="Loading…"
+                            className="content-loading"
+                        />
                     ) : (
                         <div key={activeTab} className="content-wrapper animate-fade-in">
                             {/* Dashboard Tab */}
@@ -2231,15 +2130,16 @@ const Admin = () => {
                                 setSearchForTab('medicines', v);
                                 setMedicinesPage(1);
                             }}
-                            onAdd={openAddMedicineModal}
-                            onEdit={openEditMedicineModal}
+                            onAdd={() => navigate('/admin/medicines/new')}
+                            onEdit={(m) => navigate(`/admin/medicines/${m.id}/edit`)}
                             onDelete={(m) => requestDelete('medicine', m.id, m.name)}
                             onAvailabilityChange={handleMedicineAvailabilityChange}
-                            showNotify={showNotify}
                         />
                     )}
 
-                    {activeTab === 'inventory' && <InventoryTab showNotify={showNotify} />}
+                    {activeTab === 'inventory' && (
+                        <InventoryTab showNotify={showNotify} refreshToken={inventoryRefreshToken} />
+                    )}
 
                     {activeTab === 'brand-master' && <BrandMasterTab showNotify={showNotify} />}
 
@@ -2529,10 +2429,10 @@ const Admin = () => {
                             setTherapeuticCategoriesPage={setTherapeuticCategoriesPage}
                             therapeuticCategoriesRowsPerPage={therapeuticCategoriesRowsPerPage}
                             setTherapeuticCategoriesRowsPerPage={setTherapeuticCategoriesRowsPerPage}
-                            onAddClick={() => { setModalMode('add'); setTherapeuticCategoryForm({ name: '', description: '' }); setShowModal(true); }}
-                            onEditClick={(c) => { setModalMode('edit'); setEditingId(c.id); setTherapeuticCategoryForm({ name: c.name || '', description: c.description || '' }); setShowModal(true); }}
+                            onAddClick={() => navigate('/admin/medicine-categories/new')}
+                            onEditClick={(c) => navigate(`/admin/medicine-categories/${c.id}/edit`)}
+                            onViewClick={(c) => navigate(`/admin/medicine-categories/${c.id}`)}
                             onDeleteClick={requestDelete}
-                            showNotify={showNotify}
                         />
                     )}
                     {activeTab === 'coupon-usages' && (
@@ -2569,8 +2469,6 @@ const Admin = () => {
                         <div className="modal-header">
                             <h3>{modalMode === 'add' ? 'New' : 'Update'} {
                                 activeTab === 'staff' ? 'Staff' :
-                                activeTab === 'medicines' ? 'Medicine' :
-                                activeTab === 'therapeutic-categories' ? 'Medicine Category' :
                                 activeTab === 'test-bookings' ? 'Test Booking' :
                                 activeTab.slice(0, -1)
                             }</h3>
@@ -2582,230 +2480,11 @@ const Admin = () => {
                                         activeTab === 'appointments' ? handleAppointmentSubmit :
                                             activeTab === 'coupons' ? handleCouponSubmit :
                                                 activeTab === 'staff' ? handleManagerSubmit :
-                                                                    activeTab === 'medicines' ? handleNewEntitySubmit :
-                                                                                activeTab === 'therapeutic-categories' ? handleNewEntitySubmit :
-                                                                                        activeTab === 'test-bookings' ? handleNewEntitySubmit :
-                                                                                            (e) => e.preventDefault()
+                                                    activeTab === 'test-bookings' ? handleNewEntitySubmit :
+                                                        (e) => e.preventDefault()
                         } className="modal-form">
                             {activeTab === 'doctors' && (
                                 <DoctorModalForm doctorForm={doctorForm} setDoctorForm={setDoctorForm} />
-                            )}
-                            {activeTab === 'medicines' && (
-                                <>
-                                    <div className="form-group"><label>Medicine name*</label><input type="text" required value={medicineForm.name} placeholder="e.g. Paracetamol" onChange={e => setMedicineForm({ ...medicineForm, name: e.target.value })} /></div>
-                                    <div className="form-group">
-                                        <label>Medicine category*</label>
-                                        <select required value={String(medicineForm.medicine_category_id || '')} onChange={e => setMedicineForm({ ...medicineForm, medicine_category_id: e.target.value })} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--admin-border)' }}>
-                                            <option value="">Select category</option>
-                                            {(therapeuticCategories || []).map(c => <option key={c.id} value={String(c.id || '')}>{c.name || '—'}</option>)}
-                                        </select>
-                                        {(therapeuticCategories || []).length === 0 && <small style={{ color: 'var(--admin-text-muted)', marginTop: '0.25rem', display: 'block' }}>Add categories in Medicine Cat. tab first.</small>}
-                                        {(therapeuticCategories || []).length > 0 && <small style={{ color: 'var(--admin-text-muted)', marginTop: '0.25rem', display: 'block' }}>From Medicine Cat. (database)</small>}
-                                    </div>
-                                    <div className="form-group form-group-checkbox">
-                                        <input type="checkbox" id="med-rx" checked={medicineForm.is_prescription_required === true} onChange={e => setMedicineForm({ ...medicineForm, is_prescription_required: e.target.checked })} />
-                                        <label htmlFor="med-rx">Prescription required</label>
-                                    </div>
-                                    <div className="form-group"><label>Description</label><textarea rows={2} value={medicineForm.description || ''} placeholder="Optional" onChange={e => setMedicineForm({ ...medicineForm, description: e.target.value })} /></div>
-                                    <div className="form-group form-group-checkbox" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
-                                        <input type="checkbox" id="med-available" checked={medicineForm.is_available !== false} onChange={e => setMedicineForm({ ...medicineForm, is_available: e.target.checked })} />
-                                        <label htmlFor="med-available">Available for sale (show to customers)</label>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Product image</label>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            disabled={medicineImageUploading}
-                                            onChange={async (e) => {
-                                                const file = e.target.files?.[0];
-                                                e.target.value = '';
-                                                if (!file) return;
-                                                setMedicineImageUploading(true);
-                                                try {
-                                                    const res = await uploadMedicineImage(file);
-                                                    const path = res.stored_as || (res.url && res.url.replace(/^.*\/storage\//, ''));
-                                                    if (path) setMedicineForm((prev) => ({ ...prev, image_path: path }));
-                                                    showNotify('Image uploaded', 'success');
-                                                } catch (err) {
-                                                    showNotify(err?.message || 'Image upload failed', 'error');
-                                                } finally {
-                                                    setMedicineImageUploading(false);
-                                                }
-                                            }}
-                                        />
-                                        {medicineImageUploading && <small style={{ display: 'block', marginTop: '0.35rem' }}>Uploading…</small>}
-                                        {medicineForm.image_path ? (
-                                            <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                                                <img
-                                                    src={getStorageFileUrl(medicineForm.image_path)}
-                                                    alt="Preview"
-                                                    style={{ maxWidth: 120, maxHeight: 120, objectFit: 'contain', borderRadius: 8, border: '1px solid var(--admin-border)' }}
-                                                />
-                                                <button type="button" className="btn-secondary" style={{ padding: '0.35rem 0.75rem' }} onClick={() => setMedicineForm({ ...medicineForm, image_path: '' })}>
-                                                    Remove image
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <small style={{ color: 'var(--admin-text-muted)', marginTop: '0.25rem', display: 'block' }}>Optional. JPEG/PNG/WebP. Shown on pharmacy and medicine detail.</small>
-                                        )}
-                                    </div>
-                                    <div className="admin-medicine-brands-panel" aria-labelledby="medicine-brands-heading">
-                                        <div className="admin-medicine-brands-panel__head">
-                                            <div>
-                                                <h4 id="medicine-brands-heading" className="admin-medicine-brands-panel__title">
-                                                    <Tag size={18} aria-hidden />
-                                                    Sellable brand lines
-                                                </h4>
-                                                <p className="admin-medicine-brands-panel__meta">
-                                                    Each line is one <strong>catalog brand</strong> + MRP — this is the SKU customers add to cart. Stock is managed per line in Inventory.
-                                                </p>
-                                            </div>
-                                            {modalMode === 'edit' && !medicineOfferingsLoading && (
-                                                <span className="admin-medicine-brands-count" aria-live="polite">
-                                                    {(medicineOfferings || []).length} linked
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        {modalMode === 'edit' && medicineOfferingsLoading && (
-                                            <div className="admin-medicine-brands-loading" role="status" aria-busy="true">
-                                                <Loader2 size={18} className="animate-spin" style={{ color: 'var(--primary)' }} />
-                                                Loading linked lines…
-                                            </div>
-                                        )}
-
-                                        {modalMode === 'edit' && !medicineOfferingsLoading && (medicineOfferings || []).length === 0 && (
-                                            <div className="admin-medicine-brands-empty">
-                                                <strong>No brand lines yet</strong>
-                                                <span>Use the form below to link a catalog brand. Without at least one line, this medicine won&apos;t appear as a buyable SKU on the pharmacy.</span>
-                                            </div>
-                                        )}
-
-                                        {modalMode === 'edit' && !medicineOfferingsLoading && (medicineOfferings || []).length > 0 && (
-                                            <ul className="admin-medicine-brand-line-list" aria-label="Linked brand lines">
-                                                {(medicineOfferings || []).map((o) => (
-                                                    <li key={o.id}>
-                                                        <div className="admin-medicine-brand-line-card">
-                                                            <div className="admin-medicine-brand-line-card__main">
-                                                                <div className="admin-medicine-brand-line-card__badge">{o.brand_name || '—'}</div>
-                                                                <div className="admin-medicine-brand-line-card__sub">
-                                                                    <span>{o.manufacturer || '—'}</span>
-                                                                    {o.description ? (
-                                                                        <>
-                                                                            <span aria-hidden> · </span>
-                                                                            <span>{o.description}</span>
-                                                                        </>
-                                                                    ) : null}
-                                                                </div>
-                                                            </div>
-                                                            <div className="admin-medicine-brand-line-card__side">
-                                                                <span className="admin-medicine-brand-line-card__mrp">₹{Number(o.mrp).toFixed(2)}</span>
-                                                                <button
-                                                                    type="button"
-                                                                    className="admin-medicine-brand-line-card__remove"
-                                                                    title="Remove this line"
-                                                                    aria-label={`Remove ${o.brand_name || 'brand'} line`}
-                                                                    onClick={() => handleRemoveMedicineOffering(o.id)}
-                                                                >
-                                                                    <Trash2 size={16} strokeWidth={2} />
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        )}
-
-                                        <div className="admin-medicine-brand-composer">
-                                            <p className="admin-medicine-brand-composer__label">
-                                                {modalMode === 'edit' ? 'Add another line' : 'Optional first line (on save)'}
-                                            </p>
-                                            <div className="form-group">
-                                                <label htmlFor="medicine-composer-brand">Brand from catalog</label>
-                                                <select
-                                                    id="medicine-composer-brand"
-                                                    value={medicineNewOffering.brand_id || ''}
-                                                    onChange={(e) => setMedicineNewOffering({ ...medicineNewOffering, brand_id: e.target.value })}
-                                                >
-                                                    <option value="">{composerBrandOptions.length ? 'Choose a brand…' : 'No brands available'}</option>
-                                                    {composerBrandOptions.map((b) => (
-                                                        <option key={b.id} value={String(b.id)}>{b.name || '—'}</option>
-                                                    ))}
-                                                </select>
-                                                {(medicineBrandCatalog || []).length === 0 && (
-                                                    <small style={{ color: 'var(--admin-text-muted)', display: 'block', marginTop: '0.35rem' }}>
-                                                        Add names in <strong>Brand catalog</strong> first, then reopen this modal.
-                                                    </small>
-                                                )}
-                                                {modalMode === 'edit' &&
-                                                    (medicineBrandCatalog || []).length > 0 &&
-                                                    composerBrandOptions.length === 0 && (
-                                                        <small style={{ color: 'var(--admin-text-muted)', display: 'block', marginTop: '0.35rem' }}>
-                                                            Every catalog brand is already linked. Remove a line above to reuse a brand, or add a new name under Brand catalog.
-                                                        </small>
-                                                    )}
-                                            </div>
-                                            <div className="admin-medicine-brand-form-row2">
-                                                <div className="form-group">
-                                                    <label htmlFor="medicine-composer-mfr">Manufacturer</label>
-                                                    <input
-                                                        id="medicine-composer-mfr"
-                                                        type="text"
-                                                        value={medicineNewOffering.manufacturer}
-                                                        onChange={(e) => setMedicineNewOffering({ ...medicineNewOffering, manufacturer: e.target.value })}
-                                                        placeholder="e.g. GSK Consumer"
-                                                        autoComplete="off"
-                                                    />
-                                                </div>
-                                                <div className="form-group">
-                                                    <label htmlFor="medicine-composer-mrp">MRP (₹)</label>
-                                                    <input
-                                                        id="medicine-composer-mrp"
-                                                        type="number"
-                                                        step="0.01"
-                                                        min="0"
-                                                        inputMode="decimal"
-                                                        value={medicineNewOffering.mrp}
-                                                        onChange={(e) => setMedicineNewOffering({ ...medicineNewOffering, mrp: e.target.value })}
-                                                        placeholder="0.00"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="form-group">
-                                                <label htmlFor="medicine-composer-desc">Pack / variant note (optional)</label>
-                                                <input
-                                                    id="medicine-composer-desc"
-                                                    type="text"
-                                                    value={medicineNewOffering.description}
-                                                    onChange={(e) => setMedicineNewOffering({ ...medicineNewOffering, description: e.target.value })}
-                                                    placeholder="e.g. 500 mg · strip of 10"
-                                                />
-                                            </div>
-                                            {modalMode === 'edit' && editingId && (
-                                                <button
-                                                    type="button"
-                                                    className="admin-btn-add-brand-line"
-                                                    disabled={
-                                                        medicineOfferingsLoading ||
-                                                        composerBrandOptions.length === 0 ||
-                                                        (medicineBrandCatalog || []).length === 0
-                                                    }
-                                                    onClick={handleAddMedicineOffering}
-                                                >
-                                                    <Plus size={20} strokeWidth={2.5} aria-hidden />
-                                                    Add brand line
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        {modalMode === 'add' && (
-                                            <div className="admin-medicine-brands-hint">
-                                                When you <strong>Save medicine</strong>, we will create this line automatically if brand, manufacturer, and MRP are all filled. To add more lines, edit the medicine afterward.
-                                            </div>
-                                        )}
-                                    </div>
-                                </>
                             )}
                             {activeTab === 'orders' && (
                                 <>
@@ -2880,12 +2559,6 @@ const Admin = () => {
                                         />
                                         <label htmlFor="coupon-first-order-only" style={{ marginBottom: 0 }}>First order only (valid only for customer&apos;s first order)</label>
                                     </div>
-                                </>
-                            )}
-                            {activeTab === 'therapeutic-categories' && (
-                                <>
-                                    <div className="form-group"><label>Name*</label><input type="text" required value={therapeuticCategoryForm.name} onChange={e => setTherapeuticCategoryForm({ ...therapeuticCategoryForm, name: e.target.value })} /></div>
-                                    <div className="form-group"><label>Description</label><textarea rows="3" value={therapeuticCategoryForm.description} onChange={e => setTherapeuticCategoryForm({ ...therapeuticCategoryForm, description: e.target.value })} /></div>
                                 </>
                             )}
                             {activeTab === 'test-bookings' && (() => {
@@ -3427,7 +3100,7 @@ const Admin = () => {
                                             {staffView.loading && !staffView.detail ? (
                                                 <div className="staff-details-modal__field staff-details-modal__field--full">
                                                     <div className="staff-details-modal__inline-loading" role="status">
-                                                        <Loader2 size={20} aria-hidden className="staff-details-modal__spin" />
+                                                        <InlineSpinner size={20} className="staff-details-modal__spin" />
                                                         <span>Loading full profile…</span>
                                                     </div>
                                                 </div>

@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useCart } from '../../context/CartContext';
-import { getDeliverySettings } from '../../services/deliveryApi';
-import { useRefreshDeliverySettingsOnFocus } from '../../hooks/useRefreshDeliverySettingsOnFocus';
 import { useToast } from './Toast';
 import { prodCheck } from '../../config';
 import { ShoppingCart, X, Plus, Minus, Trash2, FileUp, ShoppingBag, ArrowRight } from 'lucide-react';
@@ -10,27 +8,12 @@ import './CartDrawer.css';
 
 const CartContent = ({ closeCart, isDrawer = false }) => {
     const { cart, removeFromCart, updateQuantity, subtotal, clearCart, requiresPrescription, setIsCartOpen } = useCart();
-    const [deliverySettings, setDeliverySettings] = useState({ is_enabled: true });
-    useRefreshDeliverySettingsOnFocus(setDeliverySettings);
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const navigate = useNavigate();
     const toast = useToast();
 
-    useEffect(() => {
-        const fetchSettings = async () => {
-            try {
-                const settings = await getDeliverySettings();
-                setDeliverySettings(settings);
-            } catch (error) {
-                console.error('Error fetching delivery settings:', error);
-            }
-        };
-        fetchSettings();
-    }, []);
-
-    const isOrderAllowed = () => {
-        return deliverySettings.is_enabled !== false;
-    };
+    /** Live delivery rules load on the checkout page only. */
+    const isOrderAllowed = () => true;
 
     const startShopping = () => {
         if (closeCart) closeCart();
@@ -130,11 +113,35 @@ const CartContent = ({ closeCart, isDrawer = false }) => {
                                             <button
                                                 className="qty-btn"
                                                 onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                                disabled={item.quantity <= 1}
+                                                aria-label="Decrease quantity (removes item at zero)"
                                             >
                                                 <Minus size={14} />
                                             </button>
-                                            <span className="qty-value">{item.quantity}</span>
+                                            <input
+                                                type="number"
+                                                inputMode="numeric"
+                                                min={0}
+                                                max={item.maxStock != null ? Number(item.maxStock) : undefined}
+                                                className="cart-qty-input"
+                                                aria-label="Quantity"
+                                                value={item.quantity}
+                                                onChange={(e) => {
+                                                    const s = String(e.target.value).trim();
+                                                    if (s === '') return;
+                                                    const n = parseInt(s, 10);
+                                                    if (Number.isNaN(n)) return;
+                                                    if (n < 1) {
+                                                        removeFromCart(item.id);
+                                                        return;
+                                                    }
+                                                    const max = item.maxStock != null ? Number(item.maxStock) : null;
+                                                    if (max != null && n > max) {
+                                                        updateQuantity(item.id, max);
+                                                        return;
+                                                    }
+                                                    updateQuantity(item.id, n);
+                                                }}
+                                            />
                                             <button
                                                 className="qty-btn"
                                                 onClick={() => updateQuantity(item.id, item.quantity + 1)}
@@ -195,7 +202,7 @@ const CartContent = ({ closeCart, isDrawer = false }) => {
                         </button>
                     ) : (
                         <p className="delivery-note" style={{ marginTop: '0.5rem', marginBottom: 0 }}>
-                            We are coming to online store soon.
+                            Online ordering opens soon. Call us to place an order — home delivery available.
                         </p>
                     )}
                     <p className="delivery-note">

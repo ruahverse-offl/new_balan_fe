@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import LocationSection from '../components/common/LocationSection';
-import { CheckCircle2, ArrowRight, Phone, Loader2, Stethoscope, IndianRupee, TestTube } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Phone, Stethoscope, IndianRupee, TestTube } from 'lucide-react';
+import { PageLoading } from '../components/common/PageLoading';
 import { getDoctors } from '../services/doctorsApi';
 import { mapDoctorToFrontend } from '../utils/dataMapper';
 import { formatTimeRangeTo12h } from '../utils/timeFormatters';
@@ -105,8 +106,7 @@ const Clinic = () => {
                     </div>
                     {loading && (
                         <div className="clinic-loading">
-                            <div className="clinic-loading-spinner"><Loader2 size={40} /></div>
-                            <p>Loading doctors...</p>
+                            <PageLoading variant="bare" message="Loading doctors…" />
                         </div>
                     )}
                     {error && (

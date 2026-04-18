@@ -7,6 +7,7 @@ import {
     getAllowedNextStatusActions,
     isTerminalOrderStatus,
 } from '../../constants/orderLifecycle';
+import './AdminCatalogTabs.css';
 
 const OrdersTab = ({
     orders,
@@ -79,64 +80,55 @@ const OrdersTab = ({
     };
 
     return (
-        <div className="admin-table-card orders-tab-card animate-slide-up">
-            <div className="orders-tab-header">
-                <h3 className="orders-tab-title">Orders</h3>
-                <div className="table-actions orders-tab-actions">
-                    <div className="table-search">
-                        <Search size={18} />
-                        <input
-                            type="text"
-                            placeholder="Search by name, phone, or order ID..."
-                            value={searchTerm}
-                            onChange={(e) => {
-                                setSearchTerm(e.target.value);
-                                setOrdersPage(1);
-                            }}
-                        />
-                    </div>
-                    <label
-                        className="orders-date-filter"
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            fontSize: '0.9rem',
-                            color: 'var(--admin-text-muted)',
-                        }}
-                    >
-                        <span>Date</span>
-                        <input
-                            type="date"
-                            value={dateFilter || ''}
-                            onChange={(e) => {
-                                setDateFilter(e.target.value);
-                                setOrdersPage(1);
-                            }}
-                            style={{
-                                padding: '0.35rem 0.5rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--admin-border)',
-                                background: 'var(--admin-bg)',
-                            }}
-                        />
-                    </label>
-                    <select
-                        className="orders-status-filter"
-                        value={statusFilter}
+        <div className="admin-table-card catalog-tab-card orders-tab-card animate-slide-up">
+            <div className="catalog-tab-header">
+                <h2 className="catalog-tab-title">Orders</h2>
+                <p className="catalog-tab-subtitle">
+                    Customer orders and fulfillment. Search by name, phone, or id; filter by day and status. Open a row for
+                    detail.
+                </p>
+            </div>
+            <div className="catalog-tab-toolbar orders-tab-toolbar">
+                <div className="table-search">
+                    <Search size={18} aria-hidden />
+                    <input
+                        type="search"
+                        placeholder="Search by name, phone, or order id…"
+                        value={searchTerm}
                         onChange={(e) => {
-                            setStatusFilter(e.target.value);
+                            setSearchTerm(e.target.value);
                             setOrdersPage(1);
                         }}
-                    >
-                        <option value="">All Statuses</option>
-                        {ORDER_STATUS_FILTER_VALUES.map((s) => (
-                            <option key={s} value={s}>
-                                {formatOrderStatusLabel(s)}
-                            </option>
-                        ))}
-                    </select>
+                        aria-label="Search orders"
+                    />
                 </div>
+                <label className="orders-date-filter">
+                    <span>Date</span>
+                    <input
+                        type="date"
+                        value={dateFilter || ''}
+                        onChange={(e) => {
+                            setDateFilter(e.target.value);
+                            setOrdersPage(1);
+                        }}
+                    />
+                </label>
+                <select
+                    className="orders-status-filter"
+                    value={statusFilter}
+                    onChange={(e) => {
+                        setStatusFilter(e.target.value);
+                        setOrdersPage(1);
+                    }}
+                    aria-label="Filter by order status"
+                >
+                    <option value="">All statuses</option>
+                    {ORDER_STATUS_FILTER_VALUES.map((s) => (
+                        <option key={s} value={s}>
+                            {formatOrderStatusLabel(s)}
+                        </option>
+                    ))}
+                </select>
             </div>
 
             <div className="scrollable-section-wrapper">
@@ -282,11 +274,11 @@ const OrdersTab = ({
                 </div>
             </div>
 
-            <div className="orders-tab-footer">
-                <label className="orders-rows-label">
-                    Rows per page:
+            <div className="catalog-tab-footer orders-tab-footer">
+                <label className="catalog-rows-label orders-rows-label">
+                    Rows
                     <select
-                        className="orders-rows-select"
+                        className="catalog-rows-select orders-rows-select"
                         value={ordersRowsPerPage}
                         onChange={(e) => {
                             setOrdersRowsPerPage(Number(e.target.value));

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Pencil, Trash2, Loader2, Tag, X, ArrowLeft, ChevronRight, Eye } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, Tag, X, ArrowLeft, ChevronRight, Eye } from 'lucide-react';
+import { PageLoading } from '../../components/common/PageLoading';
 import { useAuth } from '../../context/AuthContext';
 import { listBrandMasters, createBrandMaster, updateBrandMaster, deleteBrandMaster } from '../../services/brandsApi';
 import './AdminCatalogTabs.css';
@@ -165,9 +166,8 @@ const BrandMasterTab = ({ showNotify }) => {
             <div className="catalog-tab-header">
                 <h2 className="catalog-tab-title">Brand catalog</h2>
                 <p className="catalog-tab-subtitle">
-                    Master list of trade names (<code style={{ fontSize: '0.8em' }}>M_brands</code>). Medicine–brand
-                    offerings and inventory reference these rows. Search is debounced and runs on the server. Use{' '}
-                    <strong>View</strong> on a row for read-only details.
+                    Shared trade names used by medicine–brand lines and inventory. Debounced server search.{' '}
+                    <strong>View</strong> for read-only details.
                 </p>
             </div>
 
@@ -213,10 +213,11 @@ const BrandMasterTab = ({ showNotify }) => {
             <div className="scrollable-section-wrapper">
                 <div className="table-wrapper">
                     {loading && items.length === 0 ? (
-                        <div className="catalog-loading" role="status" aria-live="polite">
-                            <Loader2 size={36} aria-hidden />
-                            <span>Loading brands…</span>
-                        </div>
+                        <PageLoading
+                            variant="compact"
+                            className="catalog-loading"
+                            message="Loading brands…"
+                        />
                     ) : items.length === 0 ? (
                         <div className="catalog-empty">
                             <Tag size={40} style={{ opacity: 0.35, marginBottom: '0.75rem' }} aria-hidden />

@@ -1,0 +1,273 @@
+/* Shared loading UI — logo + orbiting rings (PageLoading) + inline Lucide spinner */
+
+@keyframes page-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes page-loading-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes page-loading-orbit-reverse {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+.page-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  box-sizing: border-box;
+  color: var(--gray-600, #475569);
+  font-family: var(--font-heading, inherit);
+}
+
+/* ── Logo + concentric animated rings ── */
+.page-loading__orbit-root {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.page-loading__orbit-root--lg {
+  width: 140px;
+  height: 140px;
+}
+
+.page-loading__orbit-root--md {
+  width: 112px;
+  height: 112px;
+}
+
+.page-loading__orbit-root--sm {
+  width: 88px;
+  height: 88px;
+}
+
+.page-loading__orbit-root--xs {
+  width: 72px;
+  height: 72px;
+}
+
+.page-loading__ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.page-loading__orbit-root--lg .page-loading__ring {
+  border-width: 3px;
+}
+
+.page-loading__orbit-root--sm .page-loading__ring,
+.page-loading__orbit-root--xs .page-loading__ring {
+  border-width: 2px;
+}
+
+.page-loading__ring--a {
+  inset: 0;
+  border-top-color: var(--primary, #2563eb);
+  border-right-color: rgba(37, 99, 235, 0.12);
+  animation: page-loading-orbit 1.15s linear infinite;
+}
+
+.page-loading__ring--b {
+  inset: 10px;
+  border-bottom-color: #22c55e;
+  border-left-color: rgba(34, 197, 94, 0.14);
+  animation: page-loading-orbit-reverse 1.45s linear infinite;
+}
+
+.page-loading__ring--c {
+  inset: 20px;
+  border-left-color: rgba(37, 99, 235, 0.45);
+  border-top-color: rgba(37, 99, 235, 0.06);
+  animation: page-loading-orbit 1.85s linear infinite;
+}
+
+.page-loading__orbit-root--sm .page-loading__ring--b {
+  inset: 8px;
+}
+
+.page-loading__orbit-root--sm .page-loading__ring--c {
+  inset: 16px;
+}
+
+.page-loading__orbit-root--xs .page-loading__ring--b {
+  inset: 6px;
+}
+
+.page-loading__orbit-root--xs .page-loading__ring--c {
+  inset: 13px;
+}
+
+.page-loading__orbit-root--lg .page-loading__ring--b {
+  inset: 12px;
+}
+
+.page-loading__orbit-root--lg .page-loading__ring--c {
+  inset: 24px;
+}
+
+.page-loading__logo {
+  position: relative;
+  z-index: 2;
+  width: min(52%, 64px);
+  height: min(52%, 64px);
+  display: grid;
+  place-items: center;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 1px rgba(37, 99, 235, 0.08),
+    0 4px 16px rgba(37, 99, 235, 0.1);
+  padding: 5px;
+}
+
+.page-loading__orbit-root--sm .page-loading__logo {
+  width: min(50%, 44px);
+  height: min(50%, 44px);
+  padding: 3px;
+}
+
+.page-loading__orbit-root--xs .page-loading__logo {
+  width: min(48%, 36px);
+  height: min(48%, 36px);
+  padding: 2px;
+}
+
+.page-loading__orbit-root--lg .page-loading__logo {
+  width: min(52%, 72px);
+  height: min(52%, 72px);
+  padding: 6px;
+}
+
+.page-loading__logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.page-loading__icon--inline {
+  animation: page-loading-spin 0.75s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+  color: var(--primary, #2563eb);
+}
+
+.page-loading__message {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.45;
+  max-width: 18rem;
+}
+
+.page-loading__subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--gray-500, #64748b);
+  text-align: center;
+  line-height: 1.4;
+  max-width: 20rem;
+}
+
+.page-loading--fullscreen {
+  min-height: 100vh;
+  width: 100%;
+  padding: 2rem 1.5rem;
+  background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 50%, #e8f5e9 100%);
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.page-loading--page {
+  min-height: 60vh;
+  padding: 2rem 1.5rem;
+  background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 50%, #e8f5e9 100%);
+  border-radius: 0 0 var(--radius-lg, 12px) var(--radius-lg, 12px);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.06));
+}
+
+.page-loading--block {
+  min-height: 280px;
+  padding: 2rem;
+}
+
+.page-loading--compact {
+  min-height: 200px;
+  padding: 1.5rem;
+}
+
+.page-loading--row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  min-height: auto;
+  padding: 0.75rem 0;
+}
+
+.page-loading--bare {
+  min-height: auto;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/* Compose with legacy admin wrappers */
+.catalog-loading.page-loading,
+.medicines-loading-overlay.page-loading {
+  min-height: 200px;
+}
+
+.order-detail-loading.page-loading {
+  min-height: 280px;
+}
+
+.content-loading.page-loading {
+  min-height: 400px;
+}
+
+/* Payment verification card — larger brand mark */
+.payment-callback-verify-loading.page-loading {
+  gap: 0.5rem;
+}
+
+.payment-callback-verify-loading .page-loading__orbit-root {
+  width: 132px;
+  height: 132px;
+}
+
+.payment-callback-verify-loading .page-loading__ring--b {
+  inset: 11px;
+}
+
+.payment-callback-verify-loading .page-loading__ring--c {
+  inset: 22px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-loading__ring--a,
+  .page-loading__ring--b,
+  .page-loading__ring--c,
+  .page-loading__icon--inline {
+    animation: none;
+  }
+
+  .page-loading__ring--a {
+    border-right-color: rgba(37, 99, 235, 0.25);
+  }
+}

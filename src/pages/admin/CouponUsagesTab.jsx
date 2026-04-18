@@ -96,9 +96,8 @@ const CouponUsagesTab = ({
             <div className="catalog-tab-header">
                 <h2 className="catalog-tab-title">Coupon usages</h2>
                 <p className="catalog-tab-subtitle">
-                    Every time a coupon is applied at checkout: when it was used, which code, discount amount, customer,
-                    and order total. Filter by usage date, search by code, customer, phone, or order id. Open the order
-                    from the row or the action button.
+                    Each coupon application at checkout: code, discount, customer, and order. Filter by usage date; search
+                    code, customer, phone, or order. Open the order from a row when needed.
                 </p>
             </div>
 

@@ -116,8 +116,8 @@ const TestBookingsTab = ({
             <div className="catalog-tab-header">
                 <h2 className="catalog-tab-title">Test bookings</h2>
                 <p className="catalog-tab-subtitle">
-                    Polyclinic lab test reservations: patient contact, chosen test, and schedule. Filter by booking date
-                    or status, search by patient or test name, then add or edit rows from the table.
+                    Lab test bookings: patient, test, and schedule. Filter by date or status; search by name; add or edit
+                    from the table.
                 </p>
             </div>
 

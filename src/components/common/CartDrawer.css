@@ -376,6 +376,33 @@
     color: var(--gray-900);
 }
 
+.cart-qty-input {
+    width: 2.5rem;
+    min-width: 2.25rem;
+    max-width: 3.5rem;
+    font-weight: 800;
+    font-size: 1rem;
+    text-align: center;
+    color: var(--gray-900);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    padding: 0.2rem 0.15rem;
+    background: var(--white);
+    -moz-appearance: textfield;
+}
+
+.cart-qty-input::-webkit-outer-spin-button,
+.cart-qty-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.cart-qty-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: var(--focus-ring);
+}
+
 .item-total {
     font-size: 1.15rem;
     font-weight: 800;

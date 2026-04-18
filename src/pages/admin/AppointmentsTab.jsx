@@ -131,9 +131,8 @@ const AppointmentsTab = ({
             <div className="catalog-tab-header">
                 <h2 className="catalog-tab-title">Appointments</h2>
                 <p className="catalog-tab-subtitle">
-                    Clinic visit requests: patient contact, assigned doctor, and schedule. Filter by appointment date or
-                    status, search by name, phone, doctor, or message text. Pending rows can be confirmed or cancelled in
-                    one click.
+                    Visit requests with doctor and schedule. Filter by date or status; search patients and messages.
+                    Confirm or cancel pending rows from the table.
                 </p>
             </div>
 

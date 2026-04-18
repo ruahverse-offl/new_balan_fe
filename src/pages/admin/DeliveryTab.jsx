@@ -6,12 +6,12 @@ import {
   Trash2,
   X,
   Clock,
-  Loader2,
   ArrowRight,
   IndianRupee,
   Check,
   Sparkles,
 } from 'lucide-react';
+import { InlineSpinner } from '../../components/common/PageLoading';
 import { DeliverySlotTimeDials } from '../../components/common/CircularTimeDial';
 import {
   buildDeliverySlotLabel,
@@ -217,8 +217,8 @@ const DeliveryTab = ({ deliverySettings, setDeliverySettings, updateDeliverySett
             </span>
             <h1 className="delivery-masthead__title">Delivery</h1>
             <p className="delivery-masthead__subtitle">
-              Configure home delivery, IST time slots at checkout, and when the delivery fee applies. The service switch saves
-              instantly; use Save for windows and pricing.
+              Home delivery, checkout time slots (IST), and fees. The service toggle saves immediately; use Save for
+              windows and pricing.
             </p>
           </div>
         </header>
@@ -301,7 +301,7 @@ const DeliveryTab = ({ deliverySettings, setDeliverySettings, updateDeliverySett
                   </div>
                   {toggleSaving ? (
                     <span className="delivery-switch-saving" role="status" aria-live="polite">
-                      <Loader2 size={14} className="spin-icon" aria-hidden />
+                      <InlineSpinner size={14} className="spin-icon" />
                       Saving…
                     </span>
                   ) : null}
@@ -382,7 +382,7 @@ const DeliveryTab = ({ deliverySettings, setDeliverySettings, updateDeliverySett
                   After adding, editing, removing, or toggling windows, save so checkout and the server stay in sync.
                 </p>
                 <button type="button" className="btn-add" disabled={savingAvailability} onClick={saveAvailability}>
-                  {savingAvailability ? <Loader2 size={18} className="spin-icon" aria-hidden /> : null}
+                  {savingAvailability ? <InlineSpinner size={18} className="spin-icon" /> : null}
                   Save windows
                 </button>
               </div>
@@ -502,7 +502,7 @@ const DeliveryTab = ({ deliverySettings, setDeliverySettings, updateDeliverySett
               </div>
 
               <button type="submit" className="btn-add delivery-pricing-submit" disabled={savingFreeRange}>
-                {savingFreeRange ? <Loader2 size={18} className="spin-icon" aria-hidden /> : null}
+                {savingFreeRange ? <InlineSpinner size={18} className="spin-icon" /> : null}
                 Save pricing
               </button>
             </form>

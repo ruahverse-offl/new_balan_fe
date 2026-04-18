@@ -1,41 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Pill, ShieldCheck, ChevronRight, LogIn } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { getDeliverySettings } from '../../services/deliveryApi';
 import './Hero.css';
 import heroImg from '../../assets/images/hero-banner.png';
 
-const DEFAULT_DELIVERY_LABEL = 'Home delivery · Free delivery on qualifying orders';
+/** Pricing bands load at checkout; keep hero copy static to avoid extra API calls. */
+const DELIVERY_LABEL = 'Home delivery · Free delivery on qualifying orders';
 
 const Hero = () => {
     const { isAuthenticated } = useAuth();
-    const [deliveryLabel, setDeliveryLabel] = useState(DEFAULT_DELIVERY_LABEL);
-
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                const settings = await getDeliverySettings();
-                if (cancelled || !settings) return;
-                const min = settings.free_delivery_min_amount ?? settings.free_delivery_threshold;
-                const max = settings.free_delivery_max_amount;
-                if (min == null || min === '') return;
-                const minN = Number(min);
-                if (Number.isNaN(minN)) return;
-                let text = `Free delivery for orders ₹${minN.toFixed(0)}`;
-                if (max != null && max !== '' && Number(max) > 0) {
-                    text += ` – ₹${Number(max).toFixed(0)}`;
-                } else {
-                    text += '+';
-                }
-                setDeliveryLabel(text);
-            } catch {
-                // keep default on error
-            }
-        })();
-        return () => { cancelled = true; };
-    }, []);
 
     return (
         <section className="hero">
@@ -72,7 +46,7 @@ const Hero = () => {
                         </div>
                         <div className="h-feature">
                             <ChevronRight className="feature-icon" />
-                            <span>{deliveryLabel}</span>
+                            <span>{DELIVERY_LABEL}</span>
                         </div>
                     </div>
                 </div>

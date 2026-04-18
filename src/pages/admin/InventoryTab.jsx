@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, Plus, Pencil, Trash2, Loader2, Package, X, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Plus, Pencil, Trash2, Package, X, Eye } from 'lucide-react';
+import { PageLoading, InlineSpinner } from '../../components/common/PageLoading';
 import { useAuth } from '../../context/AuthContext';
 import { getMedicines, getAllMedicinesForSelect } from '../../services/medicinesApi';
 import { updateOfferingStock } from '../../services/inventoryApi';
-import { fetchAllBrandMasters, createBrandMaster, createBrand, updateBrand, deleteBrand } from '../../services/brandsApi';
+import { fetchAllBrandMasters, createBrand, deleteBrand } from '../../services/brandsApi';
 import './AdminCatalogTabs.css';
 import './MedicinesTab.css';
 import './InventoryTab.css';
@@ -12,7 +14,8 @@ import './InventoryTab.css';
  * Admin: medicine–brand offerings with on-hand stock (M_inventory).
  * Stock updates: PATCH /inventory/offering/{id}. Offering CRUD: /medicine-brands.
  */
-const InventoryTab = ({ showNotify }) => {
+const InventoryTab = ({ showNotify, refreshToken = 0 }) => {
+    const navigate = useNavigate();
     const { user } = useAuth();
     const role = (user?.backendRole || user?.role || '').toUpperCase();
     const isAdminRole = role === 'DEV_ADMIN' || role === 'ADMIN';
@@ -38,9 +41,6 @@ const InventoryTab = ({ showNotify }) => {
     const [medicineOptions, setMedicineOptions] = useState([]);
     const [brandOptions, setBrandOptions] = useState([]);
     const [dropdownsLoading, setDropdownsLoading] = useState(false);
-    const [brandFilter, setBrandFilter] = useState('');
-    const [newBrandName, setNewBrandName] = useState('');
-    const [creatingBrand, setCreatingBrand] = useState(false);
     const [addForm, setAddForm] = useState({
         medicine_id: '',
         brand_id: '',
@@ -50,13 +50,7 @@ const InventoryTab = ({ showNotify }) => {
         is_available: true,
     });
 
-    const [editModal, setEditModal] = useState(null);
-    const [editSubmitting, setEditSubmitting] = useState(false);
-
     const [deleteConfirm, setDeleteConfirm] = useState(null);
-
-    /** Read-only row details (medicine–brand offering). */
-    const [viewOffering, setViewOffering] = useState(null);
 
     useEffect(() => {
         const t = setTimeout(() => setDebouncedSearch(search), 350);
@@ -93,16 +87,7 @@ const InventoryTab = ({ showNotify }) => {
 
     useEffect(() => {
         loadList();
-    }, [loadList]);
-
-    useEffect(() => {
-        if (!viewOffering) return undefined;
-        const onKeyDown = (e) => {
-            if (e.key === 'Escape') setViewOffering(null);
-        };
-        window.addEventListener('keydown', onKeyDown);
-        return () => window.removeEventListener('keydown', onKeyDown);
-    }, [viewOffering]);
+    }, [loadList, refreshToken]);
 
     const flatRows = useMemo(() => {
         const rows = [];
@@ -125,19 +110,6 @@ const InventoryTab = ({ showNotify }) => {
         return rows;
     }, [items]);
 
-    const filteredBrandOptions = useMemo(() => {
-        const q = (brandFilter || '').trim().toLowerCase();
-        let list = !q
-            ? brandOptions
-            : brandOptions.filter((b) => (b.name || '').toLowerCase().includes(q));
-        const selectedId = addForm.brand_id;
-        if (selectedId && !list.some((b) => String(b.id) === String(selectedId))) {
-            const sel = brandOptions.find((b) => String(b.id) === String(selectedId));
-            if (sel) list = [sel, ...list];
-        }
-        return list;
-    }, [brandOptions, brandFilter, addForm.brand_id]);
-
     const openAddModal = async () => {
         setAddForm({
             medicine_id: '',
@@ -147,8 +119,6 @@ const InventoryTab = ({ showNotify }) => {
             description: '',
             is_available: true,
         });
-        setBrandFilter('');
-        setNewBrandName('');
         setShowAddModal(true);
         setDropdownsLoading(true);
         try {
@@ -166,30 +136,6 @@ const InventoryTab = ({ showNotify }) => {
             setBrandOptions([]);
         } finally {
             setDropdownsLoading(false);
-        }
-    };
-
-    const handleCreateBrandMaster = async () => {
-        const name = newBrandName.trim();
-        if (!name) {
-            showNotify('Enter a brand name (e.g. Crocin, Calpol)', 'error');
-            return;
-        }
-        setCreatingBrand(true);
-        try {
-            const created = await createBrandMaster({ name });
-            setBrandOptions((prev) =>
-                [...prev.filter((b) => b.id !== created.id), created].sort((a, b) =>
-                    (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }),
-                ),
-            );
-            setAddForm((f) => ({ ...f, brand_id: created.id }));
-            setNewBrandName('');
-            showNotify(`Brand “${created.name}” added and selected`, 'success');
-        } catch (err) {
-            showNotify(err?.message || 'Could not create brand', 'error');
-        } finally {
-            setCreatingBrand(false);
         }
     };
 
@@ -252,32 +198,6 @@ const InventoryTab = ({ showNotify }) => {
         }
     };
 
-    const handleEditOffering = async (e) => {
-        e.preventDefault();
-        if (!editModal?.id) return;
-        const mrp = parseFloat(String(editModal.mrp).replace(',', '.'));
-        if (Number.isNaN(mrp) || mrp < 0) {
-            showNotify('Enter a valid MRP', 'error');
-            return;
-        }
-        setEditSubmitting(true);
-        try {
-            await updateBrand(editModal.id, {
-                manufacturer: editModal.manufacturer?.trim(),
-                mrp,
-                description: editModal.description?.trim() || null,
-                is_available: editModal.is_available !== false,
-            });
-            showNotify('Offering updated', 'success');
-            setEditModal(null);
-            await loadList();
-        } catch (err) {
-            showNotify(err?.message || 'Update failed', 'error');
-        } finally {
-            setEditSubmitting(false);
-        }
-    };
-
     const handleDeleteOffering = async () => {
         if (!deleteConfirm?.id) return;
         try {
@@ -306,11 +226,10 @@ const InventoryTab = ({ showNotify }) => {
     return (
         <div className="admin-table-card catalog-tab-card inventory-tab-card animate-slide-up">
             <div className="catalog-tab-header">
-                <h2 className="catalog-tab-title">Medicine catalogue · stock</h2>
+                <h2 className="catalog-tab-title">Inventory</h2>
                 <p className="catalog-tab-subtitle">
-                    Each row is one sellable <strong>offering</strong> (generic medicine + brand line) with MRP and on-hand
-                    quantity. Search runs on the server by medicine name. Pagination is by medicine; a page can list multiple
-                    offerings when a medicine has several brands.
+                    On-hand stock and MRP per sellable line (medicine + brand). Search by medicine;{' '}
+                    <strong>View</strong> / <strong>Edit</strong> open full pages. One row per brand line.
                 </p>
             </div>
 
@@ -346,23 +265,23 @@ const InventoryTab = ({ showNotify }) => {
                 )}
                 {!loading && flatRows.length > 0 && (
                     <span className="catalog-tab-meta">
-                        {flatRows.length} offering{flatRows.length !== 1 ? 's' : ''} on this page
-                        {medicineTotal != null ? ` · ${medicineTotal} medicine${medicineTotal !== 1 ? 's' : ''} total` : ''}
+                        {flatRows.length} line{flatRows.length !== 1 ? 's' : ''} shown
+                        {medicineTotal != null ? ` · ${medicineTotal} medicine${medicineTotal !== 1 ? 's' : ''} in catalog` : ''}
                     </span>
                 )}
             </div>
 
             <p className="inventory-tab-hint">
-                <Package size={16} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} aria-hidden />
-                Storefront and cart use the offering <code>id</code> as <code>medicine_brand_id</code>. Use{' '}
-                <strong>View</strong> for read-only details. Stock changes apply after <strong>Save</strong>.
+                <Package size={16} className="inventory-tab-hint__icon" aria-hidden />
+                Update the quantity and click <strong>Save</strong>. Use <strong>View</strong> for full line details.
             </p>
 
             {loading && flatRows.length === 0 ? (
-                <div className="catalog-loading" role="status" aria-live="polite">
-                    <Loader2 size={36} aria-hidden />
-                    <span>Loading catalogue…</span>
-                </div>
+                <PageLoading
+                    variant="compact"
+                    className="catalog-loading"
+                    message="Loading inventory…"
+                />
             ) : (
                 <div className="scrollable-section-wrapper inventory-tab-scroll-wrap">
                     <div className="inventory-table-scroll">
@@ -385,7 +304,7 @@ const InventoryTab = ({ showNotify }) => {
                                         Stock
                                     </th>
                                     <th scope="col" className="inv-col-avail">
-                                        Avail.
+                                        For sale
                                     </th>
                                     <th scope="col" className="inv-col-actions">
                                         Actions
@@ -396,7 +315,7 @@ const InventoryTab = ({ showNotify }) => {
                                 {flatRows.length === 0 ? (
                                     <tr>
                                         <td colSpan={7} className="table-empty-cell">
-                                            No offerings on this page. Add an offering or adjust search.
+                                            No lines on this page. Try another search or add an offering.
                                         </td>
                                     </tr>
                                 ) : (
@@ -444,7 +363,7 @@ const InventoryTab = ({ showNotify }) => {
                                                                 onClick={() => handleSaveStock(row.offeringId)}
                                                             >
                                                                 {savingOfferingId === oid ? (
-                                                                    <Loader2 size={16} className="spinning" />
+                                                                    <InlineSpinner size={16} />
                                                                 ) : (
                                                                     'Save'
                                                                 )}
@@ -454,7 +373,7 @@ const InventoryTab = ({ showNotify }) => {
                                                         <span style={{ fontVariantNumeric: 'tabular-nums' }}>{row.stock_quantity}</span>
                                                     )}
                                                 </td>
-                                                <td data-label="Available" className="inv-col-avail">
+                                                <td data-label="For sale" className="inv-col-avail">
                                                     <span className={`status-tag ${row.is_available ? 'active' : 'inactive'}`}>
                                                         {row.is_available ? 'Yes' : 'No'}
                                                     </span>
@@ -465,7 +384,11 @@ const InventoryTab = ({ showNotify }) => {
                                                         className="action-btn medicines-view-btn inventory-view-btn--eye"
                                                         title="View offering details (read-only)"
                                                         aria-label={`View details for ${row.medicineName} (${row.brandName})`}
-                                                        onClick={() => setViewOffering(row)}
+                                                        onClick={() =>
+                                                            navigate(
+                                                                `/admin/inventory-offerings/${row.medicineId}/${row.offeringId}`,
+                                                            )
+                                                        }
                                                     >
                                                         <Eye size={18} strokeWidth={2.25} aria-hidden />
                                                         <span className="medicines-view-btn-label">View</span>
@@ -477,15 +400,9 @@ const InventoryTab = ({ showNotify }) => {
                                                                 className="action-btn"
                                                                 title="Edit offering"
                                                                 onClick={() =>
-                                                                    setEditModal({
-                                                                        id: row.offeringId,
-                                                                        medicineName: row.medicineName,
-                                                                        brandName: row.brandName,
-                                                                        manufacturer: row.manufacturer,
-                                                                        mrp: String(row.mrp),
-                                                                        description: row.description || '',
-                                                                        is_available: row.is_available,
-                                                                    })
+                                                                    navigate(
+                                                                        `/admin/inventory-offerings/${row.medicineId}/${row.offeringId}/edit`,
+                                                                    )
                                                                 }
                                                             >
                                                                 <Pencil size={16} />
@@ -519,7 +436,7 @@ const InventoryTab = ({ showNotify }) => {
             {pagination?.total != null && (
                 <div className="catalog-tab-footer">
                     <span className="catalog-tab-meta">
-                        Page {page} of {totalPages} · {pagination.total} medicine{pagination.total !== 1 ? 's' : ''}
+                        Page {page} of {totalPages} ({pagination.total} medicine{pagination.total !== 1 ? 's' : ''})
                     </span>
                     <div className="pagination-bar">
                         <button
@@ -551,104 +468,58 @@ const InventoryTab = ({ showNotify }) => {
                                 <X size={24} />
                             </button>
                         </div>
-                        <form onSubmit={handleCreateOffering} className="modal-form">
+                        <form onSubmit={handleCreateOffering} className="modal-form inventory-add-offering-form">
                             {dropdownsLoading && (
-                                <p style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'var(--admin-text-muted)' }}>
-                                    <Loader2 size={18} className="spinning" style={{ animation: 'spin 1s linear infinite' }} />
-                                    Loading medicines and brand catalog…
+                                <p className="inventory-add-dropdowns-loading">
+                                    <InlineSpinner size={18} />
+                                    Loading lists…
                                 </p>
                             )}
-                            <div className="form-group">
-                                <label>Medicine*</label>
-                                <select
-                                    required
-                                    disabled={dropdownsLoading}
-                                    value={addForm.medicine_id}
-                                    onChange={(e) => setAddForm((f) => ({ ...f, medicine_id: e.target.value }))}
-                                    style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--admin-border)' }}
-                                >
-                                    <option value="">Select…</option>
-                                    {medicineOptions.map((m) => (
-                                        <option key={m.id} value={m.id}>
-                                            {m.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            {canManageOfferings && (
-                                <div
-                                    className="form-group"
-                                    style={{
-                                        padding: '0.85rem',
-                                        borderRadius: '8px',
-                                        border: '1px dashed var(--admin-border)',
-                                        background: 'var(--admin-bg, #f8fafc)',
-                                    }}
-                                >
-                                    <label style={{ fontWeight: 600 }}>New brand name (catalog)</label>
-                                    <p style={{ margin: '0.25rem 0 0.65rem', fontSize: '0.82rem', color: 'var(--admin-text-muted)', lineHeight: 1.4 }}>
-                                        The dropdown lists brands from the master catalog. If yours is missing, add the trade name here first (e.g. Crocin, Calpol).
-                                    </p>
-                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                                        <input
-                                            type="text"
-                                            value={newBrandName}
-                                            onChange={(e) => setNewBrandName(e.target.value)}
-                                            placeholder="e.g. Crocin"
-                                            disabled={creatingBrand}
-                                            style={{ flex: '1 1 12rem', minWidth: 0 }}
-                                        />
-                                        <button
-                                            type="button"
-                                            className="btn-add"
-                                            style={{ whiteSpace: 'nowrap' }}
-                                            disabled={creatingBrand || !newBrandName.trim()}
-                                            onClick={handleCreateBrandMaster}
-                                        >
-                                            {creatingBrand ? 'Adding…' : 'Add to catalog'}
-                                        </button>
-                                    </div>
+                            <div className="inventory-add-selects">
+                                <div className="form-group">
+                                    <label htmlFor="inv-add-medicine">Medicine</label>
+                                    <select
+                                        id="inv-add-medicine"
+                                        required
+                                        disabled={dropdownsLoading}
+                                        value={addForm.medicine_id}
+                                        onChange={(e) => setAddForm((f) => ({ ...f, medicine_id: e.target.value }))}
+                                        className="inventory-add-select"
+                                    >
+                                        <option value="">Select medicine…</option>
+                                        {medicineOptions.map((m) => (
+                                            <option key={m.id} value={m.id}>
+                                                {m.name}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
-                            )}
-                            <div className="form-group">
-                                <label>Brand (master)*</label>
-                                <input
-                                    type="search"
-                                    placeholder="Filter brands…"
-                                    value={brandFilter}
-                                    onChange={(e) => setBrandFilter(e.target.value)}
-                                    style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--admin-border)', marginBottom: '0.5rem' }}
-                                />
-                                <select
-                                    required
-                                    disabled={dropdownsLoading}
-                                    value={addForm.brand_id}
-                                    onChange={(e) => setAddForm((f) => ({ ...f, brand_id: e.target.value }))}
-                                    style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--admin-border)' }}
-                                >
-                                    <option value="">
-                                        {brandOptions.length === 0 && !dropdownsLoading
-                                            ? 'No brands yet — use “New brand name” above'
-                                            : filteredBrandOptions.length === 0
-                                              ? 'No match — clear filter or add a brand'
-                                              : 'Select…'}
-                                    </option>
-                                    {filteredBrandOptions.map((b) => (
-                                        <option key={b.id} value={b.id}>
-                                            {b.name}
+                                <div className="form-group">
+                                    <label htmlFor="inv-add-brand">Brand</label>
+                                    <select
+                                        id="inv-add-brand"
+                                        required
+                                        disabled={dropdownsLoading}
+                                        value={addForm.brand_id}
+                                        onChange={(e) => setAddForm((f) => ({ ...f, brand_id: e.target.value }))}
+                                        className="inventory-add-select"
+                                    >
+                                        <option value="">
+                                            {brandOptions.length === 0 && !dropdownsLoading ? 'No brands in catalog' : 'Select brand…'}
                                         </option>
-                                    ))}
-                                </select>
-                                <small style={{ display: 'block', marginTop: '0.35rem', color: 'var(--admin-text-muted)' }}>
-                                    {brandOptions.length} brand{brandOptions.length !== 1 ? 's' : ''} in catalog
-                                    {brandFilter.trim() ? ` · ${filteredBrandOptions.length} shown` : ''}
-                                </small>
-                                {!canManageOfferings && brandOptions.length === 0 && !dropdownsLoading && (
-                                    <p style={{ margin: '0.5rem 0 0', fontSize: '0.82rem', color: '#b45309' }}>
-                                        Brand catalog is empty. Ask an administrator with medicine permissions to add brand names, or seed master data in the database.
-                                    </p>
-                                )}
+                                        {brandOptions.map((b) => (
+                                            <option key={b.id} value={b.id}>
+                                                {b.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
+                            {brandOptions.length === 0 && !dropdownsLoading && (
+                                <p className="inventory-add-catalog-hint">
+                                    Add brands under the Brand master tab first if the list is empty.
+                                </p>
+                            )}
                             <div className="form-group">
                                 <label>Manufacturer*</label>
                                 <input
@@ -693,160 +564,6 @@ const InventoryTab = ({ showNotify }) => {
                                 </button>
                             </div>
                         </form>
-                    </div>
-                </div>
-            )}
-
-            {editModal && (
-                <div className="admin-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="inv-edit-title">
-                    <div className="admin-modal" style={{ maxWidth: '500px', maxHeight: 'min(88vh, 560px)' }}>
-                        <div className="modal-header">
-                            <h3 id="inv-edit-title">Edit offering</h3>
-                            <button type="button" onClick={() => setEditModal(null)} style={{ color: 'var(--admin-text-muted)' }} aria-label="Close">
-                                <X size={24} />
-                            </button>
-                        </div>
-                        <form onSubmit={handleEditOffering} className="modal-form">
-                            <p style={{ margin: '0 0 1rem', fontSize: '0.9rem', color: 'var(--admin-text-muted)' }}>
-                                {editModal.medicineName} — {editModal.brandName}
-                            </p>
-                            <div className="form-group">
-                                <label>Manufacturer*</label>
-                                <input
-                                    required
-                                    value={editModal.manufacturer}
-                                    onChange={(e) => setEditModal((m) => ({ ...m, manufacturer: e.target.value }))}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>MRP (₹)*</label>
-                                <input
-                                    required
-                                    type="number"
-                                    min={0}
-                                    step="0.01"
-                                    value={editModal.mrp}
-                                    onChange={(e) => setEditModal((m) => ({ ...m, mrp: e.target.value }))}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Description</label>
-                                <input
-                                    value={editModal.description}
-                                    onChange={(e) => setEditModal((m) => ({ ...m, description: e.target.value }))}
-                                />
-                            </div>
-                            <div className="form-group form-group-checkbox" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
-                                <input
-                                    type="checkbox"
-                                    id="inv-edit-avail"
-                                    checked={editModal.is_available}
-                                    onChange={(e) => setEditModal((m) => ({ ...m, is_available: e.target.checked }))}
-                                />
-                                <label htmlFor="inv-edit-avail">Available for sale</label>
-                            </div>
-                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                                <button type="button" className="btn-add btn-cancel" style={{ flex: 1 }} onClick={() => setEditModal(null)}>
-                                    Cancel
-                                </button>
-                                <button type="submit" className="btn-add" style={{ flex: 2 }} disabled={editSubmitting}>
-                                    {editSubmitting ? 'Saving…' : 'Save'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {viewOffering && (
-                <div
-                    className="admin-modal-overlay"
-                    role="presentation"
-                    onClick={(e) => {
-                        if (e.target === e.currentTarget) setViewOffering(null);
-                    }}
-                >
-                    <div
-                        className="admin-modal compact-modal"
-                        style={{ maxWidth: '560px' }}
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="inv-view-title"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="modal-header">
-                            <h3 id="inv-view-title">Offering details</h3>
-                            <button
-                                type="button"
-                                onClick={() => setViewOffering(null)}
-                                style={{ color: 'var(--admin-text-muted)' }}
-                                aria-label="Close"
-                            >
-                                <X size={24} />
-                            </button>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1rem' }}>
-                            <div style={{ gridColumn: '1 / -1' }}>
-                                <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>Medicine</div>
-                                <div style={{ fontWeight: 700 }}>{viewOffering.medicineName || '—'}</div>
-                            </div>
-                            <div>
-                                <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>Brand</div>
-                                <div style={{ fontWeight: 600 }}>{viewOffering.brandName || '—'}</div>
-                            </div>
-                            <div>
-                                <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>Manufacturer</div>
-                                <div style={{ fontWeight: 600 }}>{viewOffering.manufacturer || '—'}</div>
-                            </div>
-                            <div>
-                                <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>MRP (₹)</div>
-                                <div style={{ fontWeight: 600 }}>{formatOfferingMrp(viewOffering.mrp)}</div>
-                            </div>
-                            <div>
-                                <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>Stock on hand</div>
-                                <div style={{ fontWeight: 600 }}>{viewOffering.stock_quantity}</div>
-                            </div>
-                            <div>
-                                <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>Available for sale</div>
-                                <div style={{ fontWeight: 600 }}>{viewOffering.is_available ? 'Yes' : 'No'}</div>
-                            </div>
-                            <div style={{ gridColumn: '1 / -1' }}>
-                                <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem', marginBottom: '0.25rem' }}>Description</div>
-                                <div
-                                    style={{
-                                        padding: '0.75rem',
-                                        border: '1px solid var(--admin-border)',
-                                        borderRadius: '10px',
-                                        background: 'var(--admin-bg)',
-                                        fontSize: '0.9rem',
-                                        lineHeight: 1.5,
-                                    }}
-                                >
-                                    {viewOffering.description?.trim() ? (
-                                        viewOffering.description
-                                    ) : (
-                                        <span style={{ color: 'var(--admin-text-muted)' }}>No description</span>
-                                    )}
-                                </div>
-                            </div>
-                            <div style={{ gridColumn: '1 / -1' }}>
-                                <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>Offering ID (medicine_brand_id)</div>
-                                <div style={{ fontWeight: 600, fontSize: '0.85rem', wordBreak: 'break-all' }}>
-                                    {viewOffering.offeringId != null ? String(viewOffering.offeringId) : '—'}
-                                </div>
-                            </div>
-                            <div style={{ gridColumn: '1 / -1' }}>
-                                <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>Medicine ID</div>
-                                <div style={{ fontWeight: 600, fontSize: '0.85rem', wordBreak: 'break-all' }}>
-                                    {viewOffering.medicineId != null ? String(viewOffering.medicineId) : '—'}
-                                </div>
-                            </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                            <button type="button" className="btn-add btn-cancel" style={{ flex: 1 }} onClick={() => setViewOffering(null)}>
-                                Close
-                            </button>
-                        </div>
                     </div>
                 </div>
             )}

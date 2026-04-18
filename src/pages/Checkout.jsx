@@ -9,8 +9,43 @@ import { validateCoupon as validateCouponApi, getActiveCoupons } from '../servic
 import { initiatePayment, verifyPayment, loadRazorpayScript } from '../services/razorpayApi';
 import { getMyAddresses, createAddress } from '../services/addressesApi';
 import { uploadPrescriptionFile } from '../services/uploadApi';
-import { ShoppingBag, ArrowLeft, Loader2, Plus, MapPin, X, FileText } from 'lucide-react';
+import { ShoppingBag, ArrowLeft, Plus, MapPin, X, FileText, AlertCircle } from 'lucide-react';
+import { InlineSpinner } from '../components/common/PageLoading';
 import './Checkout.css';
+
+/**
+ * Turn API/gateway error strings into short, non-technical copy for the checkout alert modal.
+ * Log full errors with console.error; do not show raw exception types in the UI.
+ */
+function userFacingCheckoutError(raw) {
+    const s = String(raw ?? '').trim();
+    if (!s) {
+        return 'Something went wrong. Please try again.';
+    }
+    const lower = s.toLowerCase();
+    if (
+        lower.includes('badrequesterror') ||
+        lower.includes('authentication failed') ||
+        lower.includes('authentication_failed')
+    ) {
+        return 'The payment service could not be reached or there is a configuration issue. Please try again in a few minutes, or contact support if this continues.';
+    }
+    if (lower.includes('payment gateway') || lower.includes('gateway error')) {
+        return 'The payment service returned an error. Please try again or use another payment method.';
+    }
+    if (lower.includes('network') || lower.includes('failed to fetch')) {
+        return 'Network error. Check your connection and try again.';
+    }
+    let cleaned = s
+        .replace(/^Failed to create order:\s*/i, '')
+        .replace(/\s*\(?BadRequestError:\s*[^)]*\)?/gi, '')
+        .replace(/\s*\(?\w+Error:\s*[^)]*\)?/g, '')
+        .trim();
+    if (/^\w+Error:/.test(cleaned) || cleaned.length > 220) {
+        return 'We could not complete that step. Please try again.';
+    }
+    return cleaned || 'Something went wrong. Please try again.';
+}
 
 /** Delivery fee from settings: ₹0 when subtotal is inside the free-delivery min/max band. */
 function computeDeliveryFee(subtotal, settings) {
@@ -98,7 +133,18 @@ const Checkout = () => {
     const [prescriptionUpload, setPrescriptionUpload] = useState(null);
     const [uploadingPrescription, setUploadingPrescription] = useState(false);
     const [showRazorpayTestBanner, setShowRazorpayTestBanner] = useState(false);
+    /** Payment / checkout errors (not coupon messages) — shown in a modal instead of inline by the coupon field. */
+    const [checkoutErrorModal, setCheckoutErrorModal] = useState(null);
     const prescriptionSectionRef = useRef(null);
+
+    useEffect(() => {
+        if (!checkoutErrorModal) return undefined;
+        const onKey = (e) => {
+            if (e.key === 'Escape') setCheckoutErrorModal(null);
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [checkoutErrorModal]);
 
     // Fetch saved addresses on mount
     useEffect(() => {
@@ -290,9 +336,12 @@ const Checkout = () => {
                 setFormErrors((prev) => ({ ...prev, prescription: null }));
             }
         } catch (err) {
-            setCouponMsg({
-                text: err.message || 'Could not upload prescription. Please try again.',
-                type: 'error',
+            console.error('Prescription upload:', err);
+            setCheckoutErrorModal({
+                title: "Couldn't upload prescription",
+                message: userFacingCheckoutError(
+                    err.message || 'Could not upload prescription. Please try again.',
+                ),
             });
             setPrescriptionUpload(null);
         } finally {
@@ -314,12 +363,16 @@ const Checkout = () => {
         }
 
         if (deliverySettings.is_enabled === false) {
-            setCouponMsg({ text: 'Delivery is currently turned off. Please try again later.', type: 'error' });
+            setCheckoutErrorModal({
+                title: 'Delivery unavailable',
+                message: 'Delivery is currently turned off. Please try again later.',
+            });
             return;
         }
 
         setProcessingPayment(true);
         setCouponMsg({ text: '', type: '' });
+        setCheckoutErrorModal(null);
         setShowRazorpayTestBanner(false);
 
         try {
@@ -349,9 +402,11 @@ const Checkout = () => {
                     }
                 } catch (err) {
                     console.error('Failed to save address:', err);
-                    setCouponMsg({
-                        text: err?.message || 'Could not save your address for next time. Your order will still go through.',
-                        type: 'error',
+                    setCheckoutErrorModal({
+                        title: 'Address not saved',
+                        message:
+                            userFacingCheckoutError(err?.message) ||
+                            'Could not save your address for next time. Your order will still go through.',
                     });
                 }
             }
@@ -385,7 +440,10 @@ const Checkout = () => {
             const result = await initiatePayment(orderData);
 
             if (!result || !result.order_id || !result.razorpay_order_id || result.key_id == null) {
-                setCouponMsg({ text: 'Could not create Razorpay order. Please try again.', type: 'error' });
+                setCheckoutErrorModal({
+                    title: "Payment couldn't start",
+                    message: userFacingCheckoutError('Could not create Razorpay order. Please try again.'),
+                });
                 setProcessingPayment(false);
                 return;
             }
@@ -404,9 +462,11 @@ const Checkout = () => {
                 await loadRazorpayScript();
             } catch (loadErr) {
                 console.error('Razorpay script load:', loadErr);
-                setCouponMsg({
-                    text: loadErr.message || 'Could not load payment checkout. Please try again.',
-                    type: 'error',
+                setCheckoutErrorModal({
+                    title: 'Payment checkout unavailable',
+                    message: userFacingCheckoutError(
+                        loadErr.message || 'Could not load payment checkout. Please try again.',
+                    ),
                 });
                 setProcessingPayment(false);
                 return;
@@ -414,14 +474,20 @@ const Checkout = () => {
 
             const Razorpay = window.Razorpay;
             if (!Razorpay) {
-                setCouponMsg({ text: 'Payment script failed to load. Please try again.', type: 'error' });
+                setCheckoutErrorModal({
+                    title: 'Payment checkout unavailable',
+                    message: userFacingCheckoutError('Payment script failed to load. Please try again.'),
+                });
                 setProcessingPayment(false);
                 return;
             }
 
             const amountPaise = Math.round(Number(result.amount));
             if (!Number.isFinite(amountPaise) || amountPaise < 1) {
-                setCouponMsg({ text: 'Invalid payment amount. Please refresh and try again.', type: 'error' });
+                setCheckoutErrorModal({
+                    title: 'Invalid amount',
+                    message: 'Invalid payment amount. Please refresh the page and try again.',
+                });
                 setProcessingPayment(false);
                 return;
             }
@@ -458,7 +524,12 @@ const Checkout = () => {
                         navigate(`/payment-callback?orderId=${orderId}`);
                     } catch (verifyErr) {
                         console.error('Verify payment failed:', verifyErr);
-                        setCouponMsg({ text: verifyErr.message || 'Payment verification failed.', type: 'error' });
+                        setCheckoutErrorModal({
+                            title: 'Payment verification failed',
+                            message: userFacingCheckoutError(
+                                verifyErr.message || 'Payment verification failed.',
+                            ),
+                        });
                         setProcessingPayment(false);
                     }
                 },
@@ -476,14 +547,22 @@ const Checkout = () => {
                     err.reason ||
                     err.code ||
                     'Payment failed. Please try again or use another method.';
-                setCouponMsg({ text: String(desc), type: 'error' });
+                setCheckoutErrorModal({
+                    title: 'Payment failed',
+                    message: userFacingCheckoutError(String(desc)),
+                });
                 setProcessingPayment(false);
             });
 
             rzp.open();
         } catch (error) {
             console.error('Error creating order:', error);
-            setCouponMsg({ text: `Failed to create order: ${error.message || 'Please try again.'}`, type: 'error' });
+            setCheckoutErrorModal({
+                title: "Couldn't start payment",
+                message: userFacingCheckoutError(
+                    error.message || 'Failed to create order. Please try again.',
+                ),
+            });
             setProcessingPayment(false);
         }
     };
@@ -659,7 +738,7 @@ const Checkout = () => {
 
                             {loadingAddresses && (
                                 <div className="checkout-address-loading">
-                                    <Loader2 size={24} className="animate-spin" style={{ color: 'var(--primary)' }} />
+                                    <InlineSpinner size={24} />
                                     <span>Loading your addresses…</span>
                                 </div>
                             )}
@@ -782,12 +861,36 @@ const Checkout = () => {
                                                 <button
                                                     type="button"
                                                     className="checkout-qty-btn"
-                                                    onClick={() => item.quantity <= 1 ? removeFromCart(item.id) : updateQuantity(item.id, item.quantity - 1)}
-                                                    aria-label="Decrease quantity"
+                                                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                                    aria-label="Decrease quantity (removes item at zero)"
                                                 >
                                                     −
                                                 </button>
-                                                <span className="checkout-qty-value">{item.quantity}</span>
+                                                <input
+                                                    type="number"
+                                                    inputMode="numeric"
+                                                    min={0}
+                                                    max={item.maxStock != null ? Number(item.maxStock) : undefined}
+                                                    className="checkout-qty-input"
+                                                    aria-label="Quantity"
+                                                    value={item.quantity}
+                                                    onChange={(e) => {
+                                                        const s = String(e.target.value).trim();
+                                                        if (s === '') return;
+                                                        const n = parseInt(s, 10);
+                                                        if (Number.isNaN(n)) return;
+                                                        if (n < 1) {
+                                                            removeFromCart(item.id);
+                                                            return;
+                                                        }
+                                                        const max = item.maxStock != null ? Number(item.maxStock) : null;
+                                                        if (max != null && n > max) {
+                                                            updateQuantity(item.id, max);
+                                                            return;
+                                                        }
+                                                        updateQuantity(item.id, n);
+                                                    }}
+                                                />
                                                 <button
                                                     type="button"
                                                     className="checkout-qty-btn"
@@ -916,7 +1019,7 @@ const Checkout = () => {
                                         />
                                         {uploadingPrescription && (
                                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', color: '#64748b' }}>
-                                                <Loader2 size={16} className="animate-spin" /> Uploading…
+                                                <InlineSpinner size={16} /> Uploading…
                                             </span>
                                         )}
                                     </div>
@@ -979,7 +1082,7 @@ const Checkout = () => {
                                 >
                                     {processingPayment ? (
                                         <>
-                                            <Loader2 size={20} className="animate-spin" style={{ marginRight: '8px' }} />
+                                            <InlineSpinner size={20} style={{ marginRight: '8px' }} />
                                             Processing payment...
                                         </>
                                     ) : (
@@ -995,6 +1098,40 @@ const Checkout = () => {
 
                 </div>
             </div>
+
+            {checkoutErrorModal && (
+                <div
+                    className="checkout-error-modal-backdrop"
+                    role="presentation"
+                    onClick={() => setCheckoutErrorModal(null)}
+                >
+                    <div
+                        className="checkout-error-modal"
+                        role="alertdialog"
+                        aria-modal="true"
+                        aria-labelledby="checkout-error-modal-title"
+                        aria-describedby="checkout-error-modal-desc"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="checkout-error-modal__icon" aria-hidden>
+                            <AlertCircle size={40} strokeWidth={1.75} />
+                        </div>
+                        <h2 id="checkout-error-modal-title" className="checkout-error-modal__title">
+                            {checkoutErrorModal.title}
+                        </h2>
+                        <p id="checkout-error-modal-desc" className="checkout-error-modal__message">
+                            {checkoutErrorModal.message}
+                        </p>
+                        <button
+                            type="button"
+                            className="checkout-error-modal__btn"
+                            onClick={() => setCheckoutErrorModal(null)}
+                        >
+                            OK
+                        </button>
+                    </div>
+                </div>
+            )}
 
         </div >
     );

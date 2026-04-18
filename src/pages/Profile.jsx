@@ -4,8 +4,6 @@ import { useCart } from '../context/CartContext';
 import { getDoctors } from '../services/doctorsApi';
 import { getOrders, getOrderById } from '../services/ordersApi';
 import { changePassword } from '../services/authApi';
-import { getDeliverySettings } from '../services/deliveryApi';
-import { useRefreshDeliverySettingsOnFocus } from '../hooks/useRefreshDeliverySettingsOnFocus';
 import { safeError } from '../utils/logger';
 import { getPrescriptionFileUrl } from '../utils/prescriptionUrl';
 import { getMyAddresses, createAddress, updateAddress, deleteAddress as deleteAddressApi, setDefaultAddress } from '../services/addressesApi';
@@ -14,13 +12,14 @@ import {
     LayoutDashboard, ShoppingBag, Users, Pill,
     LogOut, Menu, X, ChevronRight,
     Bell, Edit, CheckCircle, Package, ArrowLeft,
-    Plus, Loader2,
+    Plus,
     Save, Trash2, Star, ShoppingCart,
     Lock, Eye, EyeOff, FileText, CreditCard,
     Home, ExternalLink, Truck
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Footer from '../components/layout/Footer';
+import { PageLoading, InlineSpinner } from '../components/common/PageLoading';
 import { formatOrderStatusLabel } from '../constants/orderLifecycle';
 import './Profile.css';
 
@@ -35,8 +34,6 @@ const Profile = () => {
     const navigate = useNavigate();
     const [doctors, setDoctors] = useState([]);
     const [orders, setOrders] = useState([]);
-    const [deliverySettings, setDeliverySettings] = useState({ is_enabled: true });
-    useRefreshDeliverySettingsOnFocus(setDeliverySettings);
     const [loading, setLoading] = useState(true);
 
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -109,10 +106,9 @@ const Profile = () => {
                 setLoading(true);
                 const userId = user?.id || user?.user?.id;
                 
-                const [doctorsResponse, ordersResponse, settings] = await Promise.all([
+                const [doctorsResponse, ordersResponse] = await Promise.all([
                     getDoctors({ is_active: true, limit: 100 }).catch(() => ({ items: [] })),
                     userId ? getOrders({ limit: 100 }).catch(() => ({ items: [] })) : Promise.resolve({ items: [] }),
-                    getDeliverySettings().catch(() => ({ is_enabled: true }))
                 ]);
 
                 setDoctors(doctorsResponse.items || []);
@@ -128,7 +124,6 @@ const Profile = () => {
                     }));
                 setOrders(userOrdersList);
                 
-                setDeliverySettings(settings);
             } catch (error) {
                 console.error('Error fetching profile data:', error);
             } finally {
@@ -416,15 +411,10 @@ const Profile = () => {
         }
     };
 
-    if (!user) return <div className="loading-screen">Loading...</div>;
-    
+    if (!user) return <PageLoading variant="page" message="Loading…" />;
+
     if (loading) {
-        return (
-            <div className="loading-screen" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-                <Loader2 size={32} className="spinning" style={{ animation: 'spin 1s linear infinite' }} />
-                <p style={{ marginTop: '1rem' }}>Loading profile data...</p>
-            </div>
-        );
+        return <PageLoading variant="page" message="Loading profile data…" />;
     }
 
     // Address handlers
@@ -514,47 +504,10 @@ const Profile = () => {
                                     Delivery
                                 </h3>
                             </div>
-                            <p style={{ margin: '0 0 0.75rem', color: 'var(--text-muted, #64748b)', fontSize: '0.95rem' }}>
-                                {deliverySettings.delivery_schedule?.customer_message ||
-                                    (deliverySettings.is_enabled === false
-                                        ? 'Home delivery is turned off. Contact the store for options.'
-                                        : 'Orders are accepted online; delivery follows store timings.')}
+                            <p style={{ margin: 0, color: 'var(--text-muted, #64748b)', fontSize: '0.95rem' }}>
+                                Current delivery fees, minimum order rules, and time windows are shown when you review your
+                                order at checkout. If home delivery is unavailable, you will see it there before you pay.
                             </p>
-                            <p style={{ margin: '0 0 0.5rem', fontWeight: 600, fontSize: '0.9rem' }}>
-                                Status:{' '}
-                                {deliverySettings.is_enabled === false ? (
-                                    <span style={{ color: '#b91c1c' }}>Off</span>
-                                ) : (
-                                    <span style={{ color: '#15803d' }}>On</span>
-                                )}
-                            </p>
-                            {deliverySettings.is_enabled !== false &&
-                                Array.isArray(deliverySettings.delivery_slot_times) &&
-                                deliverySettings.delivery_slot_times.length > 0 && (
-                                    <div>
-                                        <p style={{ margin: '0.5rem 0 0.35rem', fontWeight: 600, fontSize: '0.9rem' }}>
-                                            Scheduled windows (IST)
-                                        </p>
-                                        <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.9rem' }}>
-                                            {deliverySettings.delivery_slot_times
-                                                .filter((s) => s && s.is_active !== false && (s.slot_time || s.time))
-                                                .map((s, i) => (
-                                                    <li key={i}>{s.slot_time || s.time}</li>
-                                                ))}
-                                        </ul>
-                                        {deliverySettings.delivery_schedule?.fulfillment_date_iso &&
-                                            deliverySettings.delivery_schedule?.slot_label && (
-                                                <p style={{ marginTop: '0.65rem', fontSize: '0.88rem', color: 'var(--text-muted, #64748b)' }}>
-                                                    If you order now, the next scheduled window is{' '}
-                                                    <strong>{deliverySettings.delivery_schedule.slot_label}</strong>
-                                                    {deliverySettings.delivery_schedule.fulfillment_date_iso
-                                                        ? ` (${deliverySettings.delivery_schedule.fulfillment_date_iso})`
-                                                        : ''}
-                                                    .
-                                                </p>
-                                            )}
-                                    </div>
-                                )}
                         </div>
 
                         <div className="dashboard-grid">
@@ -622,7 +575,7 @@ const Profile = () => {
                                 </div>
                             </div>
                             <button type="submit" className="save-btn" disabled={isSaving}>
-                                {isSaving ? <><Loader2 size={16} className="spinning" /> Saving...</> : <><Save size={16} /> Save Changes</>}
+                                {isSaving ? <><InlineSpinner size={16} /> Saving...</> : <><Save size={16} /> Save Changes</>}
                             </button>
                         </form>
 
@@ -700,7 +653,7 @@ const Profile = () => {
                                 </div>
                                 <button type="submit" className="password-change-btn" disabled={passwordChanging}>
                                     {passwordChanging ? (
-                                        <><Loader2 size={16} className="spinning" /> Changing...</>
+                                        <><InlineSpinner size={16} /> Changing...</>
                                     ) : (
                                         <><Lock size={16} /> Change Password</>
                                     )}
@@ -766,7 +719,7 @@ const Profile = () => {
                                 </label>
                                 <div className="address-form-actions">
                                     <button type="submit" className="btn-primary" disabled={addressSaving}>
-                                        {addressSaving ? <><Loader2 size={14} className="spinning" /> Saving...</> : (editingAddress ? 'Update' : 'Save Address')}
+                                        {addressSaving ? <><InlineSpinner size={14} /> Saving...</> : (editingAddress ? 'Update' : 'Save Address')}
                                     </button>
                                     <button type="button" className="btn-cancel"
                                         onClick={() => { setAddressFormVisible(false); setEditingAddress(null); setAddressError(''); }}>
@@ -967,7 +920,7 @@ const Profile = () => {
 
                         {orderDetailLoading && (
                             <div className="section-card loading-card">
-                                <Loader2 size={24} className="spinning" />
+                                <InlineSpinner size={24} />
                                 <p>Loading order details...</p>
                             </div>
                         )}
@@ -1008,7 +961,7 @@ const Profile = () => {
                                                     disabled={reorderingOrderId === order.id}
                                                 >
                                                     {reorderingOrderId === order.id ? (
-                                                        <><Loader2 size={13} className="spinning" /> Reordering...</>
+                                                        <><InlineSpinner size={13} /> Reordering...</>
                                                     ) : reorderSuccess === order.id ? (
                                                         <><CheckCircle size={13} /> Added!</>
                                                     ) : (

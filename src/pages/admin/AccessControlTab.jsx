@@ -4,7 +4,6 @@ import {
   Plus,
   Pencil,
   Trash2,
-  Loader2,
   Save,
   X,
   Search,
@@ -19,6 +18,7 @@ import {
   Link2,
   Copy,
 } from 'lucide-react';
+import { InlineSpinner } from '../../components/common/PageLoading';
 import { getRoles, createRole, updateRole, deleteRole } from '../../services/rolesApi';
 import { getPermissions, createPermission, deletePermission } from '../../services/permissionsApi';
 import { getRolePermissions, createRolePermission, deleteRolePermission } from '../../services/rolePermissionsApi';
@@ -566,7 +566,7 @@ const AccessControlTab = ({ showNotify, onRolesInvalidate }) => {
       <div className="access-control-tab-stack animate-slide-up">
         <div className="admin-table-card catalog-tab-card access-control-loading-card">
           <div className="catalog-loading">
-            <Loader2 size={32} aria-hidden />
+            <InlineSpinner size={32} />
             <div>
               <p className="access-control-loading-title">Loading access data</p>
               <p className="access-control-loading-sub">Roles, permission codes, and assignments…</p>
@@ -590,10 +590,9 @@ const AccessControlTab = ({ showNotify, onRolesInvalidate }) => {
             <div className="access-control-hero-copy">
               <h2 className="catalog-tab-title">Roles &amp; access</h2>
               <p className="catalog-tab-subtitle">
-                API access is a role plus permission <em>codes</em> (checked in the matrix). Pick a role, tick the codes it
-                should have, then <strong>Save changes</strong> to create or remove links. Use <strong>Granted only</strong>{' '}
-                to audit assignments. Staff accounts still need the right role in <strong>Manage Staff</strong>. Sidebar
-                items use menu task grants, not this matrix alone.
+                Assign permission <em>codes</em> to each role in the matrix, then <strong>Save changes</strong>. Use{' '}
+                <strong>Granted only</strong> to audit. Staff still need roles in <strong>Manage Staff</strong>; the sidebar
+                also uses menu grants.
               </p>
             </div>
           </div>
@@ -896,7 +895,7 @@ const AccessControlTab = ({ showNotify, onRolesInvalidate }) => {
                 disabled={saving || !isDirty}
                 onClick={saveAssignments}
               >
-                {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                {saving ? <InlineSpinner size={18} /> : <Save size={18} />}
                 {isDirty ? 'Save changes' : 'Saved'}
               </button>
               <span className="catalog-tab-meta access-control-perms-summary">
@@ -1223,7 +1222,7 @@ const AccessControlTab = ({ showNotify, onRolesInvalidate }) => {
                                   onClick={() => removeCatalogPermission(p)}
                                 >
                                   {catalogDeletingId === String(p.id) ? (
-                                    <Loader2 size={16} className="animate-spin" aria-hidden />
+                                    <InlineSpinner size={16} />
                                   ) : (
                                     <Trash2 size={16} aria-hidden />
                                   )}

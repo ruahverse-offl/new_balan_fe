@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, Lock, Shield, Save, Mail, Phone, Loader2, CheckCircle, AlertCircle, Calendar, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, Shield, Save, Mail, Phone, CheckCircle, AlertCircle, Calendar, Eye, EyeOff } from 'lucide-react';
+import { InlineSpinner } from '../../components/common/PageLoading';
 import { useAuth } from '../../context/AuthContext';
 import { changePassword } from '../../services/authApi';
 import { getUserById } from '../../services/usersApi';
@@ -308,7 +309,7 @@ const MyProfileTab = ({ user }) => {
                             cursor: profileSaving ? 'not-allowed' : 'pointer',
                         }}
                     >
-                        {profileSaving ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Save size={16} />}
+                        {profileSaving ? <InlineSpinner size={16} /> : <Save size={16} />}
                         {profileSaving ? 'Saving...' : 'Save Changes'}
                     </button>
                 </div>
@@ -422,7 +423,7 @@ const MyProfileTab = ({ user }) => {
                             cursor: passwordSaving ? 'not-allowed' : 'pointer',
                         }}
                     >
-                        {passwordSaving ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Lock size={16} />}
+                        {passwordSaving ? <InlineSpinner size={16} /> : <Lock size={16} />}
                         {passwordSaving ? 'Changing...' : 'Change Password'}
                     </button>
                 </div>

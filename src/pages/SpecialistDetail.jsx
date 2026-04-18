@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Clock, CheckCircle2, Award, Phone, MapPin, Loader2 } from 'lucide-react';
+import { ArrowLeft, Clock, CheckCircle2, Award, Phone, MapPin } from 'lucide-react';
+import { PageLoading } from '../components/common/PageLoading';
 import { getDoctorById } from '../services/doctorsApi';
 import { mapDoctorToFrontend } from '../utils/dataMapper';
 import { formatTimeRangeTo12h } from '../utils/timeFormatters';
@@ -37,8 +38,7 @@ const SpecialistDetail = () => {
         return (
             <div className="specialist-detail-page">
                 <div className="container" style={{ textAlign: 'center', padding: '3rem' }}>
-                    <Loader2 size={32} className="spinning" style={{ animation: 'spin 1s linear infinite' }} />
-                    <p style={{ marginTop: '1rem' }}>Loading doctor details...</p>
+                    <PageLoading variant="block" message="Loading doctor details…" />
                 </div>
             </div>
         );

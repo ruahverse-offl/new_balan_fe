@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Search, Eye, ArrowLeft, ChevronRight, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Eye, ArrowLeft, ChevronRight, RotateCcw, ChevronUp } from 'lucide-react';
+import './AdminCatalogTabs.css';
+import './PaymentsTab.css';
 
 const PaymentsTab = ({
     payments,
@@ -14,35 +16,46 @@ const PaymentsTab = ({
 }) => {
     const [expandedId, setExpandedId] = useState(null);
 
-    const filteredPayments = (payments || []).filter(p =>
-        p && (
-            (p.payment_method || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (p.payment_status || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (p.order_id || '').toLowerCase().includes(searchTerm.toLowerCase())
-        )
+    const q = (searchTerm || '').toLowerCase();
+    const filteredPayments = (payments || []).filter(
+        (p) =>
+            p &&
+            ((p.payment_method || '').toLowerCase().includes(q) ||
+                (p.payment_status || '').toLowerCase().includes(q) ||
+                (p.order_id || '').toLowerCase().includes(q)),
     );
 
-    const totalPages = Math.ceil(filteredPayments.length / paymentsRowsPerPage);
+    const totalPages = Math.max(1, Math.ceil(filteredPayments.length / paymentsRowsPerPage) || 1);
     const paginatedPayments = filteredPayments.slice(
         (paymentsPage - 1) * paymentsRowsPerPage,
-        paymentsPage * paymentsRowsPerPage
+        paymentsPage * paymentsRowsPerPage,
     );
 
     const paymentStatusClass = (status) => {
         switch ((status || '').toUpperCase()) {
-            case 'SUCCESS': case 'COMPLETED': return 'active';
-            case 'PENDING': case 'INITIATED': return 'pending';
-            case 'FAILED': return 'inactive';
-            default: return 'pending';
+            case 'SUCCESS':
+            case 'COMPLETED':
+                return 'active';
+            case 'PENDING':
+            case 'INITIATED':
+                return 'pending';
+            case 'FAILED':
+                return 'inactive';
+            default:
+                return 'pending';
         }
     };
 
     const refundStatusClass = (status) => {
         switch ((status || '').toUpperCase()) {
-            case 'COMPLETED': return 'active';
-            case 'INITIATED': return 'pending';
-            case 'FAILED': return 'inactive';
-            default: return '';
+            case 'COMPLETED':
+                return 'active';
+            case 'INITIATED':
+                return 'pending';
+            case 'FAILED':
+                return 'inactive';
+            default:
+                return '';
         }
     };
 
@@ -51,22 +64,30 @@ const PaymentsTab = ({
     };
 
     const toggleExpand = (id) => {
-        setExpandedId(prev => prev === id ? null : id);
+        setExpandedId((prev) => (prev === id ? null : id));
     };
 
     return (
-        <div className="admin-table-card animate-slide-up">
-            <div className="table-actions">
+        <div className="admin-table-card catalog-tab-card payments-tab-card animate-slide-up">
+            <div className="catalog-tab-header">
+                <h2 className="catalog-tab-title">Payments</h2>
+                <p className="catalog-tab-subtitle">
+                    Gateway charges linked to orders. Search by method, status, or order id. Expand a row for transaction
+                    ids; refund when eligible.
+                </p>
+            </div>
+            <div className="catalog-tab-toolbar">
                 <div className="table-search">
-                    <Search size={18} />
+                    <Search size={18} aria-hidden />
                     <input
-                        type="text"
-                        placeholder="Search payments..."
-                        value={searchTerm}
+                        type="search"
+                        placeholder="Search by method, status, or order id…"
+                        value={searchTerm || ''}
                         onChange={(e) => {
                             setSearchTerm(e.target.value);
                             setPaymentsPage(1);
                         }}
+                        aria-label="Search payments"
                     />
                 </div>
             </div>
@@ -75,7 +96,7 @@ const PaymentsTab = ({
                     <table className="admin-table">
                         <thead>
                             <tr>
-                                <th>Order ID</th>
+                                <th>Order</th>
                                 <th>Method</th>
                                 <th>Status</th>
                                 <th>Amount</th>
@@ -85,17 +106,19 @@ const PaymentsTab = ({
                             </tr>
                         </thead>
                         <tbody>
-                            {paginatedPayments.map(payment => (
+                            {paginatedPayments.map((payment) => (
                                 <React.Fragment key={payment.id}>
                                     <tr>
-                                        <td data-label="Order ID">
-                                            <span style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
-                                                {payment.order_id ? payment.order_id.substring(0, 8) + '...' : 'N/A'}
+                                        <td data-label="Order">
+                                            <span className="payments-order-id" title={payment.order_id || ''}>
+                                                {payment.order_id ? `${payment.order_id.substring(0, 8)}…` : '—'}
                                             </span>
                                         </td>
                                         <td data-label="Method">{payment.payment_method}</td>
                                         <td data-label="Status">
-                                            <span className={`status-tag ${paymentStatusClass(payment.payment_status)}`}>
+                                            <span
+                                                className={`status-tag ${paymentStatusClass(payment.payment_status)}`}
+                                            >
                                                 {payment.payment_status}
                                             </span>
                                         </td>
@@ -104,7 +127,11 @@ const PaymentsTab = ({
                                         </td>
                                         <td data-label="Refund">
                                             {payment.refund_status && payment.refund_status !== 'NONE' ? (
-                                                <span className={`status-tag ${refundStatusClass(payment.refund_status)}`}>
+                                                <span
+                                                    className={`status-tag ${refundStatusClass(
+                                                        payment.refund_status,
+                                                    )}`}
+                                                >
                                                     {payment.refund_status}
                                                 </span>
                                             ) : (
@@ -113,24 +140,34 @@ const PaymentsTab = ({
                                         </td>
                                         <td data-label="Date">
                                             {payment.created_at
-                                                ? new Date(payment.created_at).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })
-                                                : 'N/A'}
+                                                ? new Date(payment.created_at).toLocaleDateString('en-IN', {
+                                                      year: 'numeric',
+                                                      month: 'short',
+                                                      day: 'numeric',
+                                                  })
+                                                : '—'}
                                         </td>
                                         <td data-label="Actions" className="actions">
                                             <button
+                                                type="button"
                                                 className="action-btn"
                                                 onClick={() => toggleExpand(payment.id)}
-                                                title="View Details"
+                                                title="View details"
+                                                aria-expanded={expandedId === payment.id}
                                             >
-                                                {expandedId === payment.id ? <ChevronUp size={16} /> : <Eye size={16} />}
+                                                {expandedId === payment.id ? (
+                                                    <ChevronUp size={16} />
+                                                ) : (
+                                                    <Eye size={16} />
+                                                )}
                                             </button>
                                             {canRefund(payment) && (
                                                 <button
-                                                    className="action-btn"
+                                                    type="button"
+                                                    className="action-btn payments-refund-btn"
                                                     onClick={() => onRefund(payment)}
                                                     disabled={refundLoading}
                                                     title="Refund"
-                                                    style={{ color: '#dc2626' }}
                                                 >
                                                     <RotateCcw size={16} />
                                                 </button>
@@ -140,36 +177,22 @@ const PaymentsTab = ({
                                     {expandedId === payment.id && (
                                         <tr>
                                             <td colSpan="7" style={{ padding: 0 }}>
-                                                <div style={{
-                                                    padding: '1rem 1.5rem',
-                                                    background: 'var(--admin-bg, #f8fafc)',
-                                                    borderTop: '1px solid var(--admin-border, #e2e8f0)',
-                                                    display: 'grid',
-                                                    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-                                                    gap: '0.75rem',
-                                                    fontSize: '0.875rem',
-                                                }}>
-                                                    <div>
-                                                        <span style={{ color: '#64748b' }}>Merchant Txn ID</span>
-                                                        <div style={{ fontFamily: 'monospace', fontWeight: 600, wordBreak: 'break-all' }}>
-                                                            {payment.merchant_transaction_id || '—'}
-                                                        </div>
+                                                <div className="payments-expand-panel">
+                                                    <div className="payments-expand-field payments-expand-field--mono">
+                                                        <span>Merchant txn id</span>
+                                                        <div>{payment.merchant_transaction_id || '—'}</div>
                                                     </div>
-                                                    <div>
-                                                        <span style={{ color: '#64748b' }}>Gateway Txn ID</span>
-                                                        <div style={{ fontFamily: 'monospace', fontWeight: 600, wordBreak: 'break-all' }}>
-                                                            {payment.gateway_transaction_id || '—'}
-                                                        </div>
+                                                    <div className="payments-expand-field payments-expand-field--mono">
+                                                        <span>Gateway txn id</span>
+                                                        <div>{payment.gateway_transaction_id || '—'}</div>
                                                     </div>
-                                                    <div>
-                                                        <span style={{ color: '#64748b' }}>Gateway Order ID</span>
-                                                        <div style={{ fontFamily: 'monospace', fontWeight: 600, wordBreak: 'break-all' }}>
-                                                            {payment.gateway_order_id || '—'}
-                                                        </div>
+                                                    <div className="payments-expand-field payments-expand-field--mono">
+                                                        <span>Gateway order id</span>
+                                                        <div>{payment.gateway_order_id || '—'}</div>
                                                     </div>
-                                                    <div>
-                                                        <span style={{ color: '#64748b' }}>Payment Date</span>
-                                                        <div style={{ fontWeight: 600 }}>
+                                                    <div className="payments-expand-field">
+                                                        <span>Payment date</span>
+                                                        <div>
                                                             {payment.payment_date
                                                                 ? new Date(payment.payment_date).toLocaleString('en-IN')
                                                                 : '—'}
@@ -177,17 +200,13 @@ const PaymentsTab = ({
                                                     </div>
                                                     {payment.refund_status && payment.refund_status !== 'NONE' && (
                                                         <>
-                                                            <div>
-                                                                <span style={{ color: '#64748b' }}>Refund Amount</span>
-                                                                <div style={{ fontWeight: 600 }}>
-                                                                    ₹{parseFloat(payment.refund_amount || 0).toFixed(2)}
-                                                                </div>
+                                                            <div className="payments-expand-field">
+                                                                <span>Refund amount</span>
+                                                                <div>₹{parseFloat(payment.refund_amount || 0).toFixed(2)}</div>
                                                             </div>
-                                                            <div>
-                                                                <span style={{ color: '#64748b' }}>Refund Txn ID</span>
-                                                                <div style={{ fontFamily: 'monospace', fontWeight: 600, wordBreak: 'break-all' }}>
-                                                                    {payment.refund_transaction_id || '—'}
-                                                                </div>
+                                                            <div className="payments-expand-field payments-expand-field--mono">
+                                                                <span>Refund txn id</span>
+                                                                <div>{payment.refund_transaction_id || '—'}</div>
                                                             </div>
                                                         </>
                                                     )}
@@ -197,40 +216,27 @@ const PaymentsTab = ({
                                     )}
                                 </React.Fragment>
                             ))}
+                            {filteredPayments.length === 0 && (
+                                <tr>
+                                    <td colSpan="7" className="payments-empty-cell">
+                                        No payments match your search.
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginTop: '1rem',
-                flexWrap: 'wrap',
-                gap: '1rem'
-            }}>
-                <label style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    fontSize: '0.9rem',
-                    color: 'var(--admin-text-muted)'
-                }}>
-                    Rows per page:
+            <div className="catalog-tab-footer">
+                <label className="catalog-rows-label">
+                    Rows
                     <select
+                        className="catalog-rows-select"
                         value={paymentsRowsPerPage}
                         onChange={(e) => {
                             setPaymentsRowsPerPage(Number(e.target.value));
                             setPaymentsPage(1);
-                        }}
-                        style={{
-                            padding: '0.4rem 0.8rem',
-                            borderRadius: '8px',
-                            border: '1px solid var(--admin-border)',
-                            backgroundColor: 'var(--admin-bg)',
-                            color: 'var(--admin-text)',
-                            cursor: 'pointer'
                         }}
                     >
                         <option value={5}>5</option>
@@ -243,7 +249,8 @@ const PaymentsTab = ({
                 {totalPages > 1 && (
                     <div className="pagination-bar">
                         <button
-                            onClick={() => setPaymentsPage(p => Math.max(1, p - 1))}
+                            type="button"
+                            onClick={() => setPaymentsPage((p) => Math.max(1, p - 1))}
                             disabled={paymentsPage === 1}
                             className="page-nav-btn"
                         >
@@ -253,7 +260,8 @@ const PaymentsTab = ({
                             Page <span>{paymentsPage}</span> of {totalPages}
                         </div>
                         <button
-                            onClick={() => setPaymentsPage(p => Math.min(totalPages, p + 1))}
+                            type="button"
+                            onClick={() => setPaymentsPage((p) => Math.min(totalPages, p + 1))}
                             disabled={paymentsPage === totalPages}
                             className="page-nav-btn"
                         >

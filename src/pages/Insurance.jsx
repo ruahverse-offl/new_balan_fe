@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ShieldPlus, CheckCircle, MessageSquare, Phone, HelpCircle, UserCheck, Activity, Users, Heart, AlertCircle, User, Award, Star, Clock, Send, Loader2 } from 'lucide-react';
+import { ShieldPlus, CheckCircle, MessageSquare, Phone, HelpCircle, UserCheck, Activity, Users, Heart, AlertCircle, User, Award, Star, Clock, Send } from 'lucide-react';
+import { InlineSpinner } from '../components/common/PageLoading';
 import LocationSection from '../components/common/LocationSection';
 import './Insurance.css';
 
@@ -314,7 +315,7 @@ const Insurance = () => {
                             <button type="submit" className="btn btn-primary enquiry-submit-btn" disabled={submitting}>
                                 {submitting ? (
                                     <>
-                                        <Loader2 size={18} className="spin-icon" />
+                                        <InlineSpinner size={18} className="spin-icon" />
                                         <span>Submitting...</span>
                                     </>
                                 ) : (

@@ -386,12 +386,24 @@
     color: #fff;
 }
 
-.checkout-qty-value {
-    min-width: 1.75rem;
+.checkout-qty-input {
+    width: 2.5rem;
+    min-width: 2rem;
     text-align: center;
     font-weight: 700;
     font-size: 1.05rem;
     color: #333;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 0.2rem 0.15rem;
+    background: #fff;
+    -moz-appearance: textfield;
+}
+
+.checkout-qty-input::-webkit-outer-spin-button,
+.checkout-qty-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 .summary-item-price {
@@ -1226,4 +1238,96 @@
     .saved-addresses-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/* Checkout payment / gateway errors — modal (not inline by coupon field) */
+.checkout-error-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(4px);
+    animation: checkout-error-fade-in 0.2s ease;
+}
+
+@keyframes checkout-error-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.checkout-error-modal {
+    width: 100%;
+    max-width: 420px;
+    padding: 1.75rem 1.5rem 1.5rem;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    border: 1px solid #e2e8f0;
+    text-align: center;
+    animation: checkout-error-pop 0.25s ease;
+}
+
+@keyframes checkout-error-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.checkout-error-modal__icon {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 0.75rem;
+    color: #dc2626;
+}
+
+.checkout-error-modal__title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 0.65rem;
+    line-height: 1.35;
+}
+
+.checkout-error-modal__message {
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: #475569;
+    margin: 0 0 1.35rem;
+}
+
+.checkout-error-modal__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 120px;
+    padding: 0.65rem 1.5rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #fff;
+    background: var(--primary, #1d4ed8);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.1s ease;
+}
+
+.checkout-error-modal__btn:hover {
+    filter: brightness(1.05);
+}
+
+.checkout-error-modal__btn:active {
+    transform: scale(0.98);
 }

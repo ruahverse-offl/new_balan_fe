@@ -9,6 +9,7 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ARG VITE_API_PREFIX=/api/v1
 ENV VITE_API_PREFIX=$VITE_API_PREFIX
 
+# true = online store off (call-to-order UI); false = full pharmacy in build
 ARG VITE_PROD_CHECK=true
 ENV VITE_PROD_CHECK=$VITE_PROD_CHECK
 

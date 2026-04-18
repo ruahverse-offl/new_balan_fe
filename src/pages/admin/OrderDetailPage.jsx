@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Loader2, FileText, ExternalLink } from 'lucide-react';
+import { ArrowLeft, FileText, ExternalLink } from 'lucide-react';
+import { PageLoading } from '../../components/common/PageLoading';
 import { getOrderDetail } from '../../services/ordersApi';
 import { getPrescriptionFileUrl } from '../../utils/prescriptionUrl';
 import {
@@ -65,10 +66,11 @@ const OrderDetailPage = ({
     if (loading) {
         return (
             <div className="order-detail-page">
-                <div className="order-detail-loading">
-                    <Loader2 size={40} className="spin-icon" style={{ color: 'var(--primary)' }} />
-                    <p>Loading order details...</p>
-                </div>
+                <PageLoading
+                    variant="bare"
+                    className="order-detail-loading"
+                    message="Loading order details…"
+                />
             </div>
         );
     }

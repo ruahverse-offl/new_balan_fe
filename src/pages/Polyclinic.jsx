@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import LocationSection from '../components/common/LocationSection';
-import { TestTube, Activity, Droplet, Heart, Stethoscope, Microscope, FileText, Calendar, Phone, Loader2, AlertCircle } from 'lucide-react';
+import { TestTube, Activity, Droplet, Heart, Stethoscope, Microscope, FileText, Calendar, Phone, AlertCircle } from 'lucide-react';
+import { PageLoading } from '../components/common/PageLoading';
 import { getPolyclinicTests } from '../services/polyclinicTestsApi';
 import { safeError } from '../utils/logger';
 import './Polyclinic.css';
@@ -64,10 +65,7 @@ const Polyclinic = () => {
                     </div>
 
                     {loading && (
-                        <div style={{ textAlign: 'center', padding: '3rem' }}>
-                            <Loader2 size={32} className="spinning" style={{ animation: 'spin 1s linear infinite' }} />
-                            <p style={{ marginTop: '1rem' }}>Loading tests...</p>
-                        </div>
+                        <PageLoading variant="block" message="Loading tests…" />
                     )}
 
                     {error && (

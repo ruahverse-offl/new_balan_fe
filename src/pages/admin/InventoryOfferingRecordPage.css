@@ -1,0 +1,92 @@
+.inventory-offering-record-wrap {
+  min-height: 200px;
+}
+
+.inventory-offering-record-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 0 1.25rem;
+  margin-bottom: 0.25rem;
+  border-bottom: 1px solid var(--admin-border, #e2e8f0);
+}
+
+.inventory-offering-record-hero__icon {
+  flex-shrink: 0;
+  color: var(--primary, #6366f1);
+  margin-top: 0.15rem;
+}
+
+.inventory-offering-record-hero__kicker {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--admin-text-muted, #64748b);
+  margin-bottom: 0.25rem;
+}
+
+.inventory-offering-record-hero__title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--admin-text-main, #0f172a);
+  line-height: 1.25;
+}
+
+.inventory-offering-record-hero__sub {
+  margin-top: 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--admin-text-muted, #64748b);
+}
+
+.inventory-offering-record-section-title {
+  margin: 0 0 0.65rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--admin-text-muted, #64748b);
+}
+
+.inventory-offering-record-tech {
+  margin-top: 1.5rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  border: 1px dashed var(--admin-border, #e2e8f0);
+  background: var(--gray-50, #f8fafc);
+  font-size: 0.8rem;
+}
+
+.inventory-offering-record-tech summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--admin-text-muted, #64748b);
+}
+
+.inventory-offering-record-tech dl {
+  margin: 0.65rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.inventory-offering-record-tech dt {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--admin-text-muted, #94a3b8);
+}
+
+.inventory-offering-record-tech dd {
+  margin: 0.15rem 0 0;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 0.75rem;
+  word-break: break-all;
+  color: #475569;
+}
+
+.inventory-offering-edit-form .form-group {
+  margin-bottom: 1rem;
+}

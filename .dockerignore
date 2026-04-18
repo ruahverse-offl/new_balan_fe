@@ -1,15 +1,42 @@
-# Frontend .dockerignore
-node_modules
-dist
-.env.local
-.env.*.local
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.DS_Store
-.vscode
-.idea
-*.log
-.git
+# Version control
+.git/
 .gitignore
-README.md
+.dockerignore
+
+# Dependencies — Dockerfile runs `npm install`
+node_modules/
+
+# Build output — Dockerfile runs `npm run build`
+dist/
+dist-ssr/
+build/
+
+# Secrets & local env
+.env
+.env.*
+!.env.example
+
+# Testing & coverage
+coverage/
+.nyc_output/
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+pnpm-debug.log*
+
+# Vite / ESLint caches
+*.tsbuildinfo
+.eslintcache
+
+# Docs (not needed in image)
+*.md
+LICENSE

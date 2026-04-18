@@ -6,39 +6,7 @@
     gap: 0;
 }
 
-.doctors-tab-header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 1.25rem 1.5rem 1rem;
-    border-bottom: 1px solid var(--admin-border, #e5e7eb);
-}
-
-.doctors-tab-title {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--admin-text, #111827);
-}
-
-.doctors-tab-subtitle {
-    margin: 0.35rem 0 0;
-    font-size: 0.875rem;
-    color: var(--admin-text-muted, #6b7280);
-    max-width: 36rem;
-    line-height: 1.45;
-}
-
-.doctors-tab-toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.75rem 1rem;
-    padding: 1rem 1.5rem;
-    background: var(--admin-bg-subtle, rgba(0, 0, 0, 0.02));
-}
+/* Header + toolbar layout: shared catalog-tab-* (AdminCatalogTabs.css) */
 
 .doctors-tab-toolbar .table-search {
     flex: 1;
@@ -47,25 +15,7 @@
 }
 
 .doctors-tab-meta {
-    font-size: 0.8125rem;
-    color: var(--admin-text-muted, #6b7280);
     margin-left: auto;
-}
-
-.doctors-rows-label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-    color: var(--admin-text-muted, #6b7280);
-}
-
-.doctors-rows-select {
-    padding: 0.35rem 0.5rem;
-    border-radius: 8px;
-    border: 1px solid var(--admin-border, #e5e7eb);
-    background: var(--admin-bg, #fff);
-    color: var(--admin-text, #111827);
 }
 
 .doctors-table .doctors-cell-name {
@@ -183,16 +133,6 @@
     font-size: 1rem;
     font-weight: 600;
     color: var(--admin-text, #374151);
-}
-
-.doctors-tab-footer {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.75rem 1.5rem 1.25rem;
-    border-top: 1px solid var(--admin-border, #e5e7eb);
 }
 
 /* Modal sections (DoctorModalForm) */

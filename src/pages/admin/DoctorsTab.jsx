@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Search, Plus, Pencil, Trash2, ArrowLeft, ChevronRight, Stethoscope, Eye } from 'lucide-react';
 import { formatTimeRangeTo24h } from '../../utils/timeFormatters';
+import './AdminCatalogTabs.css';
 import './DoctorsTab.css';
 
 function doctorPermissions(backendPermissions = [], isAdminRole) {
@@ -69,19 +70,16 @@ const DoctorsTab = ({
     const showingTo = Math.min(start + pageRows.length, filtered.length);
 
     return (
-        <div className="admin-table-card doctors-tab-card animate-slide-up">
-            <div className="doctors-tab-header">
-                <div>
-                    <h2 className="doctors-tab-title">Manage doctors</h2>
-                    <p className="doctors-tab-subtitle">
-                        Specialists shown on the clinic website and available for appointments. Use the{' '}
-                        <strong>eye (View)</strong> action on a row for a read-only profile (hours, bio, contact). Use
-                        roles to limit who can add, edit, or remove doctors.
-                    </p>
-                </div>
+        <div className="admin-table-card catalog-tab-card doctors-tab-card animate-slide-up">
+            <div className="catalog-tab-header">
+                <h2 className="catalog-tab-title">Doctors</h2>
+                <p className="catalog-tab-subtitle">
+                    Specialists on the site and for appointments. <strong>View</strong> opens a read-only profile; roles
+                    control who can add, edit, or remove.
+                </p>
             </div>
 
-            <div className="doctors-tab-toolbar">
+            <div className="catalog-tab-toolbar doctors-tab-toolbar">
                 <div className="table-search">
                     <Search size={18} aria-hidden />
                     <input
@@ -95,10 +93,10 @@ const DoctorsTab = ({
                         aria-label="Search doctors"
                     />
                 </div>
-                <label className="doctors-rows-label">
+                <label className="catalog-rows-label doctors-rows-label">
                     Rows
                     <select
-                        className="doctors-rows-select"
+                        className="catalog-rows-select doctors-rows-select"
                         value={rowsPerPage}
                         onChange={(e) => {
                             setRowsPerPage(Number(e.target.value));
@@ -117,7 +115,7 @@ const DoctorsTab = ({
                         <Plus size={18} /> Add doctor
                     </button>
                 )}
-                <span className="doctors-tab-meta">
+                <span className="catalog-tab-meta doctors-tab-meta">
                     {filtered.length} doctor{filtered.length !== 1 ? 's' : ''}
                 </span>
             </div>
@@ -246,12 +244,12 @@ const DoctorsTab = ({
             </div>
 
             {filtered.length > 0 && (
-                <div className="doctors-tab-footer">
-                    <span className="doctors-tab-meta">
+                <div className="catalog-tab-footer doctors-tab-footer">
+                    <span className="catalog-tab-meta doctors-tab-meta">
                         Showing {showingFrom}–{showingTo} of {filtered.length}
                     </span>
                     {totalPages > 1 && (
-                        <div className="pagination-bar" style={{ margin: 0 }}>
+                        <div className="pagination-bar">
                             <button
                                 type="button"
                                 onClick={() => setDoctorsPage((p) => Math.max(1, p - 1))}

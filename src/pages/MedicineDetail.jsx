@@ -8,7 +8,6 @@ import {
   ShoppingCart,
   Pill,
   AlertCircle,
-  Loader2,
   ShieldCheck,
   ShieldAlert,
   Package,
@@ -19,6 +18,7 @@ import {
 import { safeError } from '../utils/logger';
 import { getStorageFileUrl } from '../utils/prescriptionUrl';
 import { isBrandPurchasable, brandStockQuantity } from '../utils/pharmacyStock';
+import { PageLoading } from '../components/common/PageLoading';
 
 const MedicineDetail = () => {
   const { id } = useParams();
@@ -125,15 +125,11 @@ const MedicineDetail = () => {
     return (
       <div style={styles.pageWrapper}>
         <div style={styles.container}>
-          <div style={styles.loadingContainer}>
-            <Loader2
-              size={36}
-              style={{ animation: 'spin 1s linear infinite', color: 'var(--primary)' }}
-            />
-            <p style={{ marginTop: '1rem', color: 'var(--gray-500)' }}>
-              Loading medicine details...
-            </p>
-          </div>
+          <PageLoading
+            variant="page"
+            message="Loading medicine details…"
+            className="medicine-detail-page-loading"
+          />
         </div>
       </div>
     );

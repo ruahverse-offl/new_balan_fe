@@ -5,18 +5,22 @@
 }
 
 .inventory-tab-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
     margin: 0;
-    padding: 0 1.5rem 1rem;
-    font-size: 0.875rem;
-    line-height: 1.55;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
     color: var(--admin-text-muted, #64748b);
     border-bottom: 1px solid var(--admin-border, #e2e8f0);
-    background: linear-gradient(180deg, #fafbfc 0%, var(--admin-card, #fff) 100%);
+    background: var(--gray-50, #f8fafc);
 }
 
-.inventory-tab-hint code {
-    font-size: 0.78em;
-    font-family: ui-monospace, 'Cascadia Code', monospace;
+.inventory-tab-hint__icon {
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+    color: var(--admin-text-muted, #94a3b8);
 }
 
 .inventory-tab-card .scrollable-section-wrapper.inventory-tab-scroll-wrap {
@@ -130,4 +134,45 @@
     .inventory-offerings-table {
         min-width: 720px;
     }
+}
+
+/* Add offering modal: medicine + brand as clean dropdowns only (no inline catalog / filter) */
+.inventory-add-offering-form .inventory-add-dropdowns-loading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 1rem;
+    font-size: 0.9rem;
+    color: var(--admin-text-muted, #64748b);
+}
+
+.inventory-add-selects {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--admin-border, #e2e8f0);
+}
+
+.inventory-add-select {
+    width: 100%;
+    padding: 0.55rem 0.65rem;
+    border-radius: 8px;
+    border: 1px solid var(--admin-border, #e2e8f0);
+    font-size: 0.95rem;
+    background: var(--white, #fff);
+}
+
+.inventory-add-select:focus {
+    outline: none;
+    border-color: var(--primary, #6366f1);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary, #6366f1) 20%, transparent);
+}
+
+.inventory-add-catalog-hint {
+    margin: -0.5rem 0 1rem;
+    font-size: 0.82rem;
+    color: #b45309;
+    line-height: 1.4;
 }

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { isStaffRoleCode } from '../utils/roles';
 import { Lock, Mail, AlertCircle, ArrowRight, User, Phone, Eye, EyeOff } from 'lucide-react';
 import logo from '../assets/new_balan_logo.png';
+import { InlineSpinner } from '../components/common/PageLoading';
 import './Login.css';
 
 const Login = () => {
@@ -179,8 +180,16 @@ const Login = () => {
                     </div>
 
                     <button type="submit" disabled={isLoading} className="login-submit-btn">
-                        {isLoading ? 'Processing...' : (mode === 'login' ? 'Sign In' : 'Create Account')}
-                        {!isLoading && <ArrowRight size={18} />}
+                        {isLoading ? (
+                            <>
+                                <InlineSpinner size={18} /> Processing…
+                            </>
+                        ) : (
+                            <>
+                                {mode === 'login' ? 'Sign In' : 'Create Account'}
+                                <ArrowRight size={18} />
+                            </>
+                        )}
                     </button>
 
                     <div className="login-switch">

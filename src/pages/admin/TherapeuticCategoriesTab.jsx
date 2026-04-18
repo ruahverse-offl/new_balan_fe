@@ -1,17 +1,7 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Pencil, Trash2, ArrowLeft, ChevronRight, Tags, Eye, X } from 'lucide-react';
-import { getTherapeuticCategoryById } from '../../services/therapeuticCategoriesApi';
+import React, { useMemo } from 'react';
+import { Search, Plus, Pencil, Trash2, ArrowLeft, ChevronRight, Tags, Eye } from 'lucide-react';
 import './AdminCatalogTabs.css';
 import './TherapeuticCategoriesTab.css';
-
-const formatCategoryTs = (v) => {
-    if (v == null || v === '') return '—';
-    try {
-        return new Date(v).toLocaleString();
-    } catch {
-        return String(v);
-    }
-};
 
 const TherapeuticCategoriesTab = ({
     therapeuticCategories,
@@ -23,41 +13,9 @@ const TherapeuticCategoriesTab = ({
     setTherapeuticCategoriesRowsPerPage,
     onAddClick,
     onEditClick,
+    onViewClick,
     onDeleteClick,
-    showNotify,
 }) => {
-    const [viewCategory, setViewCategory] = useState(null);
-
-    const closeView = useCallback(() => setViewCategory(null), []);
-
-    useEffect(() => {
-        if (!viewCategory) return undefined;
-        const onKeyDown = (e) => {
-            if (e.key === 'Escape') closeView();
-        };
-        window.addEventListener('keydown', onKeyDown);
-        return () => window.removeEventListener('keydown', onKeyDown);
-    }, [viewCategory, closeView]);
-
-    const openCategoryView = useCallback(
-        async (row) => {
-            if (!row?.id) return;
-            setViewCategory({ row, detail: null, loading: true, loadError: null });
-            try {
-                const full = await getTherapeuticCategoryById(row.id);
-                setViewCategory((prev) =>
-                    prev?.row?.id === row.id ? { row, detail: full, loading: false, loadError: null } : prev,
-                );
-            } catch (e) {
-                const msg = e?.message || 'Failed to load category';
-                setViewCategory((prev) =>
-                    prev?.row?.id === row.id ? { row, detail: null, loading: false, loadError: msg } : prev,
-                );
-                showNotify?.(msg, 'error');
-            }
-        },
-        [showNotify],
-    );
     const filteredCategories = useMemo(() => {
         const q = (searchTerm || '').trim().toLowerCase();
         return (therapeuticCategories || []).filter(
@@ -79,9 +37,8 @@ const TherapeuticCategoriesTab = ({
             <div className="catalog-tab-header">
                 <h2 className="catalog-tab-title">Medicine categories</h2>
                 <p className="catalog-tab-subtitle">
-                    Categories for the generic medicine catalog (clinical grouping). Each medicine links to one category.
-                    Search filters this list in the browser; use rows to change page size. Use{' '}
-                    <strong>View</strong> on a row for read-only details (including audit fields from the server).
+                    Therapeutic groups for catalog and storefront. Search this list; use <strong>View</strong> for
+                    read-only details.
                 </p>
             </div>
 
@@ -174,9 +131,9 @@ const TherapeuticCategoriesTab = ({
                                             <button
                                                 type="button"
                                                 className="action-btn tc-category-view-btn"
-                                                title="View category details (read-only)"
+                                                title="View category details"
                                                 aria-label={`View details for ${c.name || 'category'}`}
-                                                onClick={() => openCategoryView(c)}
+                                                onClick={() => onViewClick?.(c)}
                                             >
                                                 <Eye size={18} strokeWidth={2.25} aria-hidden />
                                                 <span className="tc-category-view-btn-label">View</span>
@@ -236,150 +193,6 @@ const TherapeuticCategoriesTab = ({
                             </button>
                         </div>
                     )}
-                </div>
-            )}
-
-            {viewCategory && (
-                <div
-                    className="admin-modal-overlay"
-                    role="presentation"
-                    onClick={(e) => {
-                        if (e.target === e.currentTarget) closeView();
-                    }}
-                >
-                    <div
-                        className="admin-modal compact-modal"
-                        style={{ maxWidth: '560px' }}
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="tc-view-title"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="modal-header">
-                            <h3 id="tc-view-title">Category details</h3>
-                            <button
-                                type="button"
-                                onClick={closeView}
-                                style={{ color: 'var(--admin-text-muted)' }}
-                                aria-label="Close"
-                            >
-                                <X size={24} />
-                            </button>
-                        </div>
-
-                        {viewCategory.loading ? (
-                            <p style={{ margin: 0, padding: '0.5rem 0', color: 'var(--admin-text-muted)' }}>
-                                Loading…
-                            </p>
-                        ) : viewCategory.loadError ? (
-                            <p style={{ margin: 0, color: '#b91c1c' }}>{viewCategory.loadError}</p>
-                        ) : (
-                            (() => {
-                                const d = viewCategory.detail || viewCategory.row || {};
-                                return (
-                                    <div
-                                        style={{
-                                            display: 'grid',
-                                            gridTemplateColumns: '1fr 1fr',
-                                            gap: '0.75rem 1rem',
-                                        }}
-                                    >
-                                        <div style={{ gridColumn: '1 / -1' }}>
-                                            <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>Name</div>
-                                            <div style={{ fontWeight: 700 }}>{d.name || '—'}</div>
-                                        </div>
-                                        <div style={{ gridColumn: '1 / -1' }}>
-                                            <div
-                                                style={{
-                                                    color: 'var(--admin-text-muted)',
-                                                    fontSize: '0.85rem',
-                                                    marginBottom: '0.25rem',
-                                                }}
-                                            >
-                                                Description
-                                            </div>
-                                            <div
-                                                style={{
-                                                    padding: '0.75rem',
-                                                    border: '1px solid var(--admin-border)',
-                                                    borderRadius: '10px',
-                                                    background: 'var(--admin-bg)',
-                                                    fontSize: '0.9rem',
-                                                    lineHeight: 1.5,
-                                                }}
-                                            >
-                                                {d.description ? (
-                                                    d.description
-                                                ) : (
-                                                    <span style={{ color: 'var(--admin-text-muted)' }}>No description</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>Status</div>
-                                            <div style={{ fontWeight: 700 }}>{d.is_active !== false ? 'Active' : 'Inactive'}</div>
-                                        </div>
-                                        {d.is_deleted != null && (
-                                            <div>
-                                                <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>
-                                                    Deleted
-                                                </div>
-                                                <div style={{ fontWeight: 600 }}>{d.is_deleted ? 'Yes' : 'No'}</div>
-                                            </div>
-                                        )}
-                                        {d.created_at != null && (
-                                            <div>
-                                                <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>
-                                                    Created
-                                                </div>
-                                                <div style={{ fontWeight: 600 }}>{formatCategoryTs(d.created_at)}</div>
-                                            </div>
-                                        )}
-                                        {d.updated_at != null && (
-                                            <div>
-                                                <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>
-                                                    Updated
-                                                </div>
-                                                <div style={{ fontWeight: 600 }}>{formatCategoryTs(d.updated_at)}</div>
-                                            </div>
-                                        )}
-                                        {d.created_by != null && (
-                                            <div style={{ gridColumn: '1 / -1' }}>
-                                                <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>
-                                                    Created by (user id)
-                                                </div>
-                                                <div style={{ fontWeight: 600, fontSize: '0.8rem', wordBreak: 'break-all' }}>
-                                                    {String(d.created_by)}
-                                                </div>
-                                            </div>
-                                        )}
-                                        {d.updated_by != null && (
-                                            <div style={{ gridColumn: '1 / -1' }}>
-                                                <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>
-                                                    Updated by (user id)
-                                                </div>
-                                                <div style={{ fontWeight: 600, fontSize: '0.8rem', wordBreak: 'break-all' }}>
-                                                    {String(d.updated_by)}
-                                                </div>
-                                            </div>
-                                        )}
-                                        <div style={{ gridColumn: '1 / -1' }}>
-                                            <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>Category ID</div>
-                                            <div style={{ fontWeight: 600, fontSize: '0.85rem', wordBreak: 'break-all' }}>
-                                                {d.id != null ? String(d.id) : '—'}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })()
-                        )}
-
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                            <button type="button" className="btn-add btn-cancel" style={{ flex: 1 }} onClick={closeView}>
-                                Close
-                            </button>
-                        </div>
-                    </div>
                 </div>
             )}
         </div>
