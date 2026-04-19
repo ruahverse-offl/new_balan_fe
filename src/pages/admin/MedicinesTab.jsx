@@ -21,7 +21,6 @@ const MedicinesTab = ({
     onAdd,
     onEdit,
     onDelete,
-    onAvailabilityChange,
 }) => {
     const navigate = useNavigate();
 
@@ -38,9 +37,10 @@ const MedicinesTab = ({
             <div className="medicines-tab-header">
                 <h2 className="medicines-tab-title">Manage medicines</h2>
                 <p className="medicines-tab-subtitle">
-                    Catalog records, categories, and availability. Brand lines are managed per medicine. Server search and
-                    pagination. <strong>View</strong> is read-only; <strong>Add</strong> / <strong>Edit</strong> use full
-                    pages.
+                    Catalog records and categories. Storefront visibility is set per brand line on each medicine’s{' '}
+                    <strong>View</strong> or <strong>Edit</strong> page. Server search and pagination.{' '}
+                    <strong>View</strong> is read-only except brand storefront toggles; <strong>Add</strong> /{' '}
+                    <strong>Edit</strong> use full pages.
                 </p>
             </div>
 
@@ -111,7 +111,7 @@ const MedicinesTab = ({
                                     <th>Category</th>
                                     <th>Rx</th>
                                     <th>Listed</th>
-                                    <th>Storefront</th>
+                                    <th>Storefront (summary)</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -142,21 +142,13 @@ const MedicinesTab = ({
                                                 {med.is_active !== false ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
-                                        <td data-label="Storefront">
-                                            <select
-                                                className="medicines-avail-select"
-                                                value={med.is_available !== false ? 'yes' : 'no'}
-                                                disabled={loading}
-                                                onChange={async (e) => {
-                                                    const newValue = e.target.value === 'yes';
-                                                    await onAvailabilityChange(med, newValue);
-                                                }}
-                                                aria-label={`Availability for ${med.name || 'medicine'}`}
-                                                title="Shown as available on the storefront"
+                                        <td data-label="Storefront (summary)">
+                                            <span
+                                                className={`status-tag ${med.is_available !== false ? 'active' : 'inactive'}`}
+                                                title="Per-brand controls are on View / Edit"
                                             >
-                                                <option value="yes">Available</option>
-                                                <option value="no">Unavailable</option>
-                                            </select>
+                                                {med.is_available !== false ? 'Any line on' : 'None on'}
+                                            </span>
                                         </td>
                                         <td data-label="Actions" className="actions">
                                             <button

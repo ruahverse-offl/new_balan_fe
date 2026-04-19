@@ -1653,18 +1653,6 @@ const Admin = () => {
         setShowModal(true);
     };
 
-    const handleMedicineAvailabilityChange = async (med, newValue) => {
-        const prevList = [...(medicinesList || [])];
-        setMedicinesList((prev) => prev.map((m) => (m.id === med.id ? { ...m, is_available: newValue } : m)));
-        try {
-            await updateMedicine(med.id, { is_available: newValue });
-            showNotify(newValue ? 'Medicine marked available' : 'Medicine marked not available', 'success');
-        } catch (err) {
-            setMedicinesList(prevList);
-            showNotify(err?.message || 'Update failed', 'error');
-        }
-    };
-
     const requestDelete = (type, id, name) => {
         setDeleteConfirm({ show: true, type, id, name });
     };
@@ -2133,7 +2121,6 @@ const Admin = () => {
                             onAdd={() => navigate('/admin/medicines/new')}
                             onEdit={(m) => navigate(`/admin/medicines/${m.id}/edit`)}
                             onDelete={(m) => requestDelete('medicine', m.id, m.name)}
-                            onAvailabilityChange={handleMedicineAvailabilityChange}
                         />
                     )}
 

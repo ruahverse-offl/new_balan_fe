@@ -53,3 +53,44 @@
   font-weight: 500;
   color: var(--admin-text-muted, #64748b);
 }
+
+.medicine-details-modal__brand-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.medicine-details-modal__brand-flag--muted {
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+}
+
+.medicine-brand-storefront-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--admin-text-muted, #64748b);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.medicine-brand-storefront-toggle input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.medicine-brand-storefront-toggle--inline {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 11rem;
+}
+
+.medicine-brand-storefront-toggle__label {
+  line-height: 1.2;
+}

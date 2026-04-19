@@ -12,6 +12,7 @@ import {
   fetchAllBrandMasters,
   createBrand as createMedicineBrandOffering,
   deleteBrand as deleteMedicineBrandOffering,
+  updateBrand as updateMedicineBrandOffering,
 } from '../../services/brandsApi';
 import { uploadMedicineImage } from '../../services/uploadApi';
 import { getStorageFileUrl } from '../../utils/prescriptionUrl';
@@ -39,9 +40,12 @@ const emptyForm = () => ({
   medicine_category_id: '',
   is_prescription_required: false,
   description: '',
-  is_available: true,
   image_path: '',
 });
+
+/** True if at least one non-deleted active brand line is marked available on the storefront. */
+const computeMedicineAvailableFromBrands = (brands) =>
+  (brands || []).some((b) => b.is_active !== false && b.is_available !== false);
 
 /**
  * Full-page view / edit / create for a generic medicine (no modal).
@@ -68,6 +72,7 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
     mrp: '',
     description: '',
   });
+  const [brandAvailUpdatingId, setBrandAvailUpdatingId] = useState(null);
   const categoryDefaulted = useRef(false);
 
   useEffect(() => {
@@ -134,7 +139,6 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
           medicine_category_id: full?.medicine_category_id ? String(full.medicine_category_id) : '',
           is_prescription_required: full?.is_prescription_required === true,
           description: full?.description || '',
-          is_available: full?.is_available !== false,
           image_path: full?.image_path || '',
         });
         setMedicineOfferings(full?.brands || []);
@@ -175,6 +179,8 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
       });
       setMedicineOfferings((prev) => [...(prev || []), row]);
       setMedicineNewOffering({ brand_id: '', manufacturer: '', mrp: '', description: '' });
+      const synced = await syncMedicineHeaderAvailability();
+      if (synced?.brands) setMedicineOfferings(synced.brands);
       showNotify?.('Brand line added', 'success');
       onMedicinesChanged?.();
     } catch (e) {
@@ -185,11 +191,50 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
   const handleRemoveMedicineOffering = async (offeringId) => {
     try {
       await deleteMedicineBrandOffering(offeringId);
-      setMedicineOfferings((prev) => (prev || []).filter((o) => o.id !== offeringId));
+      const next = (medicineOfferings || []).filter((o) => o.id !== offeringId);
+      setMedicineOfferings(next);
+      const anyAvail = computeMedicineAvailableFromBrands(next);
+      await updateMedicine(medicineId, { is_available: anyAvail });
       showNotify?.('Brand line removed', 'success');
       onMedicinesChanged?.();
     } catch (e) {
       showNotify?.(e?.message || 'Remove failed', 'error');
+    }
+  };
+
+  const syncMedicineHeaderAvailability = async () => {
+    if (!medicineId) return null;
+    let fresh = await getMedicineById(medicineId, { include_brands: true });
+    const anyAvail = computeMedicineAvailableFromBrands(fresh.brands);
+    if (!!fresh.is_available !== anyAvail) {
+      await updateMedicine(medicineId, { is_available: anyAvail });
+      fresh = await getMedicineById(medicineId, { include_brands: true });
+    }
+    return fresh;
+  };
+
+  const handleOfferingStorefrontToggle = async (offering, nextAvailable) => {
+    if (!medicineId || !offering?.id) return;
+    if (offering.is_active === false) {
+      showNotify?.('Turn the line active in Inventory before showing it on the storefront.', 'error');
+      return;
+    }
+    setBrandAvailUpdatingId(offering.id);
+    try {
+      await updateMedicineBrandOffering(offering.id, { is_available: nextAvailable });
+      const fresh = await syncMedicineHeaderAvailability();
+      if (!fresh) return;
+      if (mode === 'view') {
+        setDetail(fresh);
+      } else if (mode === 'edit') {
+        setMedicineOfferings(fresh.brands || []);
+      }
+      showNotify?.(nextAvailable ? 'Brand line is on the storefront' : 'Brand line hidden from storefront', 'success');
+      onMedicinesChanged?.();
+    } catch (e) {
+      showNotify?.(e?.message || 'Update failed', 'error');
+    } finally {
+      setBrandAvailUpdatingId(null);
     }
   };
 
@@ -209,10 +254,14 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
       name,
       is_prescription_required: form.is_prescription_required === true,
       description: form.description || null,
-      is_available: form.is_available !== false,
       image_path: (form.image_path && String(form.image_path).trim()) || null,
       ...(mcId && { medicine_category_id: mcId }),
     };
+    if (mode === 'new') {
+      payload.is_available = true;
+    } else if (mode === 'edit') {
+      payload.is_available = computeMedicineAvailableFromBrands(medicineOfferings);
+    }
     setSaving(true);
     try {
       if (mode === 'new') {
@@ -354,13 +403,15 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
                     {viewSource.is_active !== false ? 'Active' : 'Inactive'}
                   </span>
                 </AdminDetailField>
-                <AdminDetailField label="Storefront">
+                <AdminDetailField label="Storefront (summary)">
                   <span
                     className={`admin-detail-badge ${
-                      viewSource.is_available !== false ? 'admin-detail-badge--active' : 'admin-detail-badge--inactive'
+                      computeMedicineAvailableFromBrands(viewBrands) ? 'admin-detail-badge--active' : 'admin-detail-badge--inactive'
                     }`}
                   >
-                    {viewSource.is_available !== false ? 'Available' : 'Unavailable'}
+                    {computeMedicineAvailableFromBrands(viewBrands)
+                      ? 'At least one line on storefront'
+                      : 'No line on storefront'}
                   </span>
                 </AdminDetailField>
                 <AdminDetailField label="Description" fullWidth>
@@ -383,12 +434,32 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
                         <span className="medicine-details-modal__brand-name">{o.brand_name || '—'}</span>
                         <span className="medicine-details-modal__brand-meta">
                           {o.manufacturer || '—'}
-                          {o.is_active === false || o.is_available === false ? (
-                            <span className="medicine-details-modal__brand-flag">Inactive</span>
+                          {o.is_active === false ? (
+                            <span className="medicine-details-modal__brand-flag">Line inactive</span>
+                          ) : null}
+                          {o.is_active !== false && o.is_available === false ? (
+                            <span className="medicine-details-modal__brand-flag medicine-details-modal__brand-flag--muted">
+                              Hidden on storefront
+                            </span>
                           ) : null}
                         </span>
                       </div>
-                      <span className="medicine-details-modal__brand-mrp">{formatMedicineMrp(o.mrp)}</span>
+                      <div className="medicine-details-modal__brand-actions">
+                        <span className="medicine-details-modal__brand-mrp">{formatMedicineMrp(o.mrp)}</span>
+                        <label className="medicine-brand-storefront-toggle">
+                          <input
+                            type="checkbox"
+                            checked={o.is_available !== false && o.is_active !== false}
+                            disabled={
+                              o.is_active === false ||
+                              brandAvailUpdatingId === o.id
+                            }
+                            onChange={(e) => handleOfferingStorefrontToggle(o, e.target.checked)}
+                          />
+                          <span className="medicine-brand-storefront-toggle__label">On storefront</span>
+                          {brandAvailUpdatingId === o.id ? <InlineSpinner size={14} /> : null}
+                        </label>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -494,15 +565,6 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
           />
         </div>
-        <div className="form-group form-group-checkbox" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
-          <input
-            type="checkbox"
-            id="med-rec-avail"
-            checked={form.is_available !== false}
-            onChange={(e) => setForm((f) => ({ ...f, is_available: e.target.checked }))}
-          />
-          <label htmlFor="med-rec-avail">Available for sale (show to customers)</label>
-        </div>
         <div className="form-group medicine-record-image-field">
           <label htmlFor="med-rec-product-image">Product image</label>
           <div className="medicine-record-image-field__wrap">
@@ -580,7 +642,8 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
                 Sellable brand lines
               </h4>
               <p className="admin-medicine-brands-panel__meta">
-                Each line is one <strong>catalog brand</strong> + MRP — this is the SKU customers add to cart.
+                Each line is one <strong>catalog brand</strong> + MRP — this is the SKU customers add to cart. Use{' '}
+                <strong>On storefront</strong> per line to show or hide it on the shop (when the line is active).
               </p>
             </div>
             {isEdit && !medicineOfferingsLoading && (
@@ -623,6 +686,19 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
                     </div>
                     <div className="admin-medicine-brand-line-card__side">
                       <span className="admin-medicine-brand-line-card__mrp">₹{Number(o.mrp).toFixed(2)}</span>
+                      <label className="medicine-brand-storefront-toggle medicine-brand-storefront-toggle--inline">
+                        <input
+                          type="checkbox"
+                          checked={o.is_available !== false && o.is_active !== false}
+                          disabled={
+                            o.is_active === false ||
+                            brandAvailUpdatingId === o.id
+                          }
+                          onChange={(e) => handleOfferingStorefrontToggle(o, e.target.checked)}
+                        />
+                        <span className="medicine-brand-storefront-toggle__label">On storefront</span>
+                        {brandAvailUpdatingId === o.id ? <InlineSpinner size={14} /> : null}
+                      </label>
                       <button
                         type="button"
                         className="admin-medicine-brand-line-card__remove"
