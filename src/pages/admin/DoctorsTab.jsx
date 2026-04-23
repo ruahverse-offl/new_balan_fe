@@ -1,18 +1,18 @@
 import React, { useMemo } from 'react';
 import { Search, Plus, Pencil, Trash2, ArrowLeft, ChevronRight, Stethoscope, Eye } from 'lucide-react';
 import { formatTimeRangeTo24h } from '../../utils/timeFormatters';
+import { hasModuleGrant } from '../../utils/permissionMapper';
 import './AdminCatalogTabs.css';
 import './DoctorsTab.css';
 
-function doctorPermissions(backendPermissions = [], isAdminRole) {
-    const p = backendPermissions || [];
+function doctorPermissions(menuItems = [], isAdminRole) {
     if (isAdminRole) {
         return { canCreate: true, canUpdate: true, canDelete: true };
     }
     return {
-        canCreate: p.includes('DOCTOR_CREATE'),
-        canUpdate: p.includes('DOCTOR_UPDATE'),
-        canDelete: p.includes('DOCTOR_DELETE'),
+        canCreate: hasModuleGrant(menuItems, 'doctors', 'create'),
+        canUpdate: hasModuleGrant(menuItems, 'doctors', 'update'),
+        canDelete: hasModuleGrant(menuItems, 'doctors', 'delete'),
     };
 }
 
@@ -28,10 +28,10 @@ const DoctorsTab = ({
     onEdit,
     onDelete,
     onViewDoctorDetails,
-    backendPermissions = [],
+    menuItems = [],
     isAdminRole = false,
 }) => {
-    const { canCreate, canUpdate, canDelete } = doctorPermissions(backendPermissions, isAdminRole);
+    const { canCreate, canUpdate, canDelete } = doctorPermissions(menuItems, isAdminRole);
     const canViewDetails = typeof onViewDoctorDetails === 'function';
     const showActionsColumn = canViewDetails || canUpdate || canDelete;
 

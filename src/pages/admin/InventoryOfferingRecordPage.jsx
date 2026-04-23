@@ -4,6 +4,7 @@ import { Package } from 'lucide-react';
 import { AdminRecordShell, AdminDetailGrid, AdminDetailField } from '../../components/admin/AdminRecordShell';
 import { PageLoading, InlineSpinner } from '../../components/common/PageLoading';
 import { useAuth } from '../../context/AuthContext';
+import { hasModuleGrant } from '../../utils/permissionMapper';
 import { getMedicineById } from '../../services/medicinesApi';
 import { updateBrand } from '../../services/brandsApi';
 import { updateOfferingStock } from '../../services/inventoryApi';
@@ -30,10 +31,9 @@ const InventoryOfferingRecordPage = ({ mode, medicineId, offeringId, showNotify,
   const { user } = useAuth();
   const role = (user?.backendRole || user?.role || '').toUpperCase();
   const isAdminRole = role === 'DEV_ADMIN' || role === 'ADMIN';
-  const canUpdateStock =
-    isAdminRole || (Array.isArray(user?.backendPermissions) && user.backendPermissions.includes('INVENTORY_UPDATE'));
-  const canManageOfferings =
-    isAdminRole || (Array.isArray(user?.permissions) && user.permissions.includes('medicines'));
+  const mi = user?.menuItems || [];
+  const canUpdateStock = isAdminRole || hasModuleGrant(mi, 'inventory', 'update');
+  const canManageOfferings = isAdminRole || hasModuleGrant(mi, 'medicines', 'update');
 
   const goList = useCallback(() => {
     navigate('/admin', { state: { tab: 'inventory' } });

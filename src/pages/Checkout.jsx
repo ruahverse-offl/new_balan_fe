@@ -6,7 +6,7 @@ import { prodCheck } from '../config';
 import { getDeliverySettings } from '../services/deliveryApi';
 import { useRefreshDeliverySettingsOnFocus } from '../hooks/useRefreshDeliverySettingsOnFocus';
 import { validateCoupon as validateCouponApi, getActiveCoupons } from '../services/couponsApi';
-import { initiatePayment, verifyPayment, loadRazorpayScript } from '../services/razorpayApi';
+import { initiatePayment, verifyPayment, loadRazorpayScript, reportCheckoutOutcome } from '../services/razorpayApi';
 import { getMyAddresses, createAddress } from '../services/addressesApi';
 import { uploadPrescriptionFile } from '../services/uploadApi';
 import { ShoppingBag, ArrowLeft, Plus, MapPin, X, FileText, AlertCircle } from 'lucide-react';
@@ -48,6 +48,21 @@ function userFacingCheckoutError(raw) {
 }
 
 /** Delivery fee from settings: ₹0 when subtotal is inside the free-delivery min/max band. */
+/** Best-effort: tell backend checkout ended without success (abandon / gateway failure). */
+async function notifyCheckoutOutcome(orderId, outcome, extra = {}) {
+    if (!orderId) return;
+    try {
+        await reportCheckoutOutcome({
+            order_id: orderId,
+            outcome,
+            razorpay_payment_id: extra.razorpay_payment_id || undefined,
+            error_description: extra.error_description || undefined,
+        });
+    } catch (e) {
+        console.error('reportCheckoutOutcome', e);
+    }
+}
+
 function computeDeliveryFee(subtotal, settings) {
     if (!settings || settings.is_enabled === false) return 0;
     const fee = Number(settings.delivery_fee ?? 40);
@@ -534,7 +549,13 @@ const Checkout = () => {
                     }
                 },
                 modal: {
-                    ondismiss: () => setProcessingPayment(false),
+                    ondismiss: () => {
+                        setProcessingPayment(false);
+                        const oid = sessionStorage.getItem('payment_order_id');
+                        notifyCheckoutOutcome(oid, 'abandoned', {
+                            error_description: 'Customer closed the payment window.',
+                        });
+                    },
                     escape: true,
                     animation: true,
                 },
@@ -547,6 +568,17 @@ const Checkout = () => {
                     err.reason ||
                     err.code ||
                     'Payment failed. Please try again or use another method.';
+                const oid = sessionStorage.getItem('payment_order_id');
+                const payId =
+                    response?.metadata?.payment_id ||
+                    response?.payment_id ||
+                    err?.metadata?.payment_id ||
+                    err?.payment_id ||
+                    undefined;
+                notifyCheckoutOutcome(oid, 'failed', {
+                    razorpay_payment_id: payId,
+                    error_description: String(desc),
+                });
                 setCheckoutErrorModal({
                     title: 'Payment failed',
                     message: userFacingCheckoutError(String(desc)),

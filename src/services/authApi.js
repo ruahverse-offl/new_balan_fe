@@ -6,6 +6,65 @@
 import { buildApiUrl } from '../config/api';
 
 /**
+ * Module CRUD flags from ``M_module_role_permissions`` (both key styles for callers).
+ * @param {object|undefined} g
+ */
+function normalizeMenuGrants(g) {
+  if (!g || typeof g !== 'object') return null;
+  const canCreate = Boolean(g.canCreate ?? g.can_create);
+  const canRead = Boolean(g.canRead ?? g.can_read);
+  const canUpdate = Boolean(g.canUpdate ?? g.can_update);
+  const canDelete = Boolean(g.canDelete ?? g.can_delete);
+  return {
+    canCreate,
+    canRead,
+    canUpdate,
+    canDelete,
+    can_create: canCreate,
+    can_read: canRead,
+    can_update: canUpdate,
+    can_delete: canDelete,
+  };
+}
+
+/**
+ * GET /auth/me/permissions — backend returns camelCase; normalize and attach legacy keys on each item.
+ * @param {object|undefined} m
+ */
+function normalizeMenuItem(m) {
+  if (!m || typeof m !== 'object') return m;
+  const displayName = m.displayName ?? m.display_name;
+  const displayOrder = m.displayOrder ?? m.display_order ?? 0;
+  const iconKey = m.iconKey ?? m.icon_key;
+  const grants = normalizeMenuGrants(m.grants);
+  const base = {
+    code: m.code,
+    displayName,
+    displayOrder,
+    iconKey,
+    display_name: displayName,
+    display_order: displayOrder,
+    icon_key: iconKey,
+  };
+  return grants ? { ...base, grants } : base;
+}
+
+/**
+ * Normalizes /auth/me/permissions (camelCase) for app use; works with older snake_case if present.
+ * @param {object} data - raw API JSON
+ */
+function normalizePermissionsPayload(data) {
+  const raw = data?.menuItems ?? data?.menu_items ?? [];
+  const menuItems = Array.isArray(raw) ? raw.map(normalizeMenuItem) : [];
+  return {
+    roleCode: data?.roleCode ?? data?.role_code ?? null,
+    roleDisplayName: data?.roleDisplayName ?? data?.role_display_name ?? null,
+    roleDescription: data?.roleDescription ?? data?.role_description ?? null,
+    menuItems,
+  };
+}
+
+/**
  * Login user with email and password
  * @param {string} email - User email address
  * @param {string} password - User password
@@ -189,10 +248,9 @@ export const getCustomerRoleId = async () => {
 };
 
 /**
- * Get current user's permissions
- * Fetches all permissions for the currently authenticated user
- * @param {string} [token] - Optional token to use. If not provided, reads from localStorage
- * @returns {Promise<Array<string>>} Array of permission codes
+ * Get current user's role and admin menu with per-module ``grants`` (CRUD).
+ * @param {string} [token] - Optional token. If not provided, reads from localStorage
+ * @returns {Promise<object>} role + menuItems (no flat permissions array)
  * @throws {Error} If fetch fails
  */
 export const getUserPermissions = async (token = null) => {
@@ -222,11 +280,14 @@ export const getUserPermissions = async (token = null) => {
       throw new Error(data.detail || 'Failed to fetch permissions');
     }
 
+    const n = normalizePermissionsPayload(data);
     return {
-      permissions: data.permissions || [],
-      role_code: data.role_code || null,
-      menu_items: data.menu_items || [],
-      menu_keys: data.menu_keys || [],
+      ...n,
+      // snake_case mirrors for call sites that still read these
+      role_code: n.roleCode,
+      role_display_name: n.roleDisplayName,
+      role_description: n.roleDescription,
+      menu_items: n.menuItems,
     };
   } catch (error) {
     if (error instanceof TypeError && error.message.includes('fetch')) {

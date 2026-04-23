@@ -16,13 +16,22 @@ import {
     paymentStatusTagClass,
 } from '../../constants/orderLifecycle';
 
+function formatLifecycleTimestamp(iso) {
+    if (!iso) return '—';
+    try {
+        return new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    } catch {
+        return String(iso);
+    }
+}
+
 const OrderDetailPage = ({
     onOrderLifecycleIntent,
     onCancelOrderWithReason,
     onRefundPayment,
     refundInProgress = false,
     showNotify,
-    backendPermissions = [],
+    menuItems = [],
     userId,
     isAdminRole = false,
     lifecycleRefreshKey = 0,
@@ -140,7 +149,7 @@ const OrderDetailPage = ({
     const displayRef = (order.order_reference || '').trim();
     const lifecycleActions = getAllowedNextStatusActions({
         order,
-        backendPermissions,
+        menuItems,
         userId,
         isAdminRole,
     });
@@ -349,6 +358,33 @@ const OrderDetailPage = ({
                         )}
                     </div>
 
+                    {(order.order_received_at ||
+                        order.order_packed_at ||
+                        order.delivery_assigned_at ||
+                        order.delivered_at ||
+                        order.payment_completed_at) && (
+                        <div className="order-detail-milestones" style={{ marginTop: '1rem' }}>
+                            <span className="label">Milestone timestamps</span>
+                            <dl
+                                className="order-detail-grid"
+                                style={{ marginTop: '0.5rem', rowGap: '0.35rem' }}
+                            >
+                                <dt className="label">Order received (paid)</dt>
+                                <dd className="value">
+                                    {formatLifecycleTimestamp(
+                                        order.order_received_at || order.payment_completed_at,
+                                    )}
+                                </dd>
+                                <dt className="label">Order packed</dt>
+                                <dd className="value">{formatLifecycleTimestamp(order.order_packed_at)}</dd>
+                                <dt className="label">Delivery assigned</dt>
+                                <dd className="value">{formatLifecycleTimestamp(order.delivery_assigned_at)}</dd>
+                                <dt className="label">Delivered</dt>
+                                <dd className="value">{formatLifecycleTimestamp(order.delivered_at)}</dd>
+                            </dl>
+                        </div>
+                    )}
+
                     {!isTerminalOrderStatus(order.order_status) && (
                         <div className="order-detail-fulfillment-chain-wrap">
                             <p className="order-detail-chain-title">Progress</p>
@@ -358,7 +394,7 @@ const OrderDetailPage = ({
                                     const packedAct = getPackedActionFromActions(lifecycleActions);
                                     const tailActs = getSortedForwardLifecycleActionsAfterPacked({
                                         order,
-                                        backendPermissions,
+                                        menuItems,
                                         userId,
                                         isAdminRole,
                                     });

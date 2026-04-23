@@ -2,8 +2,11 @@
  * Order fulfillment lifecycle — keep in sync with backend `app/domain/order_lifecycle.py`.
  */
 
+import { hasModuleGrant } from '../utils/permissionMapper';
+
 export const ORDER_STATUS_LABELS = {
     PENDING: 'Payment pending',
+    PAYMENT_CANCELLED: 'Payment cancelled',
     ORDER_RECEIVED: 'Order received (staff)',
     ORDER_TAKEN: 'Order taken',
     ORDER_PROCESSING: 'Processing',
@@ -26,6 +29,7 @@ export const ORDER_STATUS_LABELS = {
 /** All values that may appear in filters / tables */
 export const ORDER_STATUS_FILTER_VALUES = [
     'PENDING',
+    'PAYMENT_CANCELLED',
     'ORDER_RECEIVED',
     'ORDER_TAKEN',
     'ORDER_PROCESSING',
@@ -40,6 +44,7 @@ export const ORDER_STATUS_FILTER_VALUES = [
 ];
 
 const TERMINAL = new Set([
+    'PAYMENT_CANCELLED',
     'DELIVERED',
     'CANCELLED_BY_STAFF',
     'DELIVERY_RETURNED',
@@ -109,6 +114,8 @@ export function orderStatusTagClass(raw) {
             return 'inactive';
         case 'REFUNDED':
             return 'refunded';
+        case 'PAYMENT_CANCELLED':
+            return 'inactive';
         default:
             return 'pending';
     }
@@ -148,6 +155,7 @@ export const FULFILLMENT_CHAIN_BUTTON_LABELS = {
 
 const STATUS_RANK = {
     PENDING: 0,
+    PAYMENT_CANCELLED: 8,
     ORDER_RECEIVED: 1,
     ORDER_TAKEN: 2,
     ORDER_PROCESSING: 3,
@@ -195,17 +203,17 @@ export function getSortedForwardLifecycleActionsAfterPacked(opts) {
 /**
  * @param {object} opts
  * @param {object} opts.order — row with order_status, delivery_assigned_user_id
- * @param {string[]} opts.backendPermissions — raw codes e.g. ORDER_UPDATE
+ * @param {Array<{ code?: string, grants?: object }>} opts.menuItems — from GET /auth/me/permissions
  * @param {string} opts.userId — current user id
- * @param {boolean} opts.isAdminRole — ADMIN / DEV_ADMIN bypass
+ * @param {boolean} opts.isAdminRole — ADMIN bypass for full order lifecycle
  */
-export function getAllowedNextStatusActions({ order, backendPermissions = [], userId, isAdminRole = false }) {
+export function getAllowedNextStatusActions({ order, menuItems = [], userId, isAdminRole = false }) {
     const raw = order?.order_status;
     const current = normalizeOrderStatus(raw);
     if (isTerminalOrderStatus(raw)) return [];
 
-    const hasStaff = isAdminRole || backendPermissions.includes('ORDER_UPDATE');
-    const hasDelivery = backendPermissions.includes('DELIVERY_ORDER_UPDATE');
+    const hasStaff = isAdminRole || hasModuleGrant(menuItems, 'orders', 'update');
+    const hasDelivery = hasModuleGrant(menuItems, 'delivery-orders', 'update');
     const assignedId = order?.delivery_assigned_user_id;
     const isAssignedCourier =
         assignedId != null && userId != null && String(assignedId) === String(userId);

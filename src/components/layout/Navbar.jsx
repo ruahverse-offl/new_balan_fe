@@ -34,8 +34,8 @@ const Navbar = () => {
     { name: 'Insurance', path: '/insurance' },
     { name: 'About', path: '/about' },
     { name: 'Contact', path: '/contact' },
-    // Staff get an extra link to the admin dashboard
-    ...(isAuthenticated && isStaff ? [{ name: 'Dashboard', path: '/admin' }] : []),
+    // Staff get a link to the admin portal (opens default tab, e.g. Orders)
+    ...(isAuthenticated && isStaff ? [{ name: 'Admin', path: '/admin' }] : []),
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -83,9 +83,9 @@ const Navbar = () => {
           </Link>
 
           {isAuthenticated ? (
-            <Link to={getProfilePath()} className="profile-nav-btn" title={isStaff ? 'Dashboard' : 'My Profile'}>
+            <Link to={getProfilePath()} className="profile-nav-btn" title={isStaff ? 'Admin' : 'My Profile'}>
               <User size={18} />
-              <span className="profile-text">{isStaff ? 'Dashboard' : 'Profile'}</span>
+              <span className="profile-text">{isStaff ? 'Admin' : 'Profile'}</span>
             </Link>
           ) : (
             <Link to="/login" className="login-nav-btn">
@@ -104,7 +104,7 @@ const Navbar = () => {
 
           {/* Login/Profile Button */}
           {isAuthenticated ? (
-            <Link to={getProfilePath()} className="login-btn mobile" title={isStaff ? 'Dashboard' : 'My Profile'}>
+            <Link to={getProfilePath()} className="login-btn mobile" title={isStaff ? 'Admin' : 'My Profile'}>
               <User size={20} />
             </Link>
           ) : (
@@ -139,7 +139,7 @@ const Navbar = () => {
 
         {isAuthenticated ? (
           <Link to={getProfilePath()} className="mobile-link" onClick={() => setIsOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <User size={20} /> {isStaff ? 'Dashboard' : (user?.name?.split(' ')[0] || 'Profile')}
+            <User size={20} /> {isStaff ? 'Admin' : (user?.name?.split(' ')[0] || 'Profile')}
           </Link>
         ) : (
           <Link to="/login" className="mobile-link" onClick={() => setIsOpen(false)}>

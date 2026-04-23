@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Plus, Pencil, Trash2, Package, X, Eye } from 'lucide-react';
 import { PageLoading, InlineSpinner } from '../../components/common/PageLoading';
 import { useAuth } from '../../context/AuthContext';
+import { hasModuleGrant } from '../../utils/permissionMapper';
 import { getMedicines, getAllMedicinesForSelect } from '../../services/medicinesApi';
 import { updateOfferingStock } from '../../services/inventoryApi';
 import { fetchAllBrandMasters, createBrand, deleteBrand } from '../../services/brandsApi';
@@ -19,11 +20,9 @@ const InventoryTab = ({ showNotify, refreshToken = 0 }) => {
     const { user } = useAuth();
     const role = (user?.backendRole || user?.role || '').toUpperCase();
     const isAdminRole = role === 'DEV_ADMIN' || role === 'ADMIN';
-    const canUpdateStock =
-        isAdminRole || (Array.isArray(user?.backendPermissions) && user.backendPermissions.includes('INVENTORY_UPDATE'));
-    const canManageOfferings =
-        isAdminRole ||
-        (Array.isArray(user?.permissions) && user.permissions.includes('medicines'));
+    const mi = user?.menuItems || [];
+    const canUpdateStock = isAdminRole || hasModuleGrant(mi, 'inventory', 'update');
+    const canManageOfferings = isAdminRole || hasModuleGrant(mi, 'medicines', 'update');
 
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');

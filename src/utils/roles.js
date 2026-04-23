@@ -6,7 +6,8 @@
 /** Legacy export kept for compatibility in older imports (do not use for auth decisions). */
 export const STAFF_ROLES = ['DEV_ADMIN', 'DEV', 'ADMIN', 'MANAGER', 'PHARMACIST', 'CASHIER', 'CUSTOMER_SERVICE', 'DELIVERY', 'DELIVERY_AGENT'];
 
-const NON_STAFF_ROLES = new Set(['', 'CUSTOMER']);
+/** Storefront / self-serve accounts — never staff portal, even if they have matrix rows for catalog/checkout APIs */
+const NON_STAFF_ROLES = new Set(['', 'CUSTOMER', 'PUBLIC']);
 
 export const isStaffRoleCode = (roleCode) => !NON_STAFF_ROLES.has(String(roleCode || '').toUpperCase());
 
@@ -17,11 +18,10 @@ export const isStaffRoleCode = (roleCode) => !NON_STAFF_ROLES.has(String(roleCod
  */
 export const isStaffUser = (user) => {
     const role = (user?.backendRole || user?.role || '').toUpperCase();
+    if (NON_STAFF_ROLES.has(role)) return false;
     if (isStaffRoleCode(role)) return true;
-    // Backend can also indicate staff via non-empty menu grants / permissions.
+    // Unknown role code: infer staff from RBAC payload (legacy / custom roles).
     if (Array.isArray(user?.menuItems) && user.menuItems.length > 0) return true;
-    if (Array.isArray(user?.menuKeys) && user.menuKeys.length > 0) return true;
-    if (Array.isArray(user?.backendPermissions) && user.backendPermissions.length > 0) return true;
     return false;
 };
 

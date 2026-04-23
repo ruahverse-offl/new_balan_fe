@@ -573,6 +573,14 @@ const Pharmacy = () => {
                                 <div className="product-info">
                                     <span className="p-cat">{prod.category}</span>
                                     <h3 className="product-card__title">{prod.name}</h3>
+                                    {brandsForCard.length === 1 ? (
+                                        <p className="product-card__brand-trade">
+                                            <span className="product-card__brand-trade__label">Brand</span>
+                                            <span className="product-card__brand-trade__name">
+                                                {brandsForCard[0]?.brand_name?.trim() || '—'}
+                                            </span>
+                                        </p>
+                                    ) : null}
                                     {packNoteSingle ? (
                                         <p className="product-card__pack">
                                             <span className="product-card__pack-label">Pack contains</span>
@@ -583,9 +591,14 @@ const Pharmacy = () => {
                                     <div className="p-price">
                                         {prod.price > 0 ? (
                                             <>
-                                                <span className="current">{(brandsMap[prod.id]?.length || 0) > 1 ? 'from ' : ''}₹{prod.price}</span>
-                                                {(brandsMap[prod.id]?.length || 0) > 1 && (
-                                                    <span className="brand-count">{brandsMap[prod.id].length} brands</span>
+                                                <span className="current">
+                                                    {brandsForCard.length > 1 ? 'from ' : ''}₹
+                                                    {brandsForCard.length === 1
+                                                        ? parseFloat(brandsForCard[0]?.mrp ?? prod.price).toFixed(2)
+                                                        : prod.price.toFixed(2)}
+                                                </span>
+                                                {brandsForCard.length > 1 && (
+                                                    <span className="brand-count">{brandsForCard.length} brands</span>
                                                 )}
                                             </>
                                         ) : (
@@ -726,7 +739,7 @@ const Pharmacy = () => {
                                 <Package size={22} aria-hidden />
                                 <div>
                                     <h2 id="pharmacy-brand-modal-title" className="pharmacy-brand-modal__title">
-                                        Choose brand &amp; quantity
+                                        Which brand do you want?
                                     </h2>
                                     <p className="pharmacy-brand-modal__subtitle">{brandSelectorProduct.name}</p>
                                 </div>
@@ -772,7 +785,9 @@ const Pharmacy = () => {
                                                         </span>
                                                     </span>
                                                 </div>
-                                                <span className="pharmacy-brand-row__price">₹{parseFloat(brand.mrp).toFixed(0)}</span>
+                                                <span className="pharmacy-brand-row__price">
+                                                    ₹{parseFloat(brand.mrp).toFixed(2)}
+                                                </span>
                                             </label>
                                         );
                                     })}

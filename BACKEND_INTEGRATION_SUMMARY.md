@@ -16,6 +16,7 @@ All frontend screens have been successfully integrated with the FastAPI backend.
    - Login
    - Register (with CUSTOMER role auto-fetch)
    - Token refresh
+   - **`getUserPermissions`** → `GET /api/v1/auth/me/permissions` (RBAC menu: `menu_items`, `display_order`, `menu_order`, `menu_keys`, role labels)
    - Customer role ID helper
 
 3. **`services/doctorsApi.js`** - Doctors CRUD operations
@@ -59,6 +60,7 @@ All frontend screens have been successfully integrated with the FastAPI backend.
 - `POST /api/v1/auth/login` - User login
 - `POST /api/v1/auth/register` - User registration
 - `POST /api/v1/auth/refresh` - Token refresh
+- `GET /api/v1/auth/me/permissions` - Current user permissions + RBAC-driven admin menu (`menu_items` with `display_order`, `menu_order`, `menu_keys`)
 - `GET /api/v1/roles/?search=CUSTOMER` - Get customer role
 - `GET /api/v1/doctors/` - List doctors
 - `GET /api/v1/medicines/` - List medicines

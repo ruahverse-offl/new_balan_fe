@@ -4,12 +4,21 @@
  */
 
 import { apiGet, apiPost, apiPatch, apiDelete } from '../utils/apiClient';
+import { getUserPermissions } from './authApi';
 
 /**
  * Get list of users (staff/managers)
  * @param {Object} params - Query parameters (limit, offset, search, sort_by, sort_order)
  * @returns {Promise<Object>} List of users with pagination
  */
+/**
+ * Delivery agents for assign-delivery (ORDER_UPDATE). Each item: id, full_name, mobile_number, delivery_status, active_delivery_count
+ */
+export const getDeliveryAgents = async () => {
+  const response = await apiGet('/users/delivery-agents');
+  return { items: response.items || [] };
+};
+
 export const getUsers = async (params = {}) => {
   const response = await apiGet('/users/', {
     limit: params.limit || 100,
@@ -80,15 +89,15 @@ export const viewUserPassword = async () => {
  * @returns {Promise<Object>} User permissions
  */
 export const getUserPermissionsById = async () => {
-  return await apiGet('/auth/me/permissions');
+  return getUserPermissions();
 };
 
 /**
- * Get current authenticated user's profile
- * @returns {Promise<Object>} Current user data
+ * Same payload as ``getUserPermissions`` (RBAC + menu); name kept for older imports.
+ * @returns {Promise<Object>} Permissions + normalized menu
  */
 export const getCurrentUser = async () => {
-  return await apiGet('/auth/me/permissions');
+  return getUserPermissions();
 };
 
 /**

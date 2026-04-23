@@ -6,6 +6,8 @@ The standalone **Inventory** admin tab and `/api/v1/inventory-transactions` CRUD
 
 **Product batches:** The **Product Batches** admin tab and `/api/v1/product-batches` API were removed. The `product_batches` table and `ProductBatch` model remain for internal order fulfilment (FEFO allocation, `order_items.product_batch_id`).
 
+**RBAC & sidebar:** After login, the app calls **`GET /api/v1/auth/me/permissions`** (`authApi.getUserPermissions` / `usersApi.getCurrentUser`). The response includes **`permissions`** (synthetic legacy codes), **`role_code`**, **`role_display_name`**, **`menu_items`** (each with **`display_order`**, `display_name`, `icon_key`, `code`), **`menu_keys`**, and **`menu_order`** (parallel `display_order` values). Tab order in Admin follows **`display_order`** from `M_modules`. The Statistics/KPI dashboard API was removed.
+
 ---
 
 ## 1. Manage Medicines (Admin tab: **Manage Medicines**)

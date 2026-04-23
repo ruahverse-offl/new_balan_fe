@@ -860,6 +860,33 @@
     overflow: hidden;
 }
 
+/* Single purchasable SKU: catalog brand trade name (admin-linked line) */
+.product-card__brand-trade {
+    margin: 0 0 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+}
+
+.product-card__brand-trade__label {
+    font-weight: 800;
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+}
+
+.product-card__brand-trade__name {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
 /* Offering `description` (e.g. strip size) — single-brand cards only */
 .product-card__pack {
     margin: 0 0 0.5rem;

@@ -66,6 +66,7 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
   const [medicineBrandCatalog, setMedicineBrandCatalog] = useState([]);
   const [medicineOfferings, setMedicineOfferings] = useState([]);
   const [medicineOfferingsLoading, setMedicineOfferingsLoading] = useState(false);
+  const [addingBrandLine, setAddingBrandLine] = useState(false);
   const [medicineNewOffering, setMedicineNewOffering] = useState({
     brand_id: '',
     manufacturer: '',
@@ -113,6 +114,7 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
       setMedicineOfferings([]);
       setMedicineNewOffering({ brand_id: '', manufacturer: '', mrp: '', description: '' });
       setMedicineOfferingsLoading(false);
+      setAddingBrandLine(false);
       setLoading(false);
       setLoadError(null);
       return;
@@ -126,6 +128,7 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
     (async () => {
       setLoading(true);
       setLoadError(null);
+      setAddingBrandLine(false);
       try {
         const full = await getMedicineById(medicineId, { include_brands: true });
         if (cancelled) return;
@@ -154,6 +157,7 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
   }, [mode, medicineId]);
 
   const handleAddMedicineOffering = async () => {
+    if (addingBrandLine) return;
     if (!medicineId) {
       showNotify?.('Save the medicine first, then add brand lines.', 'error');
       return;
@@ -169,6 +173,7 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
       showNotify?.('That catalog brand is already linked to this medicine.', 'error');
       return;
     }
+    setAddingBrandLine(true);
     try {
       const row = await createMedicineBrandOffering({
         medicine_id: medicineId,
@@ -185,6 +190,8 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
       onMedicinesChanged?.();
     } catch (e) {
       showNotify?.(e?.message || 'Failed to add line', 'error');
+    } finally {
+      setAddingBrandLine(false);
     }
   };
 
@@ -812,12 +819,25 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
                 type="button"
                 className="admin-btn-add-brand-line"
                 disabled={
-                  medicineOfferingsLoading || composerBrandOptions.length === 0 || (medicineBrandCatalog || []).length === 0
+                  addingBrandLine ||
+                  medicineOfferingsLoading ||
+                  composerBrandOptions.length === 0 ||
+                  (medicineBrandCatalog || []).length === 0
                 }
+                aria-busy={addingBrandLine}
                 onClick={handleAddMedicineOffering}
               >
-                <Plus size={20} strokeWidth={2.5} aria-hidden />
-                Add brand line
+                {addingBrandLine ? (
+                  <>
+                    <InlineSpinner size={18} aria-hidden />
+                    Adding…
+                  </>
+                ) : (
+                  <>
+                    <Plus size={20} strokeWidth={2.5} aria-hidden />
+                    Add brand line
+                  </>
+                )}
               </button>
             )}
           </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Link, useParams, useNavigate, useLocation, useMatch } from 'react-router-dom';
-import { LayoutDashboard, Users, User, Pill, ShoppingCart, Search, Plus, Trash2, Check, X, Menu, Clock, MapPin, Phone, Pencil, AlertCircle, Eye, EyeOff, CheckCircle, XCircle, LogOut, Bell, Truck, Ticket, UserCheck, IndianRupee, ArrowLeft, ChevronRight, ChevronsLeft, ChevronsRight, Shield, CreditCard, Tags, BarChart3, Calendar, Home, Package, Tag } from 'lucide-react';
+import { LayoutDashboard, Users, User, Pill, ShoppingCart, Search, Plus, Trash2, Check, X, Menu, Clock, MapPin, Phone, Pencil, AlertCircle, Eye, EyeOff, CheckCircle, XCircle, LogOut, Bell, Truck, Ticket, UserCheck, ArrowLeft, ChevronRight, ChevronsLeft, ChevronsRight, Shield, CreditCard, Tags, BarChart3, Calendar, Home, Package, Tag, Layers, LayoutGrid } from 'lucide-react';
 import { PageLoading, InlineSpinner } from '../components/common/PageLoading';
 import { useAuth } from '../context/AuthContext';
 import { getDoctors, createDoctor, updateDoctor, deleteDoctor as deleteDoctorApi } from '../services/doctorsApi';
@@ -8,11 +8,10 @@ import { getMedicines, createMedicine, updateMedicine, deleteMedicine as deleteM
 import { getOrders, updateOrder } from '../services/ordersApi';
 import { getAppointments, createAppointment, updateAppointment, deleteAppointment as deleteAppointmentApi } from '../services/appointmentsApi';
 import { getCoupons, createCoupon, updateCoupon, deleteCoupon as deleteCouponApi } from '../services/couponsApi';
-import { getUsers, getUserById, createUser, updateUser as updateUserApi, deleteUser as deleteUserApi } from '../services/usersApi';
+import { getUsers, getUserById, getDeliveryAgents, createUser, updateUser as updateUserApi, deleteUser as deleteUserApi } from '../services/usersApi';
 import { getDeliverySettings, updateDeliverySettings as updateDeliverySettingsApi } from '../services/deliveryApi';
 import { getMarqueeSettings, updateMarqueeSettings as updateMarqueeSettingsApi } from '../services/marqueeApi';
 import { getRoles } from '../services/rolesApi';
-import { getKpiSummary } from '../services/kpiApi';
 import { refundPayment } from '../services/razorpayApi';
 import { getTherapeuticCategories, deleteTherapeuticCategory as deleteTherapeuticCategoryApi } from '../services/therapeuticCategoriesApi';
 import { getCouponUsages } from '../services/couponUsagesApi';
@@ -24,7 +23,8 @@ import { getStorageFileUrl } from '../utils/prescriptionUrl';
 import { mapDoctorToFrontend, mapDoctorToBackend, mapDoctorToBackendUpdatePayload, mapMedicineToFrontend, mapCouponToFrontend, mapCouponToBackend, mapAppointmentToFrontend, mapAppointmentToBackend, mapTestBookingToFrontend, mapTestBookingToBackend } from '../utils/dataMapper';
 import { formatTimeTo12h, parseTimeToHHmm, formatTimeRangeTo24h } from '../utils/timeFormatters';
 import { validateDoctorForm } from '../utils/doctorFormValidation';
-import { mapBackendPermissionsToFrontend } from '../utils/permissionMapper';
+import { hasModuleGrant } from '../utils/permissionMapper';
+import { formatRoleCodeForDisplay } from '../utils/roleDisplay';
 import { getUserPermissions } from '../services/authApi';
 import DoctorsTab from './admin/DoctorsTab';
 import DoctorModalForm, { INITIAL_DOCTOR_FORM } from './admin/DoctorModalForm';
@@ -46,10 +46,11 @@ import AdminLayout from './admin/AdminLayout';
 import InventoryTab from './admin/InventoryTab';
 import BrandMasterTab from './admin/BrandMasterTab';
 import AccessControlTab from './admin/AccessControlTab';
+import AppModulesTab from './admin/AppModulesTab';
+import RoleModuleMatrixTab from './admin/RoleModuleMatrixTab';
 import DatePicker from '../components/common/DatePicker';
 import TimeInput from '../components/common/TimeInput';
 import './Admin.css';
-import './admin/StatisticsDashboard.css';
 
 // Simple beep sound
 const NOTIFICATION_SOUND = 'data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU'; // Short placeholder, will replace with better if needed or use browser default logic
@@ -71,11 +72,12 @@ const ADMIN_SIDEBAR_ICON_MAP = {
     Package,
     Tag,
     Shield,
+    Layers,
+    LayoutGrid,
 };
 
 /** Legacy permission filter when `menu_items` is absent (tab id → frontend permission key) */
 const ADMIN_TAB_PERMISSION_FALLBACK = {
-    dashboard: 'dashboard',
     doctors: 'doctors',
     medicines: 'medicines',
     orders: 'orders',
@@ -89,7 +91,9 @@ const ADMIN_TAB_PERMISSION_FALLBACK = {
     'coupon-usages': 'coupons',
     inventory: 'inventory',
     'brand-master': 'medicines',
-    'roles-access': 'roles-access',
+    roles: 'roles',
+    'access-modules': 'access-modules',
+    'role-access': 'role-access',
 };
 
 /** Align DB `menu_tasks.code` with React tab ids (lowercase, hyphenated). Fixes Inventory etc. when API sends different casing. */
@@ -116,8 +120,9 @@ function resolveSidebarIcon(iconKey) {
  * the sidebar — it would show wrong labels and `setActiveTab` would open no panel.
  */
 const ADMIN_PORTAL_TAB_IDS = new Set([
-    'dashboard',
-    'roles-access',
+    'roles',
+    'access-modules',
+    'role-access',
     'doctors',
     'medicines',
     'therapeutic-categories',
@@ -134,15 +139,22 @@ const ADMIN_PORTAL_TAB_IDS = new Set([
 ]);
 
 function buildSidebarItemsFromMenuItems(menuItemsFromApi) {
-    return (menuItemsFromApi || [])
+    const sorted = [...(menuItemsFromApi || [])].sort((a, b) => {
+        const ao = Number(a.display_order ?? a.displayOrder ?? a.sort_order ?? 0) || 0;
+        const bo = Number(b.display_order ?? b.displayOrder ?? b.sort_order ?? 0) || 0;
+        if (ao !== bo) return ao - bo;
+        return String(a.code || '').localeCompare(String(b.code || ''));
+    });
+    return sorted
         .map((m) => {
             const id = normalizeMenuTaskCode(m.code);
             if (!id) return null;
             if (!ADMIN_PORTAL_TAB_IDS.has(id)) return null;
-            const IconComp = resolveSidebarIcon(m.icon_key);
+            const IconComp = resolveSidebarIcon(m.icon_key ?? m.iconKey);
+            const label = m.display_name ?? m.displayName ?? id;
             return {
                 id,
-                label: m.display_name,
+                label,
                 icon: <IconComp size={20} />,
                 permission: ADMIN_TAB_PERMISSION_FALLBACK[id] || null,
             };
@@ -150,10 +162,48 @@ function buildSidebarItemsFromMenuItems(menuItemsFromApi) {
         .filter(Boolean);
 }
 
+/**
+ * Default landing tab when opening `/admin`: the module with ``M_modules.display_order`` === 1
+ * (visible in the API menu for this user), if it maps to a staff portal screen; otherwise
+ * the lowest ``display_order`` that does.
+ */
+function getDefaultAdminLandingTabId(menuItemsFromApi) {
+    if (!Array.isArray(menuItemsFromApi) || menuItemsFromApi.length === 0) {
+        return null;
+    }
+    const sorted = [...menuItemsFromApi].sort((a, b) => {
+        const ao = Number(a.display_order ?? a.displayOrder ?? a.sort_order ?? 0) || 0;
+        const bo = Number(b.display_order ?? b.displayOrder ?? b.sort_order ?? 0) || 0;
+        if (ao !== bo) return ao - bo;
+        return String(a.code || '').localeCompare(String(b.code || ''));
+    });
+    const mapToTab = (m) => {
+        const id = normalizeMenuTaskCode(m?.code);
+        return id && ADMIN_PORTAL_TAB_IDS.has(id) ? id : null;
+    };
+    const orderOne = sorted.find(
+        (m) => Number(m.display_order ?? m.displayOrder ?? m.sort_order ?? 0) === 1,
+    );
+    if (orderOne) {
+        const id = mapToTab(orderOne);
+        if (id) return id;
+    }
+    for (const m of sorted) {
+        const id = mapToTab(m);
+        if (id) return id;
+    }
+    return null;
+}
+
+/** Storefront / self-serve accounts — never assign as staff in this portal */
+const NON_STAFF_ROLE_NAMES = new Set(['PUBLIC', 'CUSTOMER']);
+
 const PROFILE_NAV_ITEM = { id: 'my-profile', label: 'My Profile', icon: <User size={20} />, alwaysShow: true };
 
 const LEGACY_SIDEBAR_TEMPLATE = [
-    { id: 'dashboard', label: 'Statistics', icon: <LayoutDashboard size={20} />, menuKey: 'nav_dashboard', permission: 'dashboard' },
+    { id: 'roles', label: 'Roles', icon: <Shield size={20} />, menuKey: 'nav_roles', permission: 'roles' },
+    { id: 'access-modules', label: 'App modules', icon: <Layers size={20} />, menuKey: 'nav_app_modules', permission: 'access-modules' },
+    { id: 'role-access', label: 'Role × module', icon: <LayoutGrid size={20} />, menuKey: 'nav_role_module', permission: 'role-access' },
     { id: 'doctors', label: 'Manage Doctors', icon: <Users size={20} />, menuKey: 'nav_doctors', permission: 'doctors' },
     { id: 'medicines', label: 'Manage Medicines', icon: <Pill size={20} />, menuKey: 'nav_medicines', permission: 'medicines' },
     { id: 'orders', label: 'Orders', icon: <ShoppingCart size={20} />, menuKey: 'nav_orders', permission: 'orders' },
@@ -173,7 +223,7 @@ function computeAvailableMenuItems(user) {
 
     const hasPermission = (perm) => {
         if (!user) return false;
-        return user.permissions?.includes(perm);
+        return hasModuleGrant(user.menuItems, perm, 'read');
     };
 
     let navigableItems;
@@ -182,7 +232,7 @@ function computeAvailableMenuItems(user) {
         // API returned rows, but none were valid staff-portal tabs (e.g. only public-site junk tasks)
         if (navigableItems.length === 0) {
             navigableItems = LEGACY_SIDEBAR_TEMPLATE.filter((item) => {
-                const keys = user.menuKeys;
+                const keys = Array.isArray(user.menuItems) ? user.menuItems.map((m) => m.code) : [];
                 if (Array.isArray(keys) && keys.length > 0) {
                     return keys.some((k) => normalizeMenuTaskCode(k) === item.id) ||
                         Boolean(
@@ -195,7 +245,7 @@ function computeAvailableMenuItems(user) {
         }
     } else {
         navigableItems = LEGACY_SIDEBAR_TEMPLATE.filter((item) => {
-            const keys = user.menuKeys;
+            const keys = Array.isArray(user.menuItems) ? user.menuItems.map((m) => m.code) : [];
             if (Array.isArray(keys) && keys.length > 0) {
                 return keys.some((k) => normalizeMenuTaskCode(k) === item.id) ||
                     Boolean(
@@ -350,7 +400,9 @@ const Admin = () => {
     /** Bumps when inventory lines are saved from full-page flows so the list refetches. */
     const [inventoryRefreshToken, setInventoryRefreshToken] = useState(0);
 
-    const [activeTab, setActiveTab] = useState('dashboard');
+    const [activeTab, setActiveTab] = useState('orders');
+    /** After RBAC menu loads, we land once on ``display_order`` 1 (or next tab); reset on logout. */
+    const adminLandingAppliedForUserIdRef = useRef(null);
     /** Mobile drawer open state. On desktop (≥1025px) the sidebar stays visible regardless (Admin.css). */
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     /** Desktop only: narrow rail with icons only (persisted). Ignored on mobile drawer. */
@@ -412,6 +464,13 @@ const Admin = () => {
     const [therapeuticCategories, setTherapeuticCategories] = useState([]);
     const [couponUsages, setCouponUsages] = useState([]);
     const [newOrderNotification, setNewOrderNotification] = useState(false);
+    const ordersNewAlertBaselineDoneRef = React.useRef(false);
+    const ordersSeenReceivedIdsRef = React.useRef(new Set());
+
+    useEffect(() => {
+        ordersNewAlertBaselineDoneRef.current = false;
+        ordersSeenReceivedIdsRef.current = new Set();
+    }, [user?.id]);
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [searchByTab, setSearchByTab] = useState({});
@@ -419,12 +478,11 @@ const Admin = () => {
     const setSearchForTab = (tab, value) => setSearchByTab(prev => ({ ...prev, [tab]: value }));
     const [tabPermissionDenied, setTabPermissionDenied] = useState(new Set());
 
-    /** KPI row for Statistics tab (from GET /kpi/summary) */
-    const [kpiSummary, setKpiSummary] = useState(null);
-
     /** Low-stock alerts (GET /inventory/alerts; INVENTORY_VIEW) */
     const [inventoryAlerts, setInventoryAlerts] = useState([]);
     const [inventoryThreshold, setInventoryThreshold] = useState(10);
+    const [inventoryAlertsOpen, setInventoryAlertsOpen] = useState(false);
+    const inventoryAlertsWrapRef = useRef(null);
 
     // Pagination State
     const [medicinesPage, setMedicinesPage] = useState(1);
@@ -489,18 +547,6 @@ const Admin = () => {
             }
 
             switch (tab) {
-                case 'dashboard': {
-                    const kpi = await getKpiSummary().catch((err) => {
-                        if (err?.status === 403) {
-                            setTabPermissionDenied(prev => new Set([...prev, 'dashboard']));
-                            return null;
-                        }
-                        throw err;
-                    });
-                    setKpiSummary(kpi);
-                    break;
-                }
-                    
                 case 'doctors': {
                     const q = (getSearchForTab('doctors') || '').trim();
                     const doctorsRes = await getDoctors({ limit: 100, search: q || undefined }).catch(() => ({ items: [] }));
@@ -594,8 +640,13 @@ const Admin = () => {
                         ]);
                         const rolesList = roles.length === 0 && (rolesRes.items || []).length ? rolesRes.items : roles;
                         if (roles.length === 0 && (rolesRes.items || []).length) setRoles(rolesRes.items || []);
-                        const customerRoleId = (rolesList || []).find(r => (r.name || '').toUpperCase() === 'CUSTOMER')?.id;
-                        const staffOnly = (usersRes.items || []).filter(u => !customerRoleId || u.role_id !== customerRoleId);
+                        const nonStaffRoleIds = new Set(
+                            (rolesList || [])
+                                .filter((r) => NON_STAFF_ROLE_NAMES.has((r.name || '').toUpperCase()))
+                                .map((r) => r.id)
+                                .filter(Boolean),
+                        );
+                        const staffOnly = (usersRes.items || []).filter((u) => !nonStaffRoleIds.has(u.role_id));
                         setManagers(staffOnly.map(user => ({
                             ...user,
                             name: user.name || user.full_name || '',
@@ -632,6 +683,10 @@ const Admin = () => {
                 case 'inventory':
                     break;
                 case 'brand-master':
+                    break;
+                case 'roles':
+                case 'access-modules':
+                case 'role-access':
                     break;
             }
             
@@ -700,23 +755,21 @@ const Admin = () => {
             
             try {
                 const permResult = await getUserPermissions();
-                const backendPermissions = permResult.permissions || [];
                 const roleCode = permResult.role_code || null;
-                const frontendPermissions = mapBackendPermissionsToFrontend(backendPermissions);
                 const menuItems = permResult.menu_items || [];
-                const menuKeys = permResult.menu_keys || menuItems.map((m) => m.code);
 
                 // Use actual backend role instead of guessing
-                const userRole = roleCode || user.backendRole || user.role || 'CUSTOMER';
+                const userRole = (roleCode || user.backendRole || user.role || 'PUBLIC').toUpperCase();
+                const roleDisplayName =
+                    (permResult.role_display_name && String(permResult.role_display_name).trim()) ||
+                    formatRoleCodeForDisplay(userRole);
 
-                // Update user object with fresh permissions
+                // Update user object with fresh RBAC menu (grants on each item)
                 const updatedUser = {
                     ...user,
                     role: userRole,
                     backendRole: roleCode,
-                    permissions: frontendPermissions,
-                    backendPermissions: backendPermissions,
-                    menuKeys,
+                    roleDisplayName,
                     menuItems,
                 };
 
@@ -726,9 +779,6 @@ const Admin = () => {
                 console.log('User permissions refreshed:', {
                     role: userRole,
                     backendRole: roleCode,
-                    frontendPermissions,
-                    backendPermissions,
-                    menuKeys,
                     menuItems,
                 });
             } catch (error) {
@@ -779,6 +829,42 @@ const Admin = () => {
             audio.play().catch(e => console.log("Audio play failed interaction required:", e));
         }
     }, [newOrderNotification]);
+
+    // Poll for new ORDER_RECEIVED while Orders tab is open (sound + toast; excludes customer delivery notifications).
+    useEffect(() => {
+        if (activeTab !== 'orders' || !user) return undefined;
+        const poll = async () => {
+            try {
+                const res = await getOrders({ limit: 100 });
+                const items = res.items || [];
+                const received = items.filter(
+                    (o) => String(o.order_status || '').toUpperCase() === 'ORDER_RECEIVED',
+                );
+                if (!ordersNewAlertBaselineDoneRef.current) {
+                    received.forEach((o) => {
+                        if (o.id) ordersSeenReceivedIdsRef.current.add(String(o.id));
+                    });
+                    ordersNewAlertBaselineDoneRef.current = true;
+                    return;
+                }
+                for (const o of received) {
+                    const id = o.id != null ? String(o.id) : '';
+                    if (!id || ordersSeenReceivedIdsRef.current.has(id)) continue;
+                    ordersSeenReceivedIdsRef.current.add(id);
+                    setNewOrderNotification(true);
+                    setTimeout(() => setNewOrderNotification(false), 1800);
+                    showNotify(`New order: ${o.order_reference || `${id.slice(0, 8)}…`}`, 'success');
+                }
+            } catch {
+                /* ignore poll errors */
+            }
+        };
+        poll();
+        const t = setInterval(poll, 22000);
+        return () => clearInterval(t);
+        // showNotify is stable enough for polling; avoid re-subscribing every parent render.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab, user?.id]);
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
     const [editingId, setEditingId] = useState(null);
@@ -870,16 +956,10 @@ const Admin = () => {
         } catch (error) { showNotify('Failed: ' + (error?.message || ''), 'error'); }
     };
 
-    // Permissions logic
-    const hasPermission = (perm) => {
+    // Permissions: ``menuItems[].grants`` from GET /auth/me/permissions (module = ``code``)
+    const hasPermission = (moduleCode) => {
         if (!user) return false;
-        return user.permissions?.includes(perm);
-    };
-
-    const hasAnyBackendPermission = (...codes) => {
-        if (!user) return false;
-        const owned = new Set((user.backendPermissions || []).map((p) => String(p).toUpperCase()));
-        return codes.some((code) => owned.has(String(code).toUpperCase()));
+        return hasModuleGrant(user.menuItems, moduleCode, 'read');
     };
 
     useEffect(() => {
@@ -896,7 +976,25 @@ const Admin = () => {
         return () => {
             cancelled = true;
         };
-    }, [user, activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        if (!inventoryAlertsOpen) return undefined;
+        const onKey = (e) => {
+            if (e.key === 'Escape') setInventoryAlertsOpen(false);
+        };
+        const onDown = (e) => {
+            if (inventoryAlertsWrapRef.current && !inventoryAlertsWrapRef.current.contains(e.target)) {
+                setInventoryAlertsOpen(false);
+            }
+        };
+        document.addEventListener('keydown', onKey);
+        document.addEventListener('mousedown', onDown);
+        return () => {
+            document.removeEventListener('keydown', onKey);
+            document.removeEventListener('mousedown', onDown);
+        };
+    }, [inventoryAlertsOpen]);
 
     // CRUD Functions
     const addDoctor = async (doctorData) => {
@@ -1007,10 +1105,10 @@ const Admin = () => {
             setAssignUserOptions([]);
             setOrderLifecycleDialog({ type: 'assign_delivery', order, targetStatus: act.status });
             try {
-                const res = await getUsers({ limit: 200 });
-                setAssignUserOptions((res.items || []).filter((u) => u && u.is_active !== false));
+                const res = await getDeliveryAgents();
+                setAssignUserOptions((res.items || []).filter((u) => u && u.id));
             } catch {
-                showNotify('Could not load users for assignment', 'error');
+                showNotify('Could not load delivery agents for assignment', 'error');
             }
             return;
         }
@@ -1711,9 +1809,14 @@ const Admin = () => {
     // Determine user's actual role from backend
     const effectiveRole = (user?.backendRole || user?.role || '').toUpperCase();
 
-    const isAdminUser = effectiveRole === 'DEV_ADMIN' || effectiveRole === 'ADMIN';
-    // Staff CRUD actions are permission-driven (with admin bypass above).
-    const canManageStaff = hasAnyBackendPermission('STAFF_CREATE', 'STAFF_UPDATE', 'STAFF_DELETE');
+    /** Operational super-user (order lifecycle bypass, etc.). RBAC is handled by DEV_ADMIN only. */
+    const isAdminUser = effectiveRole === 'ADMIN';
+    // Staff CRUD: matrix ``staff`` module (with admin bypass for MANAGER flow elsewhere).
+    const canManageStaff =
+        isAdminUser ||
+        hasModuleGrant(user?.menuItems, 'staff', 'create') ||
+        hasModuleGrant(user?.menuItems, 'staff', 'update') ||
+        hasModuleGrant(user?.menuItems, 'staff', 'delete');
 
     /** Memoized so the active-tab guard effect does not run every render (was resetting sidebar navigation). */
     const availableMenuItems = useMemo(() => computeAvailableMenuItems(user), [user]);
@@ -1725,24 +1828,11 @@ const Admin = () => {
 
     const profileEmail = user?.email && String(user.email).trim() ? String(user.email).trim() : '';
     const sidebarProfileName = user?.full_name || user?.name || profileEmail || 'Your account';
-    const sidebarRoleSubtitle =
-        effectiveRole === 'DEV_ADMIN'
-            ? 'Dev Admin'
-            : effectiveRole === 'DEV'
-              ? 'Dev'
-            : effectiveRole === 'ADMIN'
-              ? 'Administrator'
-              : effectiveRole === 'MANAGER'
-                ? 'Manager'
-                : effectiveRole === 'PHARMACIST'
-                  ? 'Pharmacist'
-                  : effectiveRole === 'CASHIER'
-                    ? 'Cashier'
-                    : effectiveRole === 'CUSTOMER_SERVICE'
-                      ? 'Customer Service'
-                      : effectiveRole === 'DELIVERY' || effectiveRole === 'DELIVERY_AGENT'
-                        ? 'Delivery Agent'
-                        : effectiveRole || 'Staff portal';
+    /** From ``GET /auth/me/permissions`` → ``role_display_name``; matches backend formatting of ``M_roles.name``. */
+    const roleDisplayLabel =
+        (user?.roleDisplayName && String(user.roleDisplayName).trim()) ||
+        (effectiveRole ? formatRoleCodeForDisplay(effectiveRole) : 'Staff portal');
+    const sidebarRoleSubtitle = roleDisplayLabel;
     const sidebarProfileSubtitle =
         profileEmail && sidebarProfileName !== profileEmail ? profileEmail : sidebarRoleSubtitle;
     const sidebarProfileInitial =
@@ -1753,11 +1843,40 @@ const Admin = () => {
               : '?';
 
     useEffect(() => {
+        if (!user?.id) {
+            adminLandingAppliedForUserIdRef.current = null;
+        }
+    }, [user?.id]);
+
+    useEffect(() => {
         if (!user || availableMenuItems.length === 0) return;
         if (!availableMenuItems.find((m) => m.id === activeTab)) {
-            setActiveTab(availableMenuItems[0].id);
+            const land = getDefaultAdminLandingTabId(user?.menuItems);
+            if (land && availableMenuItems.find((m) => m.id === land)) {
+                setActiveTab(land);
+            } else {
+                setActiveTab(availableMenuItems[0].id);
+            }
         }
-    }, [user, availableMenuItems, activeTab]);
+    }, [user, availableMenuItems, activeTab, user?.menuItems]);
+
+    /**
+     * First paint with RBAC menu: open the default landing tab (``display_order`` 1) instead of
+     * staying on the hardcoded initial state. Skipped for deep links (order id, state.tab, etc.).
+     */
+    useEffect(() => {
+        if (!user?.id || mainSidebarNavItems.length === 0) return;
+        if (orderIdFromUrl) return;
+        if (location.state && location.state.tab) return;
+        if (adminLandingAppliedForUserIdRef.current === user.id) return;
+        if (!Array.isArray(user.menuItems) || user.menuItems.length === 0) return;
+
+        const land = getDefaultAdminLandingTabId(user.menuItems);
+        if (land && mainSidebarNavItems.some((i) => i.id === land)) {
+            setActiveTab(land);
+        }
+        adminLandingAppliedForUserIdRef.current = user.id;
+    }, [user, user?.id, user?.menuItems, mainSidebarNavItems, orderIdFromUrl, location.state?.tab]);
 
     // Keep Orders section active when viewing an order (order detail lives under Orders, not Dashboard)
     useEffect(() => {
@@ -1810,33 +1929,6 @@ const Admin = () => {
                 !isNarrowViewport && sidebarDesktopCollapsed ? 'sidebar-narrow' : ''
             }`}
         >
-            {inventoryAlerts.length > 0 && hasPermission('inventory') && (
-                <div
-                    role="status"
-                    aria-live="polite"
-                    style={{
-                        background: '#fff7e6',
-                        borderBottom: '1px solid #faad14',
-                        padding: '0.75rem 1rem',
-                        fontSize: '0.9rem',
-                    }}
-                >
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', maxWidth: 1200, margin: '0 auto' }}>
-                        <Bell size={20} style={{ flexShrink: 0, marginTop: 2 }} color="#d46b08" />
-                        <div>
-                            <strong style={{ color: '#ad4e00' }}>Low stock ({inventoryThreshold} unit threshold)</strong>
-                            <ul style={{ margin: '0.35rem 0 0 1.1rem', padding: 0 }}>
-                                {inventoryAlerts.map((a) => (
-                                    <li key={a.id} style={{ marginBottom: '0.25rem' }}>
-                                        {a.message || `${a.medicine_name} (${a.brand_name}): ${a.current_stock} unit(s) left.`}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* Notifications */}
             <div className="admin-notifications">
                 {notifications.map(n => (
@@ -1860,23 +1952,7 @@ const Admin = () => {
                     <div className="sidebar-header-inner">
                         <div className="sidebar-header-brand-wrap">
                             <h3>New Balan</h3>
-                            <p>
-                                {effectiveRole === 'DEV_ADMIN' || effectiveRole === 'ADMIN'
-                                    ? 'ADMIN PORTAL'
-                                    : effectiveRole === 'DEV'
-                                      ? 'DEV DASHBOARD'
-                                      : effectiveRole === 'MANAGER'
-                                        ? 'MANAGER DASHBOARD'
-                                        : effectiveRole === 'PHARMACIST'
-                                          ? 'PHARMACIST DASHBOARD'
-                                          : effectiveRole === 'CASHIER'
-                                            ? 'CASHIER DASHBOARD'
-                                            : effectiveRole === 'CUSTOMER_SERVICE'
-                                              ? 'SUPPORT DASHBOARD'
-                                              : effectiveRole === 'DELIVERY' || effectiveRole === 'DELIVERY_AGENT'
-                                                ? 'DELIVERY DASHBOARD'
-                                                : 'DASHBOARD'}
-                            </p>
+                            <p>{sidebarRoleSubtitle}</p>
                         </div>
                         {!isNarrowViewport && (
                             <button
@@ -1994,20 +2070,74 @@ const Admin = () => {
                                     ? 'Inventory'
                                     : medicineCategoryRecordMode
                                       ? 'Medicine categories'
-                                      : availableMenuItems.find((m) => m.id === activeTab)?.label || 'Statistics'}
+                                      : availableMenuItems.find((m) => m.id === activeTab)?.label || 'Admin'}
                         </h2>
                     </div>
-                    <div className="admin-user">
-                        <div className="admin-user-info">
-                            <span>{effectiveRole === 'DEV_ADMIN' ? 'Dev Admin' : effectiveRole === 'DEV' ? 'Dev' : effectiveRole === 'ADMIN' ? 'Administrator' : effectiveRole === 'MANAGER' ? 'Manager' : effectiveRole === 'PHARMACIST' ? 'Pharmacist' : effectiveRole === 'CASHIER' ? 'Cashier' : effectiveRole === 'CUSTOMER_SERVICE' ? 'Customer Service' : effectiveRole === 'DELIVERY' || effectiveRole === 'DELIVERY_AGENT' ? 'Delivery Agent' : effectiveRole || 'User'}</span>
-                            <span>{user?.name || user?.full_name || user?.email || 'User'}</span>
-                        </div>
-                        <div className="avatar">
-                            {(user?.name || user?.full_name) 
-                                ? (user.name || user.full_name)[0].toUpperCase() 
-                                : user?.email 
-                                    ? user.email[0].toUpperCase() 
-                                    : 'U'}
+                    <div className="admin-header-right">
+                        {hasPermission('inventory') && (
+                            <div className="admin-alerts-wrap" ref={inventoryAlertsWrapRef}>
+                                <button
+                                    type="button"
+                                    className={`admin-alerts-bell${inventoryAlerts.length > 0 ? ' has-alerts' : ''}`}
+                                    onClick={() => setInventoryAlertsOpen((o) => !o)}
+                                    aria-label={
+                                        inventoryAlerts.length > 0
+                                            ? `Low stock alerts, ${inventoryAlerts.length} item(s). Open panel.`
+                                            : 'Low stock alerts. No active alerts. Open panel.'
+                                    }
+                                    aria-expanded={inventoryAlertsOpen}
+                                    aria-haspopup="dialog"
+                                >
+                                    <Bell size={22} strokeWidth={2} />
+                                    {inventoryAlerts.length > 0 ? (
+                                        <span className="admin-alerts-badge">{inventoryAlerts.length}</span>
+                                    ) : null}
+                                </button>
+                                {inventoryAlertsOpen ? (
+                                    <div
+                                        className="admin-alerts-popover"
+                                        role="dialog"
+                                        aria-label="Low stock alerts"
+                                    >
+                                        <div className="admin-alerts-popover-header">
+                                            <h3>Low stock</h3>
+                                            <p className="admin-alerts-popover-sub">
+                                                Threshold: {inventoryThreshold} units per SKU
+                                            </p>
+                                        </div>
+                                        <div className="admin-alerts-popover-body">
+                                            {inventoryAlerts.length === 0 ? (
+                                                <p className="admin-alerts-empty">No low-stock alerts right now.</p>
+                                            ) : (
+                                                <ul className="admin-alerts-list">
+                                                    {inventoryAlerts.map((a) => (
+                                                        <li key={a.id} className="admin-alerts-list-item">
+                                                            <span className="admin-alerts-dot" aria-hidden />
+                                                            <span className="admin-alerts-text">
+                                                                {a.message ||
+                                                                    `${a.medicine_name} (${a.brand_name}): only ${a.current_stock} unit(s) available.`}
+                                                            </span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : null}
+                            </div>
+                        )}
+                        <div className="admin-user">
+                            <div className="admin-user-info">
+                                <span>{roleDisplayLabel}</span>
+                                <span>{user?.name || user?.full_name || user?.email || 'User'}</span>
+                            </div>
+                            <div className="avatar">
+                                {(user?.name || user?.full_name) 
+                                    ? (user.name || user.full_name)[0].toUpperCase() 
+                                    : user?.email 
+                                        ? user.email[0].toUpperCase() 
+                                        : 'U'}
+                            </div>
                         </div>
                     </div>
                 </header>
@@ -2046,7 +2176,7 @@ const Admin = () => {
                             onRefundPayment={handleRefund}
                             refundInProgress={refundLoading}
                             showNotify={showNotify}
-                            backendPermissions={user?.backendPermissions || []}
+                            menuItems={user?.menuItems || []}
                             userId={user?.id}
                             isAdminRole={isAdminUser}
                             lifecycleRefreshKey={orderDetailRefreshKey}
@@ -2059,108 +2189,6 @@ const Admin = () => {
                         />
                     ) : (
                         <div key={activeTab} className="content-wrapper animate-fade-in">
-                            {/* Dashboard Tab */}
-                            {activeTab === 'dashboard' && (
-                                tabPermissionDenied.has('dashboard') ? (
-                                    <div className="admin-table-card admin-message-card">
-                                        <Shield size={48} />
-                                        <p>You don&apos;t have permission to view Statistics.</p>
-                                        <p>Contact your administrator to get access.</p>
-                                    </div>
-                                ) : (
-                                <div className="dashboard-view animate-slide-up">
-                                    <div className="dashboard-container">
-                                        <section className="dashboard-section">
-                                            <h2 className="dashboard-section-title">Overview</h2>
-                                            {!kpiSummary ? (
-                                                <div className="admin-table-card admin-message-card" style={{ marginTop: 0 }}>
-                                                    <AlertCircle size={40} />
-                                                    <p>Statistics could not be loaded. Check your connection or try opening this tab again.</p>
-                                                </div>
-                                            ) : (
-                                                <div className="stats-grid">
-                                                    <div className="stat-card">
-                                                        <div className="stat-icon blue">
-                                                            <ShoppingCart size={24} />
-                                                        </div>
-                                                        <div style={{ flex: 1 }}>
-                                                            <h4>Total Orders</h4>
-                                                            <p className="stat-value">{(kpiSummary.total_orders ?? 0).toLocaleString('en-IN')}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="stat-card">
-                                                        <div className="stat-icon green">
-                                                            <Pill size={24} />
-                                                        </div>
-                                                        <div style={{ flex: 1 }}>
-                                                            <h4>Total Medicines</h4>
-                                                            <p className="stat-value">{(kpiSummary.total_medicines ?? 0).toLocaleString('en-IN')}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="stat-card">
-                                                        <div className="stat-icon purple">
-                                                            <IndianRupee size={24} />
-                                                        </div>
-                                                        <div style={{ flex: 1 }}>
-                                                            <h4>Total Sales</h4>
-                                                            <p className="stat-value">₹{parseFloat(kpiSummary.total_sales ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </section>
-                                        {hasPermission('inventory') && (
-                                            <section className="dashboard-section" style={{ marginTop: '1.5rem' }}>
-                                                <h2 className="dashboard-section-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    <Package size={22} aria-hidden />
-                                                    Inventory &amp; low stock
-                                                </h2>
-                                                <div className="admin-table-card" style={{ marginTop: '0.75rem', padding: '1rem 1.25rem' }}>
-                                                    {inventoryAlerts.length > 0 ? (
-                                                        <>
-                                                            <p style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: 'var(--admin-text-muted, #666)' }}>
-                                                                Offerings below the configured threshold ({inventoryThreshold} units):
-                                                            </p>
-                                                            <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
-                                                                {inventoryAlerts.map((a) => (
-                                                                    <li key={a.id} style={{ marginBottom: '0.35rem' }}>
-                                                                        {a.message || `${a.medicine_name} (${a.brand_name}): ${a.current_stock} unit(s) left.`}
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </>
-                                                    ) : (
-                                                        <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--admin-text-muted, #555)' }}>
-                                                            No low-stock alerts. All tracked offerings are at or above the threshold ({inventoryThreshold} units).
-                                                        </p>
-                                                    )}
-                                                    <p style={{ margin: '0.85rem 0 0', fontSize: '0.8125rem', color: 'var(--admin-text-muted, #888)', lineHeight: 1.45 }}>
-                                                        Open the{' '}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setActiveTab('inventory')}
-                                                            style={{
-                                                                background: 'none',
-                                                                border: 'none',
-                                                                padding: 0,
-                                                                color: 'var(--primary, #2563eb)',
-                                                                cursor: 'pointer',
-                                                                textDecoration: 'underline',
-                                                                font: 'inherit',
-                                                            }}
-                                                        >
-                                                            Inventory
-                                                        </button>{' '}
-                                                        tab to set stock and manage medicine–brand offerings. This summary matches the optional low-stock banner at the top.
-                                                    </p>
-                                                </div>
-                                            </section>
-                                        )}
-                                    </div>
-                                </div>
-                                )
-                            )}
-
                     {/* Doctors Tab */}
                     {activeTab === 'doctors' && (
                         <DoctorsTab
@@ -2180,7 +2208,7 @@ const Admin = () => {
                             onEdit={startEditDoctor}
                             onDelete={(doc) => requestDelete('doctor', doc.id, doc.name)}
                             onViewDoctorDetails={openDoctorDetailsModal}
-                            backendPermissions={user?.backendPermissions || []}
+                            menuItems={user?.menuItems || []}
                             isAdminRole={isAdminUser}
                         />
                     )}
@@ -2346,9 +2374,11 @@ const Admin = () => {
                             }}
                         />
                     )}
-                    {activeTab === 'roles-access' && (
+                    {activeTab === 'roles' && (
                         <AccessControlTab showNotify={showNotify} onRolesInvalidate={() => setRoles([])} />
                     )}
+                    {activeTab === 'access-modules' && <AppModulesTab showNotify={showNotify} />}
+                    {activeTab === 'role-access' && <RoleModuleMatrixTab showNotify={showNotify} />}
                     {/* Staff Tab */}
                     {activeTab === 'staff' && (
                         <div className="admin-table-card staff-table-card animate-slide-up">
@@ -2515,9 +2545,7 @@ const Admin = () => {
             {showModal && (
                 <div className="admin-modal-overlay">
                     <div
-                        className={`admin-modal ${activeTab !== 'dashboard' ? 'compact-modal' : ''} ${
-                            activeTab === 'doctors' ? 'doctor-form-modal' : ''
-                        }`}
+                        className={`admin-modal compact-modal ${activeTab === 'doctors' ? 'doctor-form-modal' : ''}`}
                     >
                         <div className="modal-header">
                             <h3>{modalMode === 'add' ? 'New' : 'Update'} {
@@ -2657,7 +2685,7 @@ const Admin = () => {
                                         >
                                             <option value="">Select role</option>
                                             {(roles || [])
-                                                .filter(r => (r.name || '').toUpperCase() !== 'CUSTOMER')
+                                                .filter((r) => !NON_STAFF_ROLE_NAMES.has((r.name || '').toUpperCase()))
                                                 .map(r => (
                                                     <option key={r.id} value={r.id}>{r.name || r.id}</option>
                                                 ))}
@@ -3396,7 +3424,9 @@ const Admin = () => {
                                     <option value="">Select user…</option>
                                     {assignUserOptions.map((u) => (
                                         <option key={u.id} value={u.id}>
-                                            {(u.full_name || u.name || 'User') + (u.email ? ` — ${u.email}` : '')}
+                                            {(u.full_name || u.name || 'Agent') +
+                                                (u.mobile_number ? ` · ${u.mobile_number}` : '') +
+                                                (u.delivery_status ? ` · ${u.delivery_status}` : '')}
                                         </option>
                                     ))}
                                 </select>

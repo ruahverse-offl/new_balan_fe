@@ -188,6 +188,29 @@ export const apiPatch = async (endpoint, data) => {
 };
 
 /**
+ * Make a PUT request
+ * @param {string} endpoint - API endpoint
+ * @param {Object} data - Request body
+ * @returns {Promise<Object>} Response data
+ */
+export const apiPut = async (endpoint, data) => {
+  const response = await apiRequest(endpoint, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Request failed' }));
+    const msg = formatApiErrorDetail(error.detail) || error.message || 'Request failed';
+    const err = new Error(msg);
+    err.status = response.status;
+    throw err;
+  }
+
+  return response.json();
+};
+
+/**
  * Make a DELETE request
  * @param {string} endpoint - API endpoint
  * @returns {Promise<Object>} Response data

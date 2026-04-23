@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { login as apiLogin, register as apiRegister, getUserPermissions, logoutApi } from '../services/authApi';
 import { getCurrentUser, updateCurrentUser } from '../services/usersApi';
-import { mapBackendPermissionsToFrontend } from '../utils/permissionMapper';
+import { formatRoleCodeForDisplay } from '../utils/roleDisplay';
 
 const AuthContext = createContext();
 
@@ -27,21 +27,19 @@ export const AuthProvider = ({ children }) => {
                             // If user data exists, restore session
                             if (userData) {
                                 // If user doesn't have permissions, fetch them
-                                if (!userData.permissions || userData.permissions.length === 0 || !Array.isArray(userData.menuKeys) || !Array.isArray(userData.menuItems)) {
+                                if (!Array.isArray(userData.menuItems)) {
                                     try {
                                         const permResult = await getUserPermissions();
-                                        const backendPermissions = permResult.permissions || [];
                                         const roleCode = permResult.role_code || null;
-                                        const frontendPermissions = mapBackendPermissionsToFrontend(backendPermissions);
+                                        const roleDisplayName =
+                                            (permResult.role_display_name && String(permResult.role_display_name).trim()) ||
+                                            formatRoleCodeForDisplay(roleCode || userData.role || '');
                                         const menuItems = permResult.menu_items || [];
-                                        const menuKeys = permResult.menu_keys || menuItems.map((m) => m.code);
                                         userData = {
                                             ...userData,
-                                            permissions: frontendPermissions,
-                                            backendPermissions: backendPermissions,
                                             backendRole: roleCode,
                                             role: (roleCode || userData.role || '').toUpperCase(),
-                                            menuKeys,
+                                            roleDisplayName,
                                             menuItems,
                                         };
                                         // Update stored auth
@@ -96,27 +94,23 @@ export const AuthProvider = ({ children }) => {
                 refresh_token: response.refresh_token
             }));
             
-            // Fetch user permissions and role from backend
-            let backendPermissions = [];
-            let frontendPermissions = [];
+            // Fetch RBAC menu (grants) and role from backend
             let roleCode = null;
-            let menuKeys = [];
             let menuItems = [];
+            let roleDisplayFromApi = '';
             try {
                 // Pass token directly to avoid localStorage timing issues
                 const permResult = await getUserPermissions(response.token);
-                backendPermissions = permResult.permissions || [];
                 roleCode = permResult.role_code || null;
-                frontendPermissions = mapBackendPermissionsToFrontend(backendPermissions);
                 menuItems = permResult.menu_items || [];
-                menuKeys = permResult.menu_keys || menuItems.map((m) => m.code);
+                roleDisplayFromApi = (permResult.role_display_name && String(permResult.role_display_name).trim()) || '';
             } catch (error) {
-                console.warn('Failed to fetch permissions:', error);
-                // Continue without permissions - user can still login
+                console.warn('Failed to fetch menu/role:', error);
             }
 
             // Use the actual role from backend instead of guessing
-            const userRole = (roleCode || 'CUSTOMER').toUpperCase();
+            const userRole = (roleCode || 'PUBLIC').toUpperCase();
+            const roleDisplayName = roleDisplayFromApi || formatRoleCodeForDisplay(roleCode || userRole);
 
             const userData = {
                 ...response.user,
@@ -124,9 +118,7 @@ export const AuthProvider = ({ children }) => {
                 phone: response.user.mobile_number || response.user.phone,
                 role: userRole,
                 backendRole: roleCode,
-                permissions: frontendPermissions,
-                backendPermissions: backendPermissions,
-                menuKeys,
+                roleDisplayName,
                 menuItems,
             };
             
@@ -150,7 +142,7 @@ export const AuthProvider = ({ children }) => {
     const register = async (userData) => {
         setIsLoading(true);
         try {
-            // Backend always assigns CUSTOMER role and only customer permissions; role_id is not required
+            // Backend assigns storefront role (PUBLIC / CUSTOMER); role_id on request is ignored
             const registrationData = {
                 full_name: userData.name || userData.full_name,
                 email: userData.email,
@@ -167,24 +159,20 @@ export const AuthProvider = ({ children }) => {
                 refresh_token: response.refresh_token
             }));
 
-            // Fetch permissions (same as login flow)
-            let backendPermissions = [];
-            let frontendPermissions = [];
             let roleCode = null;
-            let menuKeys = [];
             let menuItems = [];
+            let roleDisplayFromApi = '';
             try {
                 const permResult = await getUserPermissions(response.token);
-                backendPermissions = permResult.permissions || [];
                 roleCode = permResult.role_code || null;
-                frontendPermissions = mapBackendPermissionsToFrontend(backendPermissions);
                 menuItems = permResult.menu_items || [];
-                menuKeys = permResult.menu_keys || menuItems.map((m) => m.code);
+                roleDisplayFromApi = (permResult.role_display_name && String(permResult.role_display_name).trim()) || '';
             } catch (error) {
-                console.warn('Failed to fetch permissions after register:', error);
+                console.warn('Failed to fetch menu/role after register:', error);
             }
 
-            const userRole = (roleCode || 'CUSTOMER').toUpperCase();
+            const userRole = (roleCode || 'PUBLIC').toUpperCase();
+            const roleDisplayName = roleDisplayFromApi || formatRoleCodeForDisplay(roleCode || userRole);
 
             const fullUserData = {
                 ...response.user,
@@ -192,9 +180,7 @@ export const AuthProvider = ({ children }) => {
                 phone: response.user.mobile_number || response.user.phone || userData.phone,
                 role: userRole,
                 backendRole: roleCode,
-                permissions: frontendPermissions,
-                backendPermissions: backendPermissions,
-                menuKeys,
+                roleDisplayName,
                 menuItems,
             };
 
@@ -218,7 +204,11 @@ export const AuthProvider = ({ children }) => {
         if (!user) return { success: false, message: 'Not logged in' };
         
         // Don't set loading for permission updates to avoid loading loops
-        const isPermissionUpdate = updates.permissions || updates.backendPermissions || updates.role || updates.menuKeys !== undefined || updates.menuItems !== undefined;
+        const isPermissionUpdate =
+            updates.role !== undefined ||
+            updates.backendRole !== undefined ||
+            updates.roleDisplayName !== undefined ||
+            updates.menuItems !== undefined;
         if (!isPermissionUpdate) {
             setIsLoading(true);
         }

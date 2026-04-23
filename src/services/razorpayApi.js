@@ -42,6 +42,14 @@ export const verifyPayment = async (data) => {
 };
 
 /**
+ * Record checkout abandoned (modal dismissed) or payment.failed for a PENDING order.
+ * @param {Object} body - { order_id, outcome: 'abandoned'|'failed', razorpay_payment_id?, error_description? }
+ */
+export const reportCheckoutOutcome = async (body) => {
+  return await apiPost('/razorpay/checkout-outcome', body);
+};
+
+/**
  * Check payment status (for callback page / polling)
  * @param {string} orderId - Our order UUID
  * @returns {Promise<Object>} { order_id, payment_status, amount, transaction_id, order_status }

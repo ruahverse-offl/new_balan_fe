@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Plus, Pencil, Trash2, Tag, X, ArrowLeft, ChevronRight, Eye } from 'lucide-react';
 import { PageLoading } from '../../components/common/PageLoading';
 import { useAuth } from '../../context/AuthContext';
+import { hasModuleGrant } from '../../utils/permissionMapper';
 import { listBrandMasters, createBrandMaster, updateBrandMaster, deleteBrandMaster } from '../../services/brandsApi';
 import './AdminCatalogTabs.css';
 import './BrandMasterTab.css';
@@ -13,10 +14,10 @@ const BrandMasterTab = ({ showNotify }) => {
     const { user } = useAuth();
     const role = (user?.backendRole || user?.role || '').toUpperCase();
     const isAdminRole = role === 'DEV_ADMIN' || role === 'ADMIN';
-    const bp = user?.backendPermissions || [];
-    const canCreate = isAdminRole || bp.includes('MEDICINE_CREATE');
-    const canUpdate = isAdminRole || bp.includes('MEDICINE_UPDATE');
-    const canDelete = isAdminRole || bp.includes('MEDICINE_DELETE');
+    const mi = user?.menuItems || [];
+    const canCreate = isAdminRole || hasModuleGrant(mi, 'brand-master', 'create');
+    const canUpdate = isAdminRole || hasModuleGrant(mi, 'brand-master', 'update');
+    const canDelete = isAdminRole || hasModuleGrant(mi, 'brand-master', 'delete');
 
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
