@@ -41,7 +41,7 @@ const MedicineDetail = () => {
 
         const medicineData = await getMedicineById(id, { include_brands: true });
         setMedicine(medicineData);
-        const rawBrands = medicineData.brands || [];
+        const rawBrands = Array.isArray(medicineData.brands) ? medicineData.brands : [];
         const buyable = rawBrands.filter(isBrandPurchasable);
         setBrands(buyable);
         setNoBuyableBrands(rawBrands.length > 0 && buyable.length === 0);
@@ -115,10 +115,9 @@ const MedicineDetail = () => {
     return null;
   };
 
-  const isInStock =
-    medicine?.is_active !== false &&
-    !noBuyableBrands &&
-    (brands.length > 0 || !(medicine?.brands && medicine.brands.length > 0));
+  const catalogBrands = Array.isArray(medicine?.brands) ? medicine.brands : [];
+  const hasBuyableBrand = brands.length > 0;
+  const isInStock = medicine?.is_active !== false && hasBuyableBrand;
 
   // --- Loading State ---
   if (loading) {
@@ -284,71 +283,102 @@ const MedicineDetail = () => {
             </div>
           )}
 
-          {/* Available Brands - Pick & Add */}
-          {brands.length > 0 && (
+          {/* All catalog brand lines (buyable ones are selectable + Add) */}
+          {catalogBrands.length > 0 && (
             <div style={styles.brandsSection}>
               <h3 style={styles.sectionTitle}>
                 <Package size={18} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
-                Available Brands — Select to Add
+                Brand lines
               </h3>
+              <p style={{ margin: '0 0 1rem', fontSize: '0.88rem', color: 'var(--gray-600, #4b5563)' }}>
+                Select a pack in stock to add to cart. Other lines are shown for reference only.
+              </p>
               <div style={styles.brandsGrid}>
-                {brands.map((brand) => (
-                  <div
-                    key={brand.id}
-                    style={{
-                      ...styles.brandCard,
-                      ...(selectedBrand?.id === brand.id ? styles.brandCardSelected : {}),
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => setSelectedBrand(brand)}
-                  >
-                    <div style={styles.brandName}>{brand.brand_name}</div>
-                    <div style={styles.brandManufacturer}>{brand.manufacturer}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--gray-600)', marginTop: '0.35rem' }}>
-                      {brandStockQuantity(brand)} unit(s) available
+                {catalogBrands.map((brand) => {
+                  const buyable = isBrandPurchasable(brand);
+                  const statusNote = !buyable
+                    ? brand.is_active === false
+                      ? 'Inactive listing'
+                      : brand.is_available === false
+                        ? 'Not sold online'
+                        : 'Out of stock'
+                    : null;
+                  return (
+                    <div
+                      key={brand.id}
+                      style={{
+                        ...styles.brandCard,
+                        ...(!buyable ? styles.brandCardMuted : {}),
+                        ...(buyable && selectedBrand?.id === brand.id ? styles.brandCardSelected : {}),
+                        cursor: buyable ? 'pointer' : 'default',
+                      }}
+                      onClick={() => buyable && setSelectedBrand(brand)}
+                    >
+                      <div style={styles.brandName}>{brand.brand_name || '—'}</div>
+                      <div style={styles.brandManufacturer}>{brand.manufacturer || '—'}</div>
+                      {buyable ? (
+                        <div style={{ fontSize: '0.8rem', color: 'var(--gray-600)', marginTop: '0.35rem' }}>
+                          {brandStockQuantity(brand)} unit(s) available
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '0.8rem', color: '#b45309', marginTop: '0.35rem', fontWeight: 600 }}>
+                          {statusNote}
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                        <div style={{ ...styles.brandPrice, ...(!buyable ? { color: 'var(--gray-400)' } : {}) }}>
+                          ₹{parseFloat(brand.mrp).toFixed(2)}
+                        </div>
+                        {buyable ? (
+                          <button
+                            type="button"
+                            style={{
+                              ...styles.brandAddBtn,
+                              ...(addedToCart ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
+                            }}
+                            disabled={addedToCart}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddToCart(brand);
+                            }}
+                          >
+                            <ShoppingCart size={14} />
+                            Add
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gray-400)' }}>—</span>
+                        )}
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
-                      <div style={styles.brandPrice}>₹{parseFloat(brand.mrp).toFixed(2)}</div>
-                      <button
-                        style={{
-                          ...styles.brandAddBtn,
-                          ...(addedToCart ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
-                        }}
-                        disabled={addedToCart}
-                        onClick={(e) => { e.stopPropagation(); handleAddToCart(brand); }}
-                      >
-                        <ShoppingCart size={14} />
-                        Add
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {brands.length === 0 && noBuyableBrands && (
+          {catalogBrands.length > 0 && noBuyableBrands && (
             <div
               style={{
-                marginTop: '1.25rem',
+                marginTop: '1rem',
                 padding: '1rem 1.25rem',
                 borderRadius: '12px',
-                background: '#fff1f0',
-                border: '1px solid #ffa39e',
+                background: '#fffbe6',
+                border: '1px solid #ffe58f',
                 display: 'flex',
                 gap: '0.75rem',
                 alignItems: 'flex-start',
               }}
             >
-              <AlertCircle size={22} style={{ color: '#cf1322', flexShrink: 0 }} />
-              <p style={{ margin: 0, color: '#5c0011', fontWeight: 600, lineHeight: 1.5 }}>
-                This medicine has no stock for any brand right now. Check back later or browse alternatives.
+              <AlertCircle size={22} style={{ color: '#d48806', flexShrink: 0 }} />
+              <p style={{ margin: 0, color: '#614700', fontWeight: 600, lineHeight: 1.5 }}>
+                None of the listed packs can be added to the cart right now (stock or availability). Check back later or
+                contact the pharmacy.
               </p>
             </div>
           )}
 
-          {/* Add to Cart button (medicines with no brand offerings in catalog) */}
-          {brands.length === 0 && !noBuyableBrands && (
+          {/* Add to Cart when catalog has no brand rows (legacy / incomplete data) */}
+          {catalogBrands.length === 0 && (
             <div style={styles.actionSection}>
               <button
                 style={{
@@ -620,6 +650,11 @@ const styles = {
     borderColor: 'var(--primary, #0056b3)',
     background: 'var(--primary-light, #e6f0ff)',
     boxShadow: '0 0 0 3px rgba(0, 86, 179, 0.1)',
+  },
+  brandCardMuted: {
+    opacity: 0.92,
+    background: 'var(--gray-100, #f3f4f6)',
+    borderStyle: 'dashed',
   },
   brandAddBtn: {
     display: 'inline-flex',

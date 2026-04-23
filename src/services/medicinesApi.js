@@ -58,10 +58,10 @@ export const getAllMedicinesForSelect = async () => {
  * @returns {Promise<Object>} Medicine data
  */
 export const getMedicineById = async (medicineId, params = {}) => {
-  const q = {};
-  if (params.include_brands === true) {
-    q.include_brands = true;
-  }
+  const q = {
+    // Default true so detail pages always receive nested brand lines unless explicitly disabled.
+    include_brands: params.include_brands !== false,
+  };
   return await apiGet(`/medicines/${medicineId}`, q);
 };
 

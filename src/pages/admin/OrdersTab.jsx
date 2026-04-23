@@ -1,13 +1,39 @@
 import React from 'react';
-import { Search, Eye, ArrowLeft, ChevronRight, CreditCard } from 'lucide-react';
+import { Search, Eye, Pencil, ArrowLeft, ChevronRight } from 'lucide-react';
 import {
     ORDER_STATUS_FILTER_VALUES,
     formatOrderStatusLabel,
     normalizeOrderStatus,
-    getAllowedNextStatusActions,
-    isTerminalOrderStatus,
 } from '../../constants/orderLifecycle';
 import './AdminCatalogTabs.css';
+
+/**
+ * @param {object} order
+ * @returns {{ label: string, tagClass: string, title: string }}
+ */
+function formatOrderSource(order) {
+    const raw = String(order?.order_source ?? '').trim();
+    if (!raw) {
+        const pm = String(order?.payment_method || '').toUpperCase();
+        if (pm === 'RAZORPAY' || pm === 'UPI' || pm === 'CARD' || pm === 'NETBANKING') {
+            return { label: 'Online', tagClass: 'online', title: 'From payment method' };
+        }
+        return { label: '—', tagClass: '', title: '' };
+    }
+    const norm = raw.toUpperCase().replace(/\s+/g, '_');
+    if (norm === 'ONLINE' || norm === 'APP' || norm === 'MOBILE' || norm === 'WEB' || norm === 'MOBILE_APP') {
+        return { label: 'Online', tagClass: 'online', title: raw };
+    }
+    if (norm === 'WALK_IN' || norm === 'WALKIN') {
+        return { label: 'Walk-in', tagClass: 'walk_in', title: raw };
+    }
+    const label = raw
+        .split(/[_\s]+/)
+        .filter(Boolean)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+    return { label: label || raw, tagClass: norm.toLowerCase(), title: raw };
+}
 
 const OrdersTab = ({
     orders,
@@ -21,20 +47,19 @@ const OrdersTab = ({
     setOrdersRowsPerPage,
     statusFilter,
     setStatusFilter,
-    onOrderLifecycleIntent,
     onViewDetails,
-    backendPermissions = [],
-    userId,
-    isAdminRole = false,
+    onEditDetails,
 }) => {
     const filteredOrders = (orders || []).filter((o) => {
         if (!o) return false;
         const term = (searchTerm || '').toLowerCase();
+        const ref = (o.order_reference || '').toLowerCase();
         const matchesSearch =
             !term ||
             (o.customer_name || '').toLowerCase().includes(term) ||
             (o.customer_phone || '').includes(term) ||
-            (o.id || '').toLowerCase().includes(term);
+            (o.id || '').toLowerCase().includes(term) ||
+            (ref && ref.includes(term));
         const matchesStatus =
             !statusFilter ||
             normalizeOrderStatus(o.order_status) === normalizeOrderStatus(statusFilter) ||
@@ -49,51 +74,52 @@ const OrdersTab = ({
         return matchesSearch && matchesStatus && matchesDate;
     });
 
+    const kpiOrderCount = filteredOrders.length;
+    const kpiTotalAmount = filteredOrders.reduce((sum, o) => sum + parseFloat(o.final_amount || 0), 0);
+
     const totalPages = Math.ceil(filteredOrders.length / ordersRowsPerPage);
     const paginatedOrders = filteredOrders.slice(
         (ordersPage - 1) * ordersRowsPerPage,
         ordersPage * ordersRowsPerPage,
     );
 
-    const statusClass = (status) => {
-        const n = normalizeOrderStatus(status);
-        switch (n) {
-            case 'ORDER_RECEIVED':
-            case 'DELIVERED':
-                return 'active';
-            case 'PENDING':
-                return 'pending';
-            case 'ORDER_TAKEN':
-            case 'ORDER_PROCESSING':
-            case 'DELIVERY_ASSIGNED':
-            case 'PARCEL_TAKEN':
-            case 'OUT_FOR_DELIVERY':
-                return 'pending';
-            case 'CANCELLED_BY_STAFF':
-            case 'DELIVERY_RETURNED':
-            case 'REFUNDED':
-            case 'REFUND_INITIATED':
-                return 'inactive';
-            default:
-                return 'pending';
-        }
-    };
+    const openEdit = onEditDetails || onViewDetails;
 
     return (
         <div className="admin-table-card catalog-tab-card orders-tab-card animate-slide-up">
-            <div className="catalog-tab-header">
-                <h2 className="catalog-tab-title">Orders</h2>
-                <p className="catalog-tab-subtitle">
-                    Customer orders and fulfillment. Search by name, phone, or id; filter by day and status. Open a row for
-                    detail.
-                </p>
+            <div className="catalog-tab-header orders-tab-header-compact">
+                <div>
+                    <h2 className="catalog-tab-title">Orders</h2>
+                    <p className="catalog-tab-subtitle">
+                        Filter by date and status, search by customer, phone, or order id. Use view or edit to open an
+                        order.
+                    </p>
+                </div>
             </div>
+
+            <div className="orders-kpi-strip" aria-label="Order totals for current filters">
+                <div className="orders-kpi-card">
+                    <span className="orders-kpi-label">Total orders</span>
+                    <span className="orders-kpi-value">{kpiOrderCount.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="orders-kpi-card orders-kpi-card-accent">
+                    <span className="orders-kpi-label">Total amount</span>
+                    <span className="orders-kpi-value">
+                        ₹
+                        {kpiTotalAmount.toLocaleString('en-IN', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                        })}
+                    </span>
+                </div>
+            </div>
+
             <div className="catalog-tab-toolbar orders-tab-toolbar">
                 <div className="table-search">
                     <Search size={18} aria-hidden />
                     <input
                         type="search"
-                        placeholder="Search by name, phone, or order id…"
+                        placeholder="Search by customer name, phone, order id…"
                         value={searchTerm}
                         onChange={(e) => {
                             setSearchTerm(e.target.value);
@@ -133,54 +159,35 @@ const OrdersTab = ({
 
             <div className="scrollable-section-wrapper">
                 <div className="table-wrapper">
-                    <table className="admin-table orders-table">
+                    <table className="admin-table orders-table orders-table-v2">
                         <thead>
                             <tr>
-                                <th>Order ID</th>
-                                <th>Customer</th>
-                                <th>Source</th>
-                                <th>Date</th>
-                                <th>Amount</th>
-                                <th>Payment</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th scope="col">Name of the customer</th>
+                                <th scope="col">Source</th>
+                                <th scope="col">Date</th>
+                                <th scope="col">Amount</th>
+                                <th scope="col">Payment</th>
+                                <th scope="col">Status</th>
+                                <th scope="col" className="orders-th-actions">
+                                    Action
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
                             {paginatedOrders.map((order) => {
-                                const actions = getAllowedNextStatusActions({
-                                    order,
-                                    backendPermissions,
-                                    userId,
-                                    isAdminRole,
-                                });
-                                const terminal = isTerminalOrderStatus(order.order_status);
-                                const selectKey = `${order.id}-${order.order_status}`;
+                                const src = formatOrderSource(order);
 
                                 return (
-                                    <tr
-                                        key={order.id}
-                                        className="orders-row-clickable"
-                                        onClick={() => onViewDetails(order)}
-                                    >
-                                        <td data-label="Order ID" className="orders-cell-id">
-                                            <span className="orders-id-value" title={order.id}>
-                                                {(order.id || '').substring(0, 8)}…
-                                            </span>
-                                        </td>
-                                        <td data-label="Customer" className="orders-cell-customer">
-                                            <span className="orders-customer-name">
-                                                {order.customer_name || 'N/A'}
-                                            </span>
-                                            <span className="orders-customer-phone">
-                                                {order.customer_phone || ''}
-                                            </span>
+                                    <tr key={order.id} className="orders-row-v2">
+                                        <td data-label="Customer" className="orders-cell-customer-name">
+                                            {order.customer_name?.trim() || '—'}
                                         </td>
                                         <td data-label="Source">
                                             <span
-                                                className={`status-tag ${(order.order_source || '').toLowerCase()}`}
+                                                className={`orders-source-tag status-tag ${src.tagClass}`.trim()}
+                                                title={src.title || undefined}
                                             >
-                                                {order.order_source || 'N/A'}
+                                                {src.label}
                                             </span>
                                         </td>
                                         <td data-label="Date" className="orders-cell-date">
@@ -190,81 +197,49 @@ const OrdersTab = ({
                                                       month: 'short',
                                                       day: 'numeric',
                                                   })
-                                                : 'N/A'}
+                                                : '—'}
                                         </td>
                                         <td data-label="Amount" className="orders-cell-amount">
-                                            ₹{parseFloat(order.final_amount || 0).toFixed(2)}
+                                            ₹
+                                            {parseFloat(order.final_amount || 0).toLocaleString('en-IN', {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            })}
                                         </td>
                                         <td data-label="Payment" className="orders-cell-payment">
-                                            <span
-                                                className="orders-payment-method"
-                                                title="View details for transaction ID"
-                                            >
-                                                <CreditCard
-                                                    size={14}
-                                                    style={{ verticalAlign: 'middle', marginRight: '4px' }}
-                                                />
-                                                {order.payment_method || 'N/A'}
-                                            </span>
+                                            {order.payment_method || '—'}
                                         </td>
-                                        <td data-label="Status" onClick={(e) => e.stopPropagation()}>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                                                <span
-                                                    className={`status-tag ${statusClass(order.order_status)}`}
-                                                    style={{ fontSize: '0.75rem', width: 'fit-content' }}
+                                        <td data-label="Status" className="orders-cell-status-text">
+                                            {formatOrderStatusLabel(order.order_status)}
+                                        </td>
+                                        <td data-label="Action" className="orders-cell-actions">
+                                            <div className="orders-action-icons">
+                                                <button
+                                                    type="button"
+                                                    className="orders-icon-btn"
+                                                    title="View order"
+                                                    aria-label="View order"
+                                                    onClick={() => onViewDetails(order)}
                                                 >
-                                                    {formatOrderStatusLabel(order.order_status)}
-                                                </span>
-                                                {!terminal && actions.length > 0 && onOrderLifecycleIntent && (
-                                                    <select
-                                                        key={selectKey}
-                                                        defaultValue=""
-                                                        onChange={(e) => {
-                                                            const v = e.target.value;
-                                                            if (!v) return;
-                                                            const act = actions.find((a) => a.status === v);
-                                                            if (act) {
-                                                                onOrderLifecycleIntent(order, act);
-                                                            }
-                                                            e.target.value = '';
-                                                        }}
-                                                        className={`admin-status-select ${(order.order_status || 'pending').toLowerCase()}`}
-                                                        aria-label="Advance order status"
-                                                    >
-                                                        <option value="">Advance status…</option>
-                                                        {actions.map((a) => (
-                                                            <option key={a.status} value={a.status}>
-                                                                → {a.label}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                )}
-                                                {terminal && (
-                                                    <span className="muted" style={{ fontSize: '0.75rem' }}>
-                                                        No further actions
-                                                    </span>
-                                                )}
+                                                    <Eye size={18} />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="orders-icon-btn orders-icon-btn-edit"
+                                                    title="Edit order — status and details"
+                                                    aria-label="Edit order"
+                                                    onClick={() => openEdit(order)}
+                                                >
+                                                    <Pencil size={18} />
+                                                </button>
                                             </div>
-                                        </td>
-                                        <td
-                                            data-label="Actions"
-                                            className="actions"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            <button
-                                                className="action-btn"
-                                                onClick={() => onViewDetails(order)}
-                                                title="View details & transaction IDs"
-                                            >
-                                                <Eye size={16} />
-                                            </button>
                                         </td>
                                     </tr>
                                 );
                             })}
                             {filteredOrders.length === 0 && (
                                 <tr>
-                                    <td colSpan="8" className="orders-empty-cell">
+                                    <td colSpan={7} className="orders-empty-cell">
                                         No orders found.
                                     </td>
                                 </tr>
@@ -295,6 +270,7 @@ const OrdersTab = ({
                 {totalPages > 1 && (
                     <div className="pagination-bar">
                         <button
+                            type="button"
                             onClick={() => setOrdersPage((p) => Math.max(1, p - 1))}
                             disabled={ordersPage === 1}
                             className="page-nav-btn"
@@ -305,6 +281,7 @@ const OrdersTab = ({
                             Page <span>{ordersPage}</span> of {totalPages}
                         </div>
                         <button
+                            type="button"
                             onClick={() => setOrdersPage((p) => Math.min(totalPages, p + 1))}
                             disabled={ordersPage === totalPages}
                             className="page-nav-btn"

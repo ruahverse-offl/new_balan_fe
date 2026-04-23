@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Pill, Tag, Plus, Trash2 } from 'lucide-react';
+import { Pill, Tag, Plus, Trash2, Pencil } from 'lucide-react';
 import { AdminRecordShell, AdminDetailGrid, AdminDetailField } from '../../components/admin/AdminRecordShell';
 import { PageLoading, InlineSpinner } from '../../components/common/PageLoading';
 import {
@@ -161,8 +161,8 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
     const bid = medicineNewOffering.brand_id;
     const mfr = String(medicineNewOffering.manufacturer || '').trim();
     const mrpRaw = medicineNewOffering.mrp;
-    if (!bid || !mfr || mrpRaw === '' || Number.isNaN(Number(mrpRaw))) {
-      showNotify?.('Select a catalog brand, enter manufacturer, and MRP.', 'error');
+    if (!bid || mrpRaw === '' || Number.isNaN(Number(mrpRaw))) {
+      showNotify?.('Select a catalog brand and enter MRP.', 'error');
       return;
     }
     if ((medicineOfferings || []).some((o) => String(o.brand_id) === String(bid))) {
@@ -173,7 +173,7 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
       const row = await createMedicineBrandOffering({
         medicine_id: medicineId,
         brand_id: bid,
-        manufacturer: mfr,
+        manufacturer: mfr || undefined,
         mrp: Number(mrpRaw),
         description: String(medicineNewOffering.description || '').trim() || null,
       });
@@ -272,13 +272,10 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
         const hasAny =
           d.brand_id || String(d.manufacturer || '').trim() !== '' || String(d.mrp || '') !== '';
         const hasAll =
-          d.brand_id &&
-          String(d.manufacturer || '').trim() !== '' &&
-          d.mrp !== '' &&
-          !Number.isNaN(Number(d.mrp));
+          d.brand_id && d.mrp !== '' && !Number.isNaN(Number(d.mrp));
         if (hasAny && !hasAll) {
           showNotify?.(
-            'Medicine saved. To link a catalog brand, fill brand, manufacturer, and MRP — or edit this medicine to add lines.',
+            'Medicine saved. To link a catalog brand, choose brand and MRP (manufacturer optional) — or edit this medicine to add lines.',
             'success',
           );
         } else if (hasAll && created?.id) {
@@ -286,7 +283,7 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
             await createMedicineBrandOffering({
               medicine_id: created.id,
               brand_id: d.brand_id,
-              manufacturer: String(d.manufacturer).trim(),
+              manufacturer: String(d.manufacturer || '').trim() || undefined,
               mrp: Number(d.mrp),
               description: String(d.description || '').trim() || null,
             });
@@ -338,7 +335,7 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
   if (mode === 'view' && detail) {
     const d = detail;
     const viewSource = d;
-    const viewBrands = d.brands;
+    const viewBrands = Array.isArray(d.brands) ? d.brands : [];
     const showActivity = d.created_at != null || d.updated_at != null;
     return (
       <AdminRecordShell
@@ -446,6 +443,19 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
                       </div>
                       <div className="medicine-details-modal__brand-actions">
                         <span className="medicine-details-modal__brand-mrp">{formatMedicineMrp(o.mrp)}</span>
+                        <button
+                          type="button"
+                          className="medicine-details-modal__brand-edit-btn"
+                          title="Edit MRP, manufacturer, description, stock"
+                          onClick={() =>
+                            navigate(`/admin/inventory-offerings/${medicineId}/${o.id}/edit`, {
+                              state: { returnToMedicineView: medicineId },
+                            })
+                          }
+                        >
+                          <Pencil size={14} aria-hidden />
+                          Edit line
+                        </button>
                         <label className="medicine-brand-storefront-toggle">
                           <input
                             type="checkbox"
@@ -643,7 +653,8 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
               </h4>
               <p className="admin-medicine-brands-panel__meta">
                 Each line is one <strong>catalog brand</strong> + MRP — this is the SKU customers add to cart. Use{' '}
-                <strong>On storefront</strong> per line to show or hide it on the shop (when the line is active).
+                <strong>Edit</strong> to change MRP, manufacturer, pack note, or stock. Use <strong>On storefront</strong>{' '}
+                per line to show or hide it on the shop (when the line is active).
               </p>
             </div>
             {isEdit && !medicineOfferingsLoading && (
@@ -699,15 +710,31 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
                         <span className="medicine-brand-storefront-toggle__label">On storefront</span>
                         {brandAvailUpdatingId === o.id ? <InlineSpinner size={14} /> : null}
                       </label>
-                      <button
-                        type="button"
-                        className="admin-medicine-brand-line-card__remove"
-                        title="Remove this line"
-                        aria-label={`Remove ${o.brand_name || 'brand'} line`}
-                        onClick={() => handleRemoveMedicineOffering(o.id)}
-                      >
-                        <Trash2 size={16} strokeWidth={2} />
-                      </button>
+                      <div className="admin-medicine-brand-line-card__row-actions">
+                        <button
+                          type="button"
+                          className="admin-medicine-brand-line-card__edit"
+                          title="Edit MRP, manufacturer, description, stock"
+                          aria-label={`Edit ${o.brand_name || 'brand'} line`}
+                          onClick={() =>
+                            navigate(`/admin/inventory-offerings/${medicineId}/${o.id}/edit`, {
+                              state: { returnToMedicineEdit: medicineId },
+                            })
+                          }
+                        >
+                          <Pencil size={16} strokeWidth={2} />
+                          <span className="admin-medicine-brand-line-card__edit-label">Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-medicine-brand-line-card__remove"
+                          title="Remove this line"
+                          aria-label={`Remove ${o.brand_name || 'brand'} line`}
+                          onClick={() => handleRemoveMedicineOffering(o.id)}
+                        >
+                          <Trash2 size={16} strokeWidth={2} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </li>
@@ -746,13 +773,13 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
             </div>
             <div className="admin-medicine-brand-form-row2">
               <div className="form-group">
-                <label htmlFor="med-rec-mfr">Manufacturer</label>
+                <label htmlFor="med-rec-mfr">Manufacturer (optional)</label>
                 <input
                   id="med-rec-mfr"
                   type="text"
                   value={medicineNewOffering.manufacturer}
                   onChange={(e) => setMedicineNewOffering({ ...medicineNewOffering, manufacturer: e.target.value })}
-                  placeholder="e.g. GSK Consumer"
+                  placeholder="e.g. GSK Consumer — leave blank if unknown"
                   autoComplete="off"
                 />
               </div>
@@ -797,8 +824,8 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
 
           {isNew && (
             <div className="admin-medicine-brands-hint">
-              When you <strong>Save medicine</strong>, we will create the first line automatically if brand, manufacturer,
-              and MRP are all filled. To add more lines, edit the medicine afterward.
+              When you <strong>Save medicine</strong>, we will create the first line automatically if catalog brand and
+              MRP are filled (manufacturer optional). To add more lines, edit the medicine afterward.
             </div>
           )}
         </div>

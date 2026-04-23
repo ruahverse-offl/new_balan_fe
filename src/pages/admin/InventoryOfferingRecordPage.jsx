@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Package } from 'lucide-react';
 import { AdminRecordShell, AdminDetailGrid, AdminDetailField } from '../../components/admin/AdminRecordShell';
 import { PageLoading, InlineSpinner } from '../../components/common/PageLoading';
@@ -24,6 +24,9 @@ const formatMrp = (v) => {
  */
 const InventoryOfferingRecordPage = ({ mode, medicineId, offeringId, showNotify, onInventoryChanged }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnToMedicineEdit = location.state?.returnToMedicineEdit;
+  const returnToMedicineView = location.state?.returnToMedicineView;
   const { user } = useAuth();
   const role = (user?.backendRole || user?.role || '').toUpperCase();
   const isAdminRole = role === 'DEV_ADMIN' || role === 'ADMIN';
@@ -35,6 +38,25 @@ const InventoryOfferingRecordPage = ({ mode, medicineId, offeringId, showNotify,
   const goList = useCallback(() => {
     navigate('/admin', { state: { tab: 'inventory' } });
   }, [navigate]);
+
+  const goBackFromOffering = useCallback(() => {
+    if (returnToMedicineEdit) {
+      navigate(`/admin/medicines/${returnToMedicineEdit}/edit`);
+    } else if (returnToMedicineView) {
+      navigate(`/admin/medicines/${returnToMedicineView}`);
+    } else {
+      goList();
+    }
+  }, [navigate, returnToMedicineEdit, returnToMedicineView, goList]);
+
+  const offeringViewPath = `/admin/inventory-offerings/${medicineId}/${offeringId}`;
+  const offeringEditPath = `${offeringViewPath}/edit`;
+  const navState =
+    returnToMedicineEdit != null
+      ? { returnToMedicineEdit }
+      : returnToMedicineView != null
+        ? { returnToMedicineView }
+        : undefined;
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -131,21 +153,23 @@ const InventoryOfferingRecordPage = ({ mode, medicineId, offeringId, showNotify,
       showNotify?.('Enter a valid MRP', 'error');
       return;
     }
-    if (!String(form.manufacturer || '').trim()) {
-      showNotify?.('Manufacturer is required', 'error');
-      return;
-    }
     setSaving(true);
     try {
       await updateBrand(offeringId, {
-        manufacturer: form.manufacturer.trim(),
+        manufacturer: String(form.manufacturer || '').trim(),
         mrp,
         description: form.description?.trim() || null,
         is_available: form.is_available !== false,
       });
       showNotify?.('Offering updated', 'success');
       onInventoryChanged?.();
-      navigate(`/admin/inventory-offerings/${medicineId}/${offeringId}`, { replace: true });
+      if (returnToMedicineEdit) {
+        navigate(`/admin/medicines/${returnToMedicineEdit}/edit`, { replace: true });
+      } else if (returnToMedicineView) {
+        navigate(`/admin/medicines/${returnToMedicineView}`, { replace: true });
+      } else {
+        navigate(offeringViewPath, { replace: true });
+      }
     } catch (err) {
       showNotify?.(err?.message || 'Update failed', 'error');
     } finally {
@@ -163,7 +187,11 @@ const InventoryOfferingRecordPage = ({ mode, medicineId, offeringId, showNotify,
 
   if (loadError || !offering) {
     return (
-      <AdminRecordShell title="Inventory" onBack={goList} backLabel="Back to inventory">
+      <AdminRecordShell
+        title="Inventory"
+        onBack={goBackFromOffering}
+        backLabel={returnToMedicineEdit ? 'Back to medicine' : returnToMedicineView ? 'Back to medicine' : 'Back to inventory'}
+      >
         <p style={{ margin: 0, color: loadError ? '#b91c1c' : 'var(--admin-text-muted)' }}>
           {loadError || 'Offering not found.'}
         </p>
@@ -180,15 +208,15 @@ const InventoryOfferingRecordPage = ({ mode, medicineId, offeringId, showNotify,
       <AdminRecordShell
         wide
         title={pageTitle}
-        onBack={goList}
-        backLabel="Back to inventory"
+        onBack={goBackFromOffering}
+        backLabel={returnToMedicineEdit || returnToMedicineView ? 'Back to medicine' : 'Back to inventory'}
         footer={
           <>
             {canManageOfferings && (
               <button
                 type="button"
                 className="btn-add"
-                onClick={() => navigate(`/admin/inventory-offerings/${medicineId}/${offeringId}/edit`)}
+                onClick={() => navigate(offeringEditPath, { state: navState })}
               >
                 Edit
               </button>
@@ -306,8 +334,16 @@ const InventoryOfferingRecordPage = ({ mode, medicineId, offeringId, showNotify,
     <AdminRecordShell
       wide
       title={pageTitle}
-      onBack={() => navigate(`/admin/inventory-offerings/${medicineId}/${offeringId}`)}
-      backLabel="Back to details"
+      onBack={() => {
+        if (returnToMedicineEdit) {
+          navigate(`/admin/medicines/${returnToMedicineEdit}/edit`);
+        } else if (returnToMedicineView) {
+          navigate(`/admin/medicines/${returnToMedicineView}`);
+        } else {
+          navigate(offeringViewPath);
+        }
+      }}
+      backLabel={returnToMedicineEdit || returnToMedicineView ? 'Back to medicine' : 'Back to details'}
       footer={null}
     >
       <form className="modal-form inventory-offering-edit-form" onSubmit={handleSubmitEdit} style={{ margin: 0, padding: 0, border: 'none', boxShadow: 'none', background: 'transparent' }}>
@@ -315,10 +351,9 @@ const InventoryOfferingRecordPage = ({ mode, medicineId, offeringId, showNotify,
           {medicineName} — {brandLabel}
         </p>
         <div className="form-group">
-          <label htmlFor="inv-off-mfr">Manufacturer*</label>
+          <label htmlFor="inv-off-mfr">Manufacturer (optional)</label>
           <input
             id="inv-off-mfr"
-            required
             value={form.manufacturer}
             onChange={(e) => setForm((f) => ({ ...f, manufacturer: e.target.value }))}
           />
@@ -353,7 +388,20 @@ const InventoryOfferingRecordPage = ({ mode, medicineId, offeringId, showNotify,
           <label htmlFor="inv-off-avail">Available for sale</label>
         </div>
         <div style={{ display: 'flex', gap: '1rem', marginTop: '1.25rem' }}>
-          <button type="button" className="btn-add btn-cancel" style={{ flex: 1 }} onClick={() => navigate(`/admin/inventory-offerings/${medicineId}/${offeringId}`)}>
+          <button
+            type="button"
+            className="btn-add btn-cancel"
+            style={{ flex: 1 }}
+            onClick={() => {
+              if (returnToMedicineEdit) {
+                navigate(`/admin/medicines/${returnToMedicineEdit}/edit`);
+              } else if (returnToMedicineView) {
+                navigate(`/admin/medicines/${returnToMedicineView}`);
+              } else {
+                navigate(offeringViewPath, { state: navState });
+              }
+            }}
+          >
             Cancel
           </button>
           <button type="submit" className="btn-add" style={{ flex: 2 }} disabled={saving}>

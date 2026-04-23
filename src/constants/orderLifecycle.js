@@ -87,6 +87,111 @@ export function formatOrderStatusLabel(code) {
     return ORDER_STATUS_LABELS[u] || ORDER_STATUS_LABELS[code] || code;
 }
 
+/** CSS class suffix for `.status-tag` (Admin.css) from raw order_status */
+export function orderStatusTagClass(raw) {
+    const n = normalizeOrderStatus(raw);
+    switch (n) {
+        case 'PENDING':
+        case 'REFUND_INITIATED':
+            return 'pending';
+        case 'ORDER_RECEIVED':
+        case 'ORDER_TAKEN':
+            return 'active';
+        case 'ORDER_PROCESSING':
+        case 'DELIVERY_ASSIGNED':
+        case 'PARCEL_TAKEN':
+        case 'OUT_FOR_DELIVERY':
+            return 'processing';
+        case 'DELIVERED':
+            return 'delivered';
+        case 'CANCELLED_BY_STAFF':
+        case 'DELIVERY_RETURNED':
+            return 'inactive';
+        case 'REFUNDED':
+            return 'refunded';
+        default:
+            return 'pending';
+    }
+}
+
+/** CSS class for payment row status pills */
+export function paymentStatusTagClass(raw) {
+    const u = String(raw || '').toUpperCase();
+    if (u === 'SUCCESS' || u === 'COMPLETED') return 'success';
+    if (u === 'FAILED' || u === 'FAILURE') return 'failed';
+    if (u === 'INITIATED') return 'initiated';
+    if (u === 'PENDING') return 'pending';
+    return 'pending';
+}
+
+/** Forward-only statuses shown left-to-right in admin order fulfillment chain (excludes cancel). */
+export const FULFILLMENT_CHAIN_ORDER = [
+    'ORDER_TAKEN',
+    'ORDER_PROCESSING',
+    'DELIVERY_ASSIGNED',
+    'PARCEL_TAKEN',
+    'OUT_FOR_DELIVERY',
+    'DELIVERED',
+    'DELIVERY_RETURNED',
+];
+
+/** Short labels for chain buttons (staff / delivery). */
+export const FULFILLMENT_CHAIN_BUTTON_LABELS = {
+    ORDER_TAKEN: 'Order packed',
+    ORDER_PROCESSING: 'Order packed',
+    DELIVERY_ASSIGNED: 'Assign delivery agent',
+    PARCEL_TAKEN: 'Parcel picked up',
+    OUT_FOR_DELIVERY: 'Out for delivery',
+    DELIVERED: 'Mark delivered',
+    DELIVERY_RETURNED: 'Customer refused delivery',
+};
+
+const STATUS_RANK = {
+    PENDING: 0,
+    ORDER_RECEIVED: 1,
+    ORDER_TAKEN: 2,
+    ORDER_PROCESSING: 3,
+    DELIVERY_ASSIGNED: 4,
+    PARCEL_TAKEN: 5,
+    OUT_FOR_DELIVERY: 6,
+    DELIVERED: 7,
+    DELIVERY_RETURNED: 7,
+    CANCELLED_BY_STAFF: 8,
+    REFUND_INITIATED: 8,
+    REFUNDED: 8,
+};
+
+export function fulfillmentStatusRank(raw) {
+    return STATUS_RANK[normalizeOrderStatus(raw)] ?? 0;
+}
+
+/** Allowed forward actions (same rules as getAllowedNextStatusActions), sorted for chain UI. */
+export function getSortedForwardLifecycleActions(opts) {
+    const actions = getAllowedNextStatusActions(opts);
+    const forward = (actions || []).filter((a) => a && a.status !== 'CANCELLED_BY_STAFF');
+    return FULFILLMENT_CHAIN_ORDER.map((status) => forward.find((a) => a.status === status)).filter(Boolean);
+}
+
+/**
+ * One "Order packed" action: prefer ORDER_TAKEN over ORDER_PROCESSING when both allowed.
+ */
+export function getPackedActionFromActions(actions) {
+    const forward = (actions || []).filter((a) => a && a.status !== 'CANCELLED_BY_STAFF');
+    const t = forward.find((a) => a.status === 'ORDER_TAKEN');
+    if (t) return { ...t, label: FULFILLMENT_CHAIN_BUTTON_LABELS.ORDER_TAKEN };
+    const p = forward.find((a) => a.status === 'ORDER_PROCESSING');
+    if (p) return { ...p, label: FULFILLMENT_CHAIN_BUTTON_LABELS.ORDER_PROCESSING };
+    return null;
+}
+
+/**
+ * Forward actions for the chain excluding ORDER_TAKEN / ORDER_PROCESSING (handled by packed button).
+ */
+export function getSortedForwardLifecycleActionsAfterPacked(opts) {
+    const sorted = getSortedForwardLifecycleActions(opts);
+    return sorted.filter((a) => a.status !== 'ORDER_TAKEN' && a.status !== 'ORDER_PROCESSING');
+}
+
 /**
  * @param {object} opts
  * @param {object} opts.order — row with order_status, delivery_assigned_user_id

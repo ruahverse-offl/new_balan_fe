@@ -169,8 +169,8 @@ const InventoryTab = ({ showNotify, refreshToken = 0 }) => {
 
     const handleCreateOffering = async (e) => {
         e.preventDefault();
-        if (!addForm.medicine_id || !addForm.brand_id || !addForm.manufacturer?.trim()) {
-            showNotify('Medicine, brand, and manufacturer are required', 'error');
+        if (!addForm.medicine_id || !addForm.brand_id) {
+            showNotify('Medicine and brand are required', 'error');
             return;
         }
         const mrp = parseFloat(String(addForm.mrp).replace(',', '.'));
@@ -183,7 +183,7 @@ const InventoryTab = ({ showNotify, refreshToken = 0 }) => {
             await createBrand({
                 medicine_id: addForm.medicine_id,
                 brand_id: addForm.brand_id,
-                manufacturer: addForm.manufacturer.trim(),
+                manufacturer: addForm.manufacturer?.trim() || undefined,
                 mrp,
                 description: addForm.description?.trim() || undefined,
                 is_available: addForm.is_available !== false,
@@ -521,7 +521,7 @@ const InventoryTab = ({ showNotify, refreshToken = 0 }) => {
                                 </p>
                             )}
                             <div className="form-group">
-                                <label>Manufacturer*</label>
+                                <label>Manufacturer (optional)</label>
                                 <input
                                     required
                                     value={addForm.manufacturer}

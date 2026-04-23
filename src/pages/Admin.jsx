@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Link, useParams, useNavigate, useLocation, useMatch } from 'react-router-dom';
-import { LayoutDashboard, Users, User, Pill, ShoppingCart, Search, Plus, Trash2, Check, X, Menu, Clock, MapPin, Phone, Pencil, AlertCircle, Eye, EyeOff, CheckCircle, XCircle, LogOut, Bell, Truck, Ticket, UserCheck, IndianRupee, ArrowLeft, ChevronRight, Shield, CreditCard, Tags, BarChart3, Calendar, Home, Package, Tag } from 'lucide-react';
+import { LayoutDashboard, Users, User, Pill, ShoppingCart, Search, Plus, Trash2, Check, X, Menu, Clock, MapPin, Phone, Pencil, AlertCircle, Eye, EyeOff, CheckCircle, XCircle, LogOut, Bell, Truck, Ticket, UserCheck, IndianRupee, ArrowLeft, ChevronRight, ChevronsLeft, ChevronsRight, Shield, CreditCard, Tags, BarChart3, Calendar, Home, Package, Tag } from 'lucide-react';
 import { PageLoading, InlineSpinner } from '../components/common/PageLoading';
 import { useAuth } from '../context/AuthContext';
 import { getDoctors, createDoctor, updateDoctor, deleteDoctor as deleteDoctorApi } from '../services/doctorsApi';
@@ -13,7 +13,6 @@ import { getDeliverySettings, updateDeliverySettings as updateDeliverySettingsAp
 import { getMarqueeSettings, updateMarqueeSettings as updateMarqueeSettingsApi } from '../services/marqueeApi';
 import { getRoles } from '../services/rolesApi';
 import { getKpiSummary } from '../services/kpiApi';
-import { getPayments } from '../services/paymentsApi';
 import { refundPayment } from '../services/razorpayApi';
 import { getTherapeuticCategories, deleteTherapeuticCategory as deleteTherapeuticCategoryApi } from '../services/therapeuticCategoriesApi';
 import { getCouponUsages } from '../services/couponUsagesApi';
@@ -36,7 +35,6 @@ import DeliveryTab from './admin/DeliveryTab';
 import CouponsTab from './admin/CouponsTab';
 import StaffTab from './admin/StaffTab';
 import TestBookingsTab from './admin/TestBookingsTab';
-import PaymentsTab from './admin/PaymentsTab';
 import TherapeuticCategoriesTab from './admin/TherapeuticCategoriesTab';
 import CouponUsagesTab from './admin/CouponUsagesTab';
 import MyProfileTab from './admin/MyProfileTab';
@@ -87,7 +85,6 @@ const ADMIN_TAB_PERMISSION_FALLBACK = {
     coupons: 'coupons',
     staff: 'staff',
     'test-bookings': 'appointments',
-    payments: 'orders',
     'therapeutic-categories': 'medicines',
     'coupon-usages': 'coupons',
     inventory: 'inventory',
@@ -133,7 +130,6 @@ const ADMIN_PORTAL_TAB_IDS = new Set([
     'coupons',
     'staff',
     'test-bookings',
-    'payments',
     'coupon-usages',
 ]);
 
@@ -167,7 +163,6 @@ const LEGACY_SIDEBAR_TEMPLATE = [
     { id: 'coupons', label: 'Coupons & Marquee', icon: <Ticket size={20} />, menuKey: 'nav_coupons', permission: 'coupons' },
     { id: 'staff', label: 'Manage Staff', icon: <UserCheck size={20} />, menuKey: 'nav_staff', permission: 'staff' },
     { id: 'test-bookings', label: 'Test Bookings', icon: <Calendar size={20} />, menuKey: 'nav_test_bookings', permission: 'appointments' },
-    { id: 'payments', label: 'Payments', icon: <CreditCard size={20} />, menuKey: 'nav_payments', permission: 'orders' },
     { id: 'therapeutic-categories', label: 'Medicine Cat.', icon: <Tags size={20} />, menuKey: 'nav_medicine_categories', permission: 'medicines' },
     { id: 'coupon-usages', label: 'Coupon Usages', icon: <BarChart3 size={20} />, menuKey: 'nav_coupon_usages', permission: 'coupons' },
     { id: 'brand-master', label: 'Brand catalog', icon: <Tag size={20} />, menuKey: 'nav_brand_catalog', permission: 'medicines' },
@@ -358,10 +353,30 @@ const Admin = () => {
     const [activeTab, setActiveTab] = useState('dashboard');
     /** Mobile drawer open state. On desktop (≥1025px) the sidebar stays visible regardless (Admin.css). */
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+    /** Desktop only: narrow rail with icons only (persisted). Ignored on mobile drawer. */
+    const [sidebarDesktopCollapsed, setSidebarDesktopCollapsed] = useState(() => {
+        try {
+            return typeof window !== 'undefined' && window.localStorage.getItem('admin_sidebar_collapsed') === '1';
+        } catch {
+            return false;
+        }
+    });
     /** Used so aria-hidden matches visibility: drawer closed on narrow viewports = off-screen. */
     const [isNarrowViewport, setIsNarrowViewport] = useState(() =>
         typeof window !== 'undefined' && window.matchMedia('(max-width: 1024px)').matches,
     );
+
+    const toggleSidebarDesktopCollapsed = useCallback(() => {
+        setSidebarDesktopCollapsed((prev) => {
+            const next = !prev;
+            try {
+                window.localStorage.setItem('admin_sidebar_collapsed', next ? '1' : '0');
+            } catch {
+                /* ignore */
+            }
+            return next;
+        });
+    }, []);
     const { logout, user, updateUser } = useAuth();
 
     useEffect(() => {
@@ -394,7 +409,6 @@ const Admin = () => {
     // New entity data
     const [testBookings, setTestBookings] = useState([]);
     const [polyclinicTests, setPolyclinicTests] = useState([]);
-    const [payments, setPayments] = useState([]);
     const [therapeuticCategories, setTherapeuticCategories] = useState([]);
     const [couponUsages, setCouponUsages] = useState([]);
     const [newOrderNotification, setNewOrderNotification] = useState(false);
@@ -428,8 +442,6 @@ const Admin = () => {
     const [doctorsRowsPerPage, setDoctorsRowsPerPage] = useState(10);
     const [testBookingsPage, setTestBookingsPage] = useState(1);
     const [testBookingsRowsPerPage, setTestBookingsRowsPerPage] = useState(10);
-    const [paymentsPage, setPaymentsPage] = useState(1);
-    const [paymentsRowsPerPage, setPaymentsRowsPerPage] = useState(10);
     const [therapeuticCategoriesPage, setTherapeuticCategoriesPage] = useState(1);
     const [therapeuticCategoriesRowsPerPage, setTherapeuticCategoriesRowsPerPage] = useState(10);
     const [couponUsagesPage, setCouponUsagesPage] = useState(1);
@@ -609,10 +621,6 @@ const Admin = () => {
                     setTestBookings(enriched);
                     break;
                 }
-                case 'payments':
-                    const payRes = await getPayments({ limit: 100 }).catch(() => ({ items: [] }));
-                    setPayments(payRes.items || []);
-                    break;
                 case 'therapeutic-categories':
                     const tcRes = await getTherapeuticCategories({ limit: 100 }).catch(() => ({ items: [] }));
                     setTherapeuticCategories(tcRes.items || []);
@@ -1062,17 +1070,34 @@ const Admin = () => {
         }
     };
 
+    const handleCancelOrderWithReason = async (orderId, reason) => {
+        const trimmed = (reason || '').trim();
+        if (!trimmed) {
+            throw new Error('Please enter a cancellation reason.');
+        }
+        const updated = await updateOrder(orderId, {
+            order_status: 'CANCELLED_BY_STAFF',
+            cancellation_reason: trimmed,
+        });
+        mergeOrderFromApi(orderId, updated);
+        setOrderDetailRefreshKey((k) => k + 1);
+        fetchTabData('orders', true).catch(() => {});
+    };
+
     const handleRefund = async (payment) => {
-        if (!window.confirm(`Refund ₹${parseFloat(payment.amount).toFixed(2)} for order ${(payment.order_id || '').substring(0, 8)}...?`)) {
-            return;
+        const orderIdForRefund = payment?.order_id || payment?.orderId;
+        if (!orderIdForRefund) {
+            showNotify('Missing order id for refund.', 'error');
+            throw new Error('Missing order id for refund.');
         }
         setRefundLoading(true);
         try {
-            const result = await refundPayment(payment.order_id, {});
+            const result = await refundPayment(orderIdForRefund, {});
             showNotify(`Refund ${result.refund_status}: ₹${result.refund_amount}`, 'success');
-            fetchTabData('payments', true);
+            setOrderDetailRefreshKey((k) => k + 1);
+            fetchTabData('orders', true).catch(() => {});
         } catch (error) {
-            showNotify('Refund failed: ' + (error.message || 'Unknown error'), 'error');
+            throw error;
         } finally {
             setRefundLoading(false);
         }
@@ -1780,7 +1805,11 @@ const Admin = () => {
     const filteredProducts = products || [];
 
     return (
-        <div className={`admin-layout ${!isMobileSidebarOpen ? 'sidebar-closed' : ''}`}>
+        <div
+            className={`admin-layout ${!isMobileSidebarOpen ? 'sidebar-closed' : ''} ${
+                !isNarrowViewport && sidebarDesktopCollapsed ? 'sidebar-narrow' : ''
+            }`}
+        >
             {inventoryAlerts.length > 0 && hasPermission('inventory') && (
                 <div
                     role="status"
@@ -1825,14 +1854,48 @@ const Admin = () => {
             <aside
                 className={`admin-sidebar ${isMobileSidebarOpen ? 'mobile-open' : ''}`}
                 aria-hidden={isNarrowViewport && !isMobileSidebarOpen}
+                aria-label="Main navigation"
             >
                 <div className="sidebar-header">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
+                    <div className="sidebar-header-inner">
+                        <div className="sidebar-header-brand-wrap">
                             <h3>New Balan</h3>
-                            <p>{effectiveRole === 'DEV_ADMIN' || effectiveRole === 'ADMIN' ? 'ADMIN PORTAL' : effectiveRole === 'DEV' ? 'DEV DASHBOARD' : effectiveRole === 'MANAGER' ? 'MANAGER DASHBOARD' : effectiveRole === 'PHARMACIST' ? 'PHARMACIST DASHBOARD' : effectiveRole === 'CASHIER' ? 'CASHIER DASHBOARD' : effectiveRole === 'CUSTOMER_SERVICE' ? 'SUPPORT DASHBOARD' : effectiveRole === 'DELIVERY' || effectiveRole === 'DELIVERY_AGENT' ? 'DELIVERY DASHBOARD' : 'DASHBOARD'}</p>
+                            <p>
+                                {effectiveRole === 'DEV_ADMIN' || effectiveRole === 'ADMIN'
+                                    ? 'ADMIN PORTAL'
+                                    : effectiveRole === 'DEV'
+                                      ? 'DEV DASHBOARD'
+                                      : effectiveRole === 'MANAGER'
+                                        ? 'MANAGER DASHBOARD'
+                                        : effectiveRole === 'PHARMACIST'
+                                          ? 'PHARMACIST DASHBOARD'
+                                          : effectiveRole === 'CASHIER'
+                                            ? 'CASHIER DASHBOARD'
+                                            : effectiveRole === 'CUSTOMER_SERVICE'
+                                              ? 'SUPPORT DASHBOARD'
+                                              : effectiveRole === 'DELIVERY' || effectiveRole === 'DELIVERY_AGENT'
+                                                ? 'DELIVERY DASHBOARD'
+                                                : 'DASHBOARD'}
+                            </p>
                         </div>
-                        <button className="mobile-close-btn" onClick={() => setIsMobileSidebarOpen(false)}>
+                        {!isNarrowViewport && (
+                            <button
+                                type="button"
+                                className="sidebar-collapse-toggle"
+                                onClick={toggleSidebarDesktopCollapsed}
+                                aria-expanded={!sidebarDesktopCollapsed}
+                                aria-label={sidebarDesktopCollapsed ? 'Expand sidebar menu' : 'Collapse sidebar menu'}
+                                title={sidebarDesktopCollapsed ? 'Expand menu' : 'Collapse menu'}
+                            >
+                                {sidebarDesktopCollapsed ? <ChevronsRight size={22} /> : <ChevronsLeft size={22} />}
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            className="mobile-close-btn"
+                            onClick={() => setIsMobileSidebarOpen(false)}
+                            aria-label="Close menu"
+                        >
                             <X size={20} />
                         </button>
                     </div>
@@ -1842,6 +1905,7 @@ const Admin = () => {
                         <button
                             type="button"
                             key={item.id}
+                            title={item.label}
                             className={`nav-item ${activeTab === item.id || (item.id === 'orders' && orderIdFromUrl) || (item.id === 'therapeutic-categories' && medicineCategoryRecordMode) || (item.id === 'medicines' && medicineRecordMode) || (item.id === 'inventory' && inventoryOfferingRecordMode) ? 'active' : ''}`}
                             onClick={() => {
                                 if (orderIdFromUrl || medicineCategoryRecordMode || medicineRecordMode || inventoryOfferingRecordMode) {
@@ -1852,7 +1916,7 @@ const Admin = () => {
                             }}
                         >
                             {item.icon}
-                            <span>{item.label}</span>
+                            <span className="nav-item-label">{item.label}</span>
                         </button>
                     ))}
                 </nav>
@@ -1860,6 +1924,7 @@ const Admin = () => {
                     <button
                         type="button"
                         className={`sidebar-profile-card ${activeTab === 'my-profile' ? 'active' : ''}`}
+                        title="My profile"
                         onClick={() => {
                             setActiveTab('my-profile');
                             setIsMobileSidebarOpen(false);
@@ -1878,16 +1943,17 @@ const Admin = () => {
                     </button>
                     <Link
                         to="/"
-                        className="nav-item"
+                        className="nav-item sidebar-footer-link"
+                        title="View website"
                         onClick={() => setIsMobileSidebarOpen(false)}
-                        style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderRadius: '8px' }}
                     >
                         <Home size={20} />
-                        <span>View Website</span>
+                        <span className="nav-item-label">View Website</span>
                     </Link>
                     <button
                         type="button"
                         className="nav-item logout-btn"
+                        title="Log out"
                         onClick={() => {
                             setIsMobileSidebarOpen(false);
                             logout();
@@ -1895,7 +1961,7 @@ const Admin = () => {
                         }}
                     >
                         <LogOut size={20} />
-                        <span>Logout</span>
+                        <span className="nav-item-label">Logout</span>
                     </button>
                 </div>
             </aside>
@@ -1908,6 +1974,17 @@ const Admin = () => {
                         <button className="mobile-hamburger" onClick={() => setIsMobileSidebarOpen(true)}>
                             <Menu size={24} />
                         </button>
+                        {!isNarrowViewport && sidebarDesktopCollapsed && (
+                            <button
+                                type="button"
+                                className="header-sidebar-expand-btn"
+                                onClick={toggleSidebarDesktopCollapsed}
+                                aria-label="Expand sidebar menu"
+                                title="Expand menu"
+                            >
+                                <ChevronsRight size={22} />
+                            </button>
+                        )}
                         <h2>
                             {orderIdFromUrl
                                 ? 'Order details'
@@ -1965,6 +2042,10 @@ const Admin = () => {
                     ) : orderIdFromUrl ? (
                         <OrderDetailPage
                             onOrderLifecycleIntent={handleOrderLifecycleIntent}
+                            onCancelOrderWithReason={handleCancelOrderWithReason}
+                            onRefundPayment={handleRefund}
+                            refundInProgress={refundLoading}
+                            showNotify={showNotify}
                             backendPermissions={user?.backendPermissions || []}
                             userId={user?.id}
                             isAdminRole={isAdminUser}
@@ -2151,11 +2232,14 @@ const Admin = () => {
                             setOrdersRowsPerPage={setOrdersRowsPerPage}
                             statusFilter={orderStatusFilter}
                             setStatusFilter={setOrderStatusFilter}
-                            onOrderLifecycleIntent={handleOrderLifecycleIntent}
-                            onViewDetails={(order) => navigate(`/admin/orders/${order.id}`, { state: { order } })}
-                            backendPermissions={user?.backendPermissions || []}
-                            userId={user?.id}
-                            isAdminRole={isAdminUser}
+                            onViewDetails={(order) =>
+                                navigate(`/admin/orders/${order.id}`, { state: { order, fromTab: 'orders' } })
+                            }
+                            onEditDetails={(order) =>
+                                navigate(`/admin/orders/${order.id}`, {
+                                    state: { order, fromTab: 'orders', orderDetailFocus: 'status' },
+                                })
+                            }
                         />
                         )
                     )}
@@ -2180,11 +2264,14 @@ const Admin = () => {
                             setOrdersRowsPerPage={setOrdersRowsPerPage}
                             statusFilter={orderStatusFilter}
                             setStatusFilter={setOrderStatusFilter}
-                            onOrderLifecycleIntent={handleOrderLifecycleIntent}
-                            onViewDetails={(order) => navigate(`/admin/orders/${order.id}`, { state: { order } })}
-                            backendPermissions={user?.backendPermissions || []}
-                            userId={user?.id}
-                            isAdminRole={isAdminUser}
+                            onViewDetails={(order) =>
+                                navigate(`/admin/orders/${order.id}`, { state: { order, fromTab: 'delivery-orders' } })
+                            }
+                            onEditDetails={(order) =>
+                                navigate(`/admin/orders/${order.id}`, {
+                                    state: { order, fromTab: 'delivery-orders', orderDetailFocus: 'status' },
+                                })
+                            }
                         />
                         )
                     )}
@@ -2385,27 +2472,6 @@ const Admin = () => {
                             }}
                             onDeleteClick={requestDelete}
                         />
-                    )}
-                    {activeTab === 'payments' && (
-                        tabPermissionDenied.has('payments') ? (
-                            <div className="admin-table-card admin-message-card">
-                                <Shield size={48} />
-                                <p>You don&apos;t have permission to view payments.</p>
-                                <p>Contact your administrator to get access.</p>
-                            </div>
-                        ) : (
-                        <PaymentsTab
-                            payments={payments}
-                            searchTerm={getSearchForTab('payments')}
-                            setSearchTerm={(v) => setSearchForTab('payments', v)}
-                            paymentsPage={paymentsPage}
-                            setPaymentsPage={setPaymentsPage}
-                            paymentsRowsPerPage={paymentsRowsPerPage}
-                            setPaymentsRowsPerPage={setPaymentsRowsPerPage}
-                            onRefund={handleRefund}
-                            refundLoading={refundLoading}
-                        />
-                        )
                     )}
                     {activeTab === 'therapeutic-categories' && (
                         <TherapeuticCategoriesTab

@@ -1,17 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, FileText, ExternalLink } from 'lucide-react';
+import { ArrowLeft, FileText, ExternalLink, Copy, Check, Ban, RotateCcw } from 'lucide-react';
 import { PageLoading } from '../../components/common/PageLoading';
 import { getOrderDetail } from '../../services/ordersApi';
 import { getPrescriptionFileUrl } from '../../utils/prescriptionUrl';
 import {
     formatOrderStatusLabel,
+    FULFILLMENT_CHAIN_BUTTON_LABELS,
+    fulfillmentStatusRank,
     getAllowedNextStatusActions,
+    getPackedActionFromActions,
+    getSortedForwardLifecycleActionsAfterPacked,
     isTerminalOrderStatus,
+    orderStatusTagClass,
+    paymentStatusTagClass,
 } from '../../constants/orderLifecycle';
 
 const OrderDetailPage = ({
     onOrderLifecycleIntent,
+    onCancelOrderWithReason,
+    onRefundPayment,
+    refundInProgress = false,
+    showNotify,
     backendPermissions = [],
     userId,
     isAdminRole = false,
@@ -22,12 +32,35 @@ const OrderDetailPage = ({
     const location = useLocation();
     const orderFromState = location.state?.order;
     const fromTab = location.state?.fromTab;
+    const orderListBackTab =
+        fromTab === 'coupon-usages'
+            ? 'coupon-usages'
+            : fromTab === 'delivery-orders'
+              ? 'delivery-orders'
+              : 'orders';
+    const orderListBackLabel =
+        fromTab === 'coupon-usages'
+            ? 'Back to Coupon Usages'
+            : fromTab === 'delivery-orders'
+              ? 'Back to My deliveries'
+              : 'Back to Orders';
     const [detail, setDetail] = useState(
         orderFromState ? { order: orderFromState, items: [], payment: null } : null
     );
     const [loading, setLoading] = useState(!orderFromState);
     const [error, setError] = useState('');
     const [fetchError, setFetchError] = useState('');
+    const [copiedId, setCopiedId] = useState(false);
+    const [cancelModalOpen, setCancelModalOpen] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
+    const [cancelSubmitting, setCancelSubmitting] = useState(false);
+    const [refundModalOpen, setRefundModalOpen] = useState(false);
+    const [refundError, setRefundError] = useState('');
+    const didScrollStatusFocus = useRef(false);
+
+    useEffect(() => {
+        didScrollStatusFocus.current = false;
+    }, [orderId]);
 
     useEffect(() => {
         if (!orderId) return;
@@ -61,7 +94,19 @@ const OrderDetailPage = ({
             .finally(() => setLoading(false));
     }, [orderId, lifecycleRefreshKey]);
 
-    const handleBack = () => navigate('/admin', { state: { tab: fromTab === 'coupon-usages' ? 'coupon-usages' : 'orders' } });
+    useEffect(() => {
+        if (loading || error || !detail || didScrollStatusFocus.current) return;
+        if (location.state?.orderDetailFocus !== 'status') return;
+        didScrollStatusFocus.current = true;
+        const el = document.getElementById('order-detail-status-section');
+        if (el) {
+            requestAnimationFrame(() => {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
+    }, [loading, error, detail, location.state?.orderDetailFocus]);
+
+    const handleBack = () => navigate('/admin', { state: { tab: orderListBackTab } });
 
     if (loading) {
         return (
@@ -81,7 +126,7 @@ const OrderDetailPage = ({
                 <div className="order-detail-error">
                     <p>{error || 'Order not found.'}</p>
                     <button type="button" className="btn-add btn-cancel" onClick={handleBack}>
-                        <ArrowLeft size={18} /> {fromTab === 'coupon-usages' ? 'Back to Coupon Usages' : 'Back to Orders'}
+                        <ArrowLeft size={18} /> {orderListBackLabel}
                     </button>
                 </div>
             </div>
@@ -91,18 +136,83 @@ const OrderDetailPage = ({
     const order = detail.order || {};
     const items = detail.items || [];
     const payment = detail.payment || null;
+    const fullOrderId = String(order.id || orderId || '');
+    const displayRef = (order.order_reference || '').trim();
+    const lifecycleActions = getAllowedNextStatusActions({
+        order,
+        backendPermissions,
+        userId,
+        isAdminRole,
+    });
+    const cancelStaffAction = lifecycleActions.find((a) => a.status === 'CANCELLED_BY_STAFF');
+    const canRefundPayment =
+        Boolean(onRefundPayment) &&
+        payment &&
+        String(payment.payment_status || '').toUpperCase() === 'SUCCESS' &&
+        (!payment.refund_status || String(payment.refund_status).toUpperCase() === 'NONE');
+
+    const copyOrderId = async () => {
+        if (!fullOrderId) return;
+        try {
+            await navigator.clipboard.writeText(fullOrderId);
+            setCopiedId(true);
+            setTimeout(() => setCopiedId(false), 2000);
+        } catch {
+            setCopiedId(false);
+        }
+    };
 
     return (
         <div className="order-detail-page">
-            <div className="order-detail-header">
+            <div className="order-detail-nav">
                 <button type="button" className="order-detail-back" onClick={handleBack}>
-                    <ArrowLeft size={20} /> {fromTab === 'coupon-usages' ? 'Back to Coupon Usages' : 'Back to Orders'}
+                    <ArrowLeft size={20} /> {orderListBackLabel}
                 </button>
-                <h1 className="order-detail-title">Order #{(order.id || orderId || '').toString().substring(0, 8).toUpperCase()}</h1>
             </div>
 
+            <header className="order-detail-hero">
+                <div className="order-detail-hero-main">
+                    <p className="order-detail-hero-label">Order</p>
+                    <h1 className="order-detail-hero-title">
+                        {displayRef || `Order ${fullOrderId.slice(0, 8)}…`}
+                    </h1>
+                    <div className="order-detail-hero-id-row">
+                        <code className="order-detail-hero-id" title={fullOrderId}>
+                            {fullOrderId || '—'}
+                        </code>
+                        {fullOrderId ? (
+                            <button
+                                type="button"
+                                className="order-detail-copy-id"
+                                onClick={copyOrderId}
+                                aria-label="Copy order id"
+                            >
+                                {copiedId ? <Check size={16} /> : <Copy size={16} />}
+                                {copiedId ? 'Copied' : 'Copy ID'}
+                            </button>
+                        ) : null}
+                    </div>
+                </div>
+                <div className="order-detail-hero-aside">
+                    <span className={`status-tag ${orderStatusTagClass(order.order_status)}`}>
+                        {formatOrderStatusLabel(order.order_status)}
+                    </span>
+                    <p className="order-detail-hero-amount">
+                        ₹{parseFloat(order.final_amount || 0).toFixed(2)}
+                    </p>
+                    <p className="order-detail-hero-meta">
+                        {order.created_at
+                            ? new Date(order.created_at).toLocaleString('en-IN', {
+                                  dateStyle: 'medium',
+                                  timeStyle: 'short',
+                              })
+                            : ''}
+                    </p>
+                </div>
+            </header>
+
             {fetchError && (
-                <div className="order-detail-fetch-warning" style={{ padding: '0.75rem 1rem', background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 8, marginBottom: '1rem', fontSize: '0.875rem', color: '#92400e' }}>
+                <div className="order-detail-fetch-warning" role="status">
                     {fetchError} Showing summary from list (order items and payment may be incomplete).
                 </div>
             )}
@@ -177,11 +287,11 @@ const OrderDetailPage = ({
 
                 {order.prescription_path ? (
                     <section className="order-detail-section order-detail-prescription">
-                        <h3>
-                            <FileText size={18} style={{ verticalAlign: 'text-bottom', marginRight: '0.35rem' }} />
+                        <h3 className="order-detail-section-title-with-icon">
+                            <FileText size={18} aria-hidden />
                             Prescription
                         </h3>
-                        <p style={{ fontSize: '0.875rem', color: 'var(--gray-600)', marginBottom: '0.75rem' }}>
+                        <p className="order-detail-prescription-hint">
                             A prescription file was submitted with this order. Open it in a new tab to review (image or PDF).
                         </p>
                         {(() => {
@@ -191,19 +301,12 @@ const OrderDetailPage = ({
                                     href={rxUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="btn-add"
-                                    style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '0.4rem',
-                                        textDecoration: 'none',
-                                        width: 'fit-content',
-                                    }}
+                                    className="btn-add order-detail-rx-link"
                                 >
-                                    <ExternalLink size={16} /> View prescription
+                                    <ExternalLink size={16} aria-hidden /> View prescription
                                 </a>
                             ) : (
-                                <div className="value mono" style={{ wordBreak: 'break-all', fontSize: '0.85rem' }}>
+                                <div className="value mono order-detail-rx-path-fallback">
                                     {order.prescription_path}
                                 </div>
                             );
@@ -211,20 +314,23 @@ const OrderDetailPage = ({
                     </section>
                 ) : null}
 
-                {/* Status & fulfillment */}
-                <section className="order-detail-section order-detail-status">
-                    <h3>Status & fulfillment</h3>
-                    <div className="order-detail-status-row">
+                {/* Fulfillment: status + chain + warnings (cancel / refund modals) */}
+                <section
+                    id="order-detail-status-section"
+                    className="order-detail-section order-detail-fulfillment"
+                >
+                    <h3>Fulfillment</h3>
+                    <div className="order-detail-status-row order-detail-fulfillment-status">
                         <div>
-                            <span className="label">Order status</span>
-                            <span className={`status-tag ${(order.order_status || '').toLowerCase()}`}>
+                            <span className="label">Current status</span>
+                            <span className={`status-tag ${orderStatusTagClass(order.order_status)}`}>
                                 {formatOrderStatusLabel(order.order_status)}
                             </span>
                         </div>
                         {order.delivery_assigned_user_id && (
                             <div>
                                 <span className="label">Assigned delivery (user id)</span>
-                                <div className="value mono" style={{ fontSize: '0.85rem' }}>
+                                <div className="value mono order-detail-mono-sm">
                                     {String(order.delivery_assigned_user_id)}
                                 </div>
                             </div>
@@ -242,53 +348,270 @@ const OrderDetailPage = ({
                             </div>
                         )}
                     </div>
-                    {onOrderLifecycleIntent &&
-                        !isTerminalOrderStatus(order.order_status) &&
-                        getAllowedNextStatusActions({
-                            order,
-                            backendPermissions,
-                            userId,
-                            isAdminRole,
-                        }).length > 0 && (
-                            <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                                <span className="label" style={{ margin: 0, whiteSpace: 'nowrap' }}>Advance status</span>
-                                <select
-                                    defaultValue=""
-                                    onChange={(e) => {
-                                        const v = e.target.value;
-                                        if (!v) return;
-                                        const actions = getAllowedNextStatusActions({
-                                            order,
-                                            backendPermissions,
-                                            userId,
-                                            isAdminRole,
-                                        });
-                                        const act = actions.find((a) => a.status === v);
-                                        if (act) onOrderLifecycleIntent(order, act);
-                                        e.target.value = '';
-                                    }}
-                                    style={{
-                                        padding: '0.45rem 0.6rem',
-                                        borderRadius: '8px',
-                                        border: '1px solid var(--admin-border)',
-                                        minWidth: '220px',
-                                    }}
-                                >
-                                    <option value="">Choose next step…</option>
-                                    {getAllowedNextStatusActions({
+
+                    {!isTerminalOrderStatus(order.order_status) && (
+                        <div className="order-detail-fulfillment-chain-wrap">
+                            <p className="order-detail-chain-title">Progress</p>
+                            <div className="order-detail-fulfillment-chain" aria-label="Order fulfillment steps">
+                                {(() => {
+                                    const rank = fulfillmentStatusRank(order.order_status);
+                                    const packedAct = getPackedActionFromActions(lifecycleActions);
+                                    const tailActs = getSortedForwardLifecycleActionsAfterPacked({
                                         order,
                                         backendPermissions,
                                         userId,
                                         isAdminRole,
-                                    }).map((a) => (
-                                        <option key={a.status} value={a.status}>
-                                            {a.label}
-                                        </option>
-                                    ))}
-                                </select>
+                                    });
+                                    const nodes = [];
+
+                                    nodes.push(
+                                        <div
+                                            key="received"
+                                            className={`order-detail-chain-node ${rank >= 1 ? 'done' : rank === 0 ? 'pending' : ''}`}
+                                        >
+                                            {rank >= 1 ? <Check size={14} className="order-detail-chain-check" aria-hidden /> : null}
+                                            <span>Order received</span>
+                                        </div>,
+                                    );
+
+                                    const packedDone = rank >= 3;
+                                    nodes.push(
+                                        <span key="a1" className="order-detail-chain-arrow" aria-hidden>
+                                            →
+                                        </span>,
+                                    );
+                                    if (packedAct && onOrderLifecycleIntent) {
+                                        nodes.push(
+                                            <button
+                                                key="packed"
+                                                type="button"
+                                                className="order-detail-chain-btn"
+                                                onClick={() => onOrderLifecycleIntent(order, packedAct)}
+                                            >
+                                                {packedAct.label}
+                                            </button>,
+                                        );
+                                    } else {
+                                        nodes.push(
+                                            <div
+                                                key="packed"
+                                                className={`order-detail-chain-node ${packedDone ? 'done' : rank >= 1 ? 'waiting' : 'locked'}`}
+                                            >
+                                                {packedDone ? (
+                                                    <Check size={14} className="order-detail-chain-check" aria-hidden />
+                                                ) : null}
+                                                <span>Order packed</span>
+                                            </div>,
+                                        );
+                                    }
+
+                                    if (onOrderLifecycleIntent) {
+                                        tailActs.forEach((act) => {
+                                            nodes.push(
+                                                <span key={`arr-${act.status}`} className="order-detail-chain-arrow" aria-hidden>
+                                                    →
+                                                </span>,
+                                            );
+                                            const btnLabel =
+                                                FULFILLMENT_CHAIN_BUTTON_LABELS[act.status] || act.label || act.status;
+                                            nodes.push(
+                                                <button
+                                                    key={act.status}
+                                                    type="button"
+                                                    className="order-detail-chain-btn"
+                                                    onClick={() => onOrderLifecycleIntent(order, act)}
+                                                >
+                                                    {btnLabel}
+                                                </button>,
+                                            );
+                                        });
+                                    }
+
+                                    return (
+                                        <>
+                                            {rank === 0 ? (
+                                                <p className="order-detail-chain-payment-note">
+                                                    Awaiting payment. The steps below apply after payment is received.
+                                                </p>
+                                            ) : null}
+                                            <div className="order-detail-fulfillment-chain-row">{nodes}</div>
+                                        </>
+                                    );
+                                })()}
                             </div>
-                        )}
+                        </div>
+                    )}
+
+                    {(cancelStaffAction && onCancelOrderWithReason) || canRefundPayment ? (
+                        <div className="order-detail-warning-actions" role="region" aria-label="Destructive actions">
+                            <p className="order-detail-warning-title">
+                                <Ban size={16} aria-hidden /> Cancel or refund
+                            </p>
+                            <div className="order-detail-warning-buttons">
+                                {cancelStaffAction && onCancelOrderWithReason ? (
+                                    <button
+                                        type="button"
+                                        className="order-detail-warning-btn order-detail-warning-btn-cancel"
+                                        onClick={() => {
+                                            setCancelReason('');
+                                            setCancelModalOpen(true);
+                                        }}
+                                    >
+                                        Cancel order…
+                                    </button>
+                                ) : null}
+                                {canRefundPayment ? (
+                                    <button
+                                        type="button"
+                                        className="order-detail-warning-btn order-detail-warning-btn-refund"
+                                        onClick={() => {
+                                            setRefundError('');
+                                            setRefundModalOpen(true);
+                                        }}
+                                    >
+                                        <RotateCcw size={16} aria-hidden /> Refund payment…
+                                    </button>
+                                ) : null}
+                            </div>
+                        </div>
+                    ) : null}
                 </section>
+
+                {cancelModalOpen ? (
+                    <div
+                        className="admin-modal-overlay"
+                        role="presentation"
+                        onClick={(e) => {
+                            if (e.target === e.currentTarget && !cancelSubmitting) setCancelModalOpen(false);
+                        }}
+                    >
+                        <div
+                            className="admin-modal order-detail-modal"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="cancel-order-title"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <h3 id="cancel-order-title" className="order-detail-modal-title">
+                                Cancel order
+                            </h3>
+                            <p className="order-detail-modal-warning">
+                                This cancels the order for the customer. Please give a clear reason (stock, prescription,
+                                etc.).
+                            </p>
+                            <textarea
+                                className="order-detail-modal-textarea"
+                                rows={4}
+                                value={cancelReason}
+                                onChange={(e) => setCancelReason(e.target.value)}
+                                placeholder="Cancellation reason…"
+                                aria-label="Cancellation reason"
+                            />
+                            <div className="order-detail-modal-actions">
+                                <button
+                                    type="button"
+                                    className="btn-add btn-cancel"
+                                    onClick={() => setCancelModalOpen(false)}
+                                    disabled={cancelSubmitting}
+                                >
+                                    Close
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn-add btn-danger"
+                                    disabled={cancelSubmitting}
+                                    onClick={async () => {
+                                        const trimmed = cancelReason.trim();
+                                        if (!trimmed) {
+                                            if (showNotify) showNotify('Please enter a cancellation reason.', 'error');
+                                            return;
+                                        }
+                                        setCancelSubmitting(true);
+                                        try {
+                                            await onCancelOrderWithReason(order.id, trimmed);
+                                            setCancelModalOpen(false);
+                                            setCancelReason('');
+                                            if (showNotify) showNotify('Order cancelled.', 'success');
+                                        } catch (err) {
+                                            if (showNotify) {
+                                                showNotify(err?.message || 'Could not cancel order.', 'error');
+                                            }
+                                        } finally {
+                                            setCancelSubmitting(false);
+                                        }
+                                    }}
+                                >
+                                    {cancelSubmitting ? 'Cancelling…' : 'Confirm cancel'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ) : null}
+
+                {refundModalOpen && payment && onRefundPayment ? (
+                    <div
+                        className="admin-modal-overlay"
+                        role="presentation"
+                        onClick={(e) => {
+                            if (e.target === e.currentTarget && !refundInProgress) setRefundModalOpen(false);
+                        }}
+                    >
+                        <div
+                            className="admin-modal order-detail-modal"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="refund-title"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <h3 id="refund-title" className="order-detail-modal-title">
+                                Refund payment
+                            </h3>
+                            <p className="order-detail-modal-warning">
+                                This starts a gateway refund for the captured payment. Amount:{' '}
+                                <strong>
+                                    ₹
+                                    {parseFloat(payment.amount ?? order.final_amount ?? 0).toLocaleString('en-IN', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    })}
+                                </strong>
+                            </p>
+                            {refundError ? <p className="order-detail-modal-error">{refundError}</p> : null}
+                            <div className="order-detail-modal-actions">
+                                <button
+                                    type="button"
+                                    className="btn-add btn-cancel"
+                                    onClick={() => setRefundModalOpen(false)}
+                                    disabled={refundInProgress}
+                                >
+                                    Close
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn-add"
+                                    disabled={refundInProgress}
+                                    onClick={async () => {
+                                        setRefundError('');
+                                        try {
+                                            await onRefundPayment({
+                                                ...payment,
+                                                order_id: payment.order_id || order.id,
+                                                amount: payment.amount ?? order.final_amount,
+                                            });
+                                            setRefundModalOpen(false);
+                                        } catch (err) {
+                                            const msg = err?.message || 'Refund failed.';
+                                            setRefundError(msg);
+                                            if (showNotify) showNotify(msg, 'error');
+                                        }
+                                    }}
+                                >
+                                    {refundInProgress ? 'Processing…' : 'Initiate refund'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ) : null}
 
                 {/* Items ordered */}
                 <section className="order-detail-section">
@@ -320,7 +643,7 @@ const OrderDetailPage = ({
                                             <td className="amount">₹{parseFloat(item.total_price || 0).toFixed(2)}</td>
                                             <td>
                                                 {item.requires_prescription ? (
-                                                    <span className="status-tag pending" style={{ fontSize: '0.75rem' }}>Rx</span>
+                                                    <span className="status-tag pending order-detail-rx-pill">Rx</span>
                                                 ) : (
                                                     '—'
                                                 )}
@@ -336,14 +659,14 @@ const OrderDetailPage = ({
                 </section>
 
                 {/* Payment & transaction */}
-                {payment && (
-                    <section className="order-detail-section">
-                        <h3>Payment & transaction</h3>
+                <section className="order-detail-section">
+                    <h3>Payment & transaction</h3>
+                    {payment ? (
                         <div className="order-detail-payment-grid">
                             <div>
                                 <span className="label">Status</span>
                                 <div>
-                                    <span className={`status-tag ${(payment.payment_status || '').toLowerCase()}`}>
+                                    <span className={`status-tag ${paymentStatusTagClass(payment.payment_status)}`}>
                                         {payment.payment_status}
                                     </span>
                                 </div>
@@ -377,7 +700,11 @@ const OrderDetailPage = ({
                                         <div>
                                             <span
                                                 className={`status-tag ${
-                                                    payment.refund_status === 'COMPLETED' ? 'active' : payment.refund_status === 'FAILED' ? 'inactive' : 'pending'
+                                                    payment.refund_status === 'COMPLETED'
+                                                        ? 'active'
+                                                        : payment.refund_status === 'FAILED'
+                                                          ? 'inactive'
+                                                          : 'pending'
                                                 }`}
                                             >
                                                 {payment.refund_status}
@@ -397,8 +724,13 @@ const OrderDetailPage = ({
                                 </>
                             )}
                         </div>
-                    </section>
-                )}
+                    ) : (
+                        <p className="order-detail-payment-empty">
+                            No payment record loaded. If the order is paid, refresh or check the API; unpaid orders may not
+                            have a row yet.
+                        </p>
+                    )}
+                </section>
 
                 {/* Totals */}
                 <section className="order-detail-section order-detail-totals">

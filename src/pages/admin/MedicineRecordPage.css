@@ -62,6 +62,26 @@
   flex-shrink: 0;
 }
 
+.medicine-details-modal__brand-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.5rem;
+  margin-bottom: 0.15rem;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--primary, #2563eb) 35%, var(--admin-border, #e2e8f0));
+  background: #fff;
+  color: var(--primary, #2563eb);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.medicine-details-modal__brand-edit-btn:hover {
+  background: color-mix(in srgb, var(--primary, #2563eb) 10%, #fff);
+}
+
 .medicine-details-modal__brand-flag--muted {
   background: #f1f5f9 !important;
   color: #64748b !important;
@@ -93,4 +113,38 @@
 
 .medicine-brand-storefront-toggle__label {
   line-height: 1.2;
+}
+
+.admin-medicine-brand-line-card__row-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.admin-medicine-brand-line-card__edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--primary, #2563eb) 35%, var(--admin-border, #e2e8f0));
+  background: color-mix(in srgb, var(--primary, #2563eb) 8%, transparent);
+  color: var(--primary, #2563eb);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.admin-medicine-brand-line-card__edit:hover {
+  background: color-mix(in srgb, var(--primary, #2563eb) 16%, transparent);
+  border-color: color-mix(in srgb, var(--primary, #2563eb) 55%, var(--admin-border));
+}
+
+.admin-medicine-brand-line-card__edit-label {
+  line-height: 1;
 }
