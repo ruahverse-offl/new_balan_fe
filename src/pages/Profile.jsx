@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { getDoctors } from '../services/doctorsApi';
-import { getOrders, getOrderById } from '../services/ordersApi';
+import { getOrders, getOrderDetail } from '../services/ordersApi';
+import { checkPaymentStatus } from '../services/razorpayApi';
 import { changePassword } from '../services/authApi';
 import { safeError } from '../utils/logger';
 import { getPrescriptionFileUrl } from '../utils/prescriptionUrl';
@@ -14,7 +15,7 @@ import {
     Bell, Edit, CheckCircle, Package, ArrowLeft,
     Plus,
     Save, Trash2, Star, ShoppingCart,
-    Lock, Eye, EyeOff, FileText, CreditCard,
+    Lock, Eye, EyeOff, FileText, CreditCard, Clock,
     Home, ExternalLink, Truck
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -23,14 +24,53 @@ import { PageLoading, InlineSpinner } from '../components/common/PageLoading';
 import { formatOrderStatusLabel } from '../constants/orderLifecycle';
 import './Profile.css';
 
+const PENDING_CART_SNAPSHOTS_KEY = 'nb_pending_cart_snapshots_v1';
+
+function readPendingCartSnapshots() {
+    try {
+        const raw = localStorage.getItem(PENDING_CART_SNAPSHOTS_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+        return {};
+    }
+}
+
+function writePendingCartSnapshots(map) {
+    try {
+        localStorage.setItem(PENDING_CART_SNAPSHOTS_KEY, JSON.stringify(map || {}));
+    } catch {
+        // Best effort only.
+    }
+}
+
+function consumePendingCartSnapshot(orderId) {
+    const key = String(orderId || '');
+    if (!key) return [];
+    const snapshots = readPendingCartSnapshots();
+    const items = Array.isArray(snapshots[key]) ? snapshots[key] : [];
+    if (key in snapshots) {
+        delete snapshots[key];
+        writePendingCartSnapshots(snapshots);
+    }
+    return items;
+}
+
 const statusTagClass = (code) =>
     String(code || 'pending')
         .toLowerCase()
         .replace(/_/g, '-');
 
+const formatCountdown = (seconds) => {
+    const total = Math.max(0, Number(seconds) || 0);
+    const mm = Math.floor(total / 60);
+    const ss = total % 60;
+    return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+};
+
 const Profile = () => {
     const { user, logout, updateUser } = useAuth();
-    const { addToCart } = useCart();
+    const { addToCart, clearCart } = useCart();
     const navigate = useNavigate();
     const [doctors, setDoctors] = useState([]);
     const [orders, setOrders] = useState([]);
@@ -51,6 +91,7 @@ const Profile = () => {
     const [ordersPage, setOrdersPage] = useState(1);
 
     const [showRecentOrders, setShowRecentOrders] = useState(true);
+    const [paymentWindowByOrder, setPaymentWindowByOrder] = useState({});
 
     // Order Detail State
     const [selectedOrder, setSelectedOrder] = useState(null);
@@ -97,6 +138,74 @@ const Profile = () => {
             fetchAddresses();
         }
     }, [user]);
+
+    useEffect(() => {
+        if (activeTab !== 'orders') return;
+        const pendingOrders = (orders || []).filter(
+            (o) => String(o?.status || '').toUpperCase() === 'PENDING'
+        );
+        if (pendingOrders.length === 0) {
+            setPaymentWindowByOrder({});
+            return;
+        }
+
+        let cancelled = false;
+        const loadPaymentWindows = async () => {
+            const rows = await Promise.all(
+                pendingOrders.map(async (o) => {
+                    try {
+                        const st = await checkPaymentStatus(o.id);
+                        return [String(o.id), st];
+                    } catch {
+                        return [String(o.id), null];
+                    }
+                })
+            );
+            if (cancelled) return;
+            const next = {};
+            rows.forEach(([id, st]) => {
+                if (st) next[id] = st;
+            });
+            setPaymentWindowByOrder(next);
+        };
+        loadPaymentWindows();
+        return () => {
+            cancelled = true;
+        };
+    }, [activeTab, orders]);
+
+    useEffect(() => {
+        if (!Array.isArray(orders) || orders.length === 0) return;
+        const failedOrder = orders.find(
+            (o) => String(o?.status || '').toUpperCase() === 'PAYMENT_CANCELLED'
+        );
+        if (!failedOrder?.id) return;
+        const snapshotItems = consumePendingCartSnapshot(failedOrder.id);
+        if (snapshotItems.length === 0) return;
+        clearCart();
+        snapshotItems.forEach((item) => {
+            addToCart(item, { quantity: Number(item.quantity) || 1 });
+        });
+    }, [orders, addToCart, clearCart]);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setPaymentWindowByOrder((prev) => {
+                let changed = false;
+                const next = { ...prev };
+                Object.keys(next).forEach((id) => {
+                    const row = next[id];
+                    const secs = Number(row?.payment_expires_in_seconds);
+                    if (Number.isFinite(secs) && secs > 0) {
+                        next[id] = { ...row, payment_expires_in_seconds: secs - 1 };
+                        changed = true;
+                    }
+                });
+                return changed ? next : prev;
+            });
+        }, 1000);
+        return () => clearInterval(timer);
+    }, []);
 
 
     // Fetch data from backend
@@ -181,8 +290,14 @@ const Profile = () => {
         setOrderDetailLoading(true);
         setOrderDetailError('');
         try {
-            const orderData = await getOrderById(orderId);
-            setSelectedOrder(orderData);
+            const detail = await getOrderDetail(orderId);
+            const order = detail?.order || {};
+            setSelectedOrder({
+                ...order,
+                status: order.order_status || order.status || 'PENDING',
+                items: detail?.items || [],
+                payment: detail?.payment || null,
+            });
         } catch (error) {
             safeError('Error fetching order details:', error);
             setOrderDetailError(error.message || 'Failed to load order details');
@@ -778,6 +893,11 @@ const Profile = () => {
                     const deliveryFee = detail.delivery_fee || detail.delivery_charge || 0;
                     const finalAmount = detail.final_amount || detail.grand_total || (subtotal - discount + deliveryFee);
                     const orderDate = detail.created_at || detail.date || detail.order_date;
+                    const detailPaymentInfo = paymentWindowByOrder[String(detail.id)];
+                    const detailEffectiveStatus = detailPaymentInfo?.order_status || detail.status;
+                    const detailGraceSeconds = Number(detailPaymentInfo?.payment_expires_in_seconds || 0);
+                    const showDetailPendingPrompt =
+                        String(detailEffectiveStatus || '').toUpperCase() === 'PENDING' && detailGraceSeconds > 0;
                     const formattedOrderDate = orderDate ? new Date(orderDate).toLocaleDateString('en-IN', {
                         day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
                     }) : 'N/A';
@@ -802,9 +922,18 @@ const Profile = () => {
                                         </p>
                                     </div>
                                     <div className="order-detail-actions">
-                                        <span className={`status-tag ${statusTagClass(detail.status)}`}>
-                                            {formatOrderStatusLabel(detail.status) || 'Unknown'}
+                                        <span className={`status-tag ${statusTagClass(detailEffectiveStatus)}`}>
+                                            {formatOrderStatusLabel(detailEffectiveStatus) || 'Unknown'}
                                         </span>
+                                        {showDetailPendingPrompt && (
+                                            <button
+                                                className="btn-primary btn-sm"
+                                                onClick={() => navigate(`/payment-callback?orderId=${detail.id}`)}
+                                                title={`Complete payment in ${formatCountdown(detailGraceSeconds)}`}
+                                            >
+                                                Complete Payment ({formatCountdown(detailGraceSeconds)})
+                                            </button>
+                                        )}
                                         <button onClick={handleDownloadInvoice} className="btn-primary btn-sm">
                                             <FileText size={15} /> Invoice
                                         </button>
@@ -942,6 +1071,11 @@ const Profile = () => {
                                 {currentOrders.map(order => {
                                     const orderDate = new Date(order.date || order.created_at);
                                     const formattedDate = orderDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                                    const paymentInfo = paymentWindowByOrder[String(order.id)];
+                                    const effectiveStatus = paymentInfo?.order_status || order.status;
+                                    const graceSeconds = Number(paymentInfo?.payment_expires_in_seconds || 0);
+                                    const showPendingPrompt =
+                                        String(effectiveStatus || '').toUpperCase() === 'PENDING' && graceSeconds > 0;
 
                                     return (
                                         <div key={order.id} className="order-card" onClick={() => handleViewOrderDetail(order.id)}>
@@ -953,8 +1087,35 @@ const Profile = () => {
                                                 </div>
                                             </div>
                                             <div className="order-card-right">
-                                                <span className={`status-tag ${statusTagClass(order.status)}`}>{formatOrderStatusLabel(order.status)}</span>
+                                                <span className={`status-tag ${statusTagClass(effectiveStatus)}`}>{formatOrderStatusLabel(effectiveStatus)}</span>
+                                                {showPendingPrompt && (
+                                                    <span
+                                                        style={{
+                                                            marginTop: '0.28rem',
+                                                            fontSize: '0.78rem',
+                                                            color: '#b45309',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.3rem',
+                                                            fontWeight: 600,
+                                                        }}
+                                                    >
+                                                        <Clock size={13} />
+                                                        Payment pending — complete in {formatCountdown(graceSeconds)}
+                                                    </span>
+                                                )}
                                                 <span className="order-card-amount">{'\u20B9'}{order.total}</span>
+                                                {showPendingPrompt && (
+                                                    <button
+                                                        className="reorder-btn"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate(`/payment-callback?orderId=${order.id}`);
+                                                        }}
+                                                    >
+                                                        Complete Payment
+                                                    </button>
+                                                )}
                                                 <button
                                                     className={`reorder-btn ${reorderSuccess === order.id ? 'success' : ''}`}
                                                     onClick={(e) => handleReorder(e, order.id)}

@@ -1,24 +1,82 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { checkPaymentStatus } from '../services/razorpayApi';
+import {
+    checkPaymentStatus,
+    retryPendingPayment,
+    loadRazorpayScript,
+    verifyPayment,
+    reportCheckoutOutcome,
+} from '../services/razorpayApi';
 import { CheckCircle, XCircle, ShoppingBag, RefreshCw, Phone, MessageSquare, Clock } from 'lucide-react';
 import { PageLoading } from '../components/common/PageLoading';
 import './PaymentCallback.css';
 
-const MAX_POLL_ATTEMPTS = 5;
-const POLL_INTERVAL_MS = 3000;
+const RETRY_DELAYS_MS = [1500, 2500];
+const MAX_POLL_ATTEMPTS = 1 + RETRY_DELAYS_MS.length; // 1 immediate + short retries
+const PENDING_CART_SNAPSHOTS_KEY = 'nb_pending_cart_snapshots_v1';
+
+function readPendingCartSnapshots() {
+    try {
+        const raw = localStorage.getItem(PENDING_CART_SNAPSHOTS_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+        return {};
+    }
+}
+
+function writePendingCartSnapshots(map) {
+    try {
+        localStorage.setItem(PENDING_CART_SNAPSHOTS_KEY, JSON.stringify(map || {}));
+    } catch {
+        // Best effort only.
+    }
+}
+
+function consumePendingCartSnapshot(orderId) {
+    const key = String(orderId || '');
+    if (!key) return [];
+    const snapshots = readPendingCartSnapshots();
+    const items = Array.isArray(snapshots[key]) ? snapshots[key] : [];
+    if (key in snapshots) {
+        delete snapshots[key];
+        writePendingCartSnapshots(snapshots);
+    }
+    return items;
+}
+
+function dropPendingCartSnapshot(orderId) {
+    const key = String(orderId || '');
+    if (!key) return;
+    const snapshots = readPendingCartSnapshots();
+    if (key in snapshots) {
+        delete snapshots[key];
+        writePendingCartSnapshots(snapshots);
+    }
+}
+
+function formatCountdown(totalSeconds) {
+    const s = Math.max(0, Number(totalSeconds) || 0);
+    const mm = Math.floor(s / 60);
+    const ss = s % 60;
+    return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+}
 
 const PaymentCallback = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const { clearCart } = useCart();
+    const { clearCart, addToCart } = useCart();
 
     const [status, setStatus] = useState('checking'); // checking | success | failed | processing | error
     const [paymentData, setPaymentData] = useState(null);
     const [pollCount, setPollCount] = useState(0);
+    const [countdownSecs, setCountdownSecs] = useState(0);
+    const [retryingPayment, setRetryingPayment] = useState(false);
+    const [pollCycle, setPollCycle] = useState(0);
     const pollTimer = useRef(null);
     const hasCleared = useRef(false);
+    const hasRestored = useRef(false);
 
     // Get orderId from URL params, fallback to sessionStorage
     const orderId = searchParams.get('orderId') || sessionStorage.getItem('payment_order_id');
@@ -32,13 +90,40 @@ const PaymentCallback = () => {
         }
         // Clean up sessionStorage
         sessionStorage.removeItem('payment_order_id');
+        if (data?.order_id) {
+            dropPendingCartSnapshot(data.order_id);
+        }
     }, [clearCart]);
 
     const handleFailed = useCallback((data) => {
         setPaymentData(data);
         setStatus('failed');
         sessionStorage.removeItem('payment_order_id');
-    }, []);
+        const restoreOrderId = data?.order_id || orderId;
+        if (!hasRestored.current && restoreOrderId) {
+            const snapshotItems = consumePendingCartSnapshot(restoreOrderId);
+            if (snapshotItems.length > 0) {
+                clearCart();
+                snapshotItems.forEach((item) => {
+                    addToCart(item, { quantity: Number(item.quantity) || 1 });
+                });
+            }
+            hasRestored.current = true;
+        }
+    }, [addToCart, clearCart, orderId]);
+
+    useEffect(() => {
+        const raw = Number(paymentData?.payment_expires_in_seconds);
+        if (!Number.isFinite(raw) || raw <= 0) {
+            setCountdownSecs(0);
+            return undefined;
+        }
+        setCountdownSecs(raw);
+        const timer = setInterval(() => {
+            setCountdownSecs((prev) => (prev > 0 ? prev - 1 : 0));
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [paymentData?.payment_expires_in_seconds]);
 
     useEffect(() => {
         if (!orderId) {
@@ -65,18 +150,24 @@ const PaymentCallback = () => {
                     return;
                 }
 
-                // Still PENDING / INITIATED — retry if attempts left
+                // Event-driven fallback: one immediate check, then only short retries.
                 if (attempt < MAX_POLL_ATTEMPTS) {
-                    pollTimer.current = setTimeout(poll, POLL_INTERVAL_MS);
+                    const delay = RETRY_DELAYS_MS[attempt - 1] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1] ?? 2000;
+                    pollTimer.current = setTimeout(poll, delay);
                 } else {
-                    // Max attempts reached — show "still processing"
-                    setPaymentData(result);
-                    setStatus('processing');
+                    if (result.payment_window_expired || Number(result.payment_expires_in_seconds || 0) <= 0) {
+                        handleFailed(result);
+                    } else {
+                        // Max attempts reached — still inside payment grace window
+                        setPaymentData(result);
+                        setStatus('processing');
+                    }
                 }
             } catch (err) {
                 console.error('Payment status check error:', err);
                 if (attempt < MAX_POLL_ATTEMPTS) {
-                    pollTimer.current = setTimeout(poll, POLL_INTERVAL_MS);
+                    const delay = RETRY_DELAYS_MS[attempt - 1] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1] ?? 2000;
+                    pollTimer.current = setTimeout(poll, delay);
                 } else {
                     setStatus('error');
                 }
@@ -88,7 +179,7 @@ const PaymentCallback = () => {
         return () => {
             if (pollTimer.current) clearTimeout(pollTimer.current);
         };
-    }, [orderId, handleSuccess, handleFailed]);
+    }, [orderId, handleSuccess, handleFailed, pollCycle]);
 
     // Manual retry handler
     const handleRetryCheck = async () => {
@@ -102,11 +193,81 @@ const PaymentCallback = () => {
             } else if (result.payment_status === 'FAILED') {
                 handleFailed(result);
             } else {
-                setPaymentData(result);
-                setStatus('processing');
+                if (result.payment_window_expired || Number(result.payment_expires_in_seconds || 0) <= 0) {
+                    handleFailed(result);
+                } else {
+                    setPaymentData(result);
+                    setStatus('processing');
+                }
             }
         } catch {
             setStatus('error');
+        }
+    };
+
+    const handleCompletePendingPayment = async () => {
+        if (!orderId || retryingPayment) return;
+        setRetryingPayment(true);
+        try {
+            const retry = await retryPendingPayment(orderId);
+            await loadRazorpayScript();
+            const Razorpay = window.Razorpay;
+            if (!Razorpay) throw new Error('Payment checkout unavailable.');
+
+            const rzp = new Razorpay({
+                key: retry.key_id,
+                amount: Math.round(Number(retry.amount || 0)),
+                currency: 'INR',
+                order_id: retry.razorpay_order_id,
+                name: 'New Balan Pharmacy',
+                description: `Order ${retry.order_reference || retry.order_id}`,
+                theme: { color: '#1d4ed8' },
+                retry: { enabled: true, max_count: 4 },
+                notes: { internal_order_id: retry.order_id },
+                handler: async (res) => {
+                    await verifyPayment({
+                        razorpay_payment_id: res.razorpay_payment_id,
+                        razorpay_order_id: res.razorpay_order_id,
+                        razorpay_signature: res.razorpay_signature,
+                    });
+                    setStatus('checking');
+                    setPollCount(0);
+                    setPollCycle((n) => n + 1);
+                },
+                modal: {
+                    ondismiss: () => {
+                        reportCheckoutOutcome({
+                            order_id: orderId,
+                            outcome: 'abandoned',
+                            error_description: 'Customer closed the payment window.',
+                        }).catch(() => {});
+                    },
+                    escape: true,
+                    animation: true,
+                },
+            });
+            rzp.on('payment.failed', (response) => {
+                const err = response?.error || {};
+                const desc = err.description || err.reason || err.code || 'Payment failed.';
+                reportCheckoutOutcome({
+                    order_id: orderId,
+                    outcome: 'failed',
+                    razorpay_payment_id:
+                        response?.metadata?.payment_id ||
+                        response?.payment_id ||
+                        err?.metadata?.payment_id ||
+                        err?.payment_id ||
+                        undefined,
+                    error_description: String(desc),
+                }).catch(() => {});
+                setStatus('processing');
+            });
+            rzp.open();
+        } catch (e) {
+            console.error('Retry payment error:', e);
+            setStatus('error');
+        } finally {
+            setRetryingPayment(false);
         }
     };
 
@@ -188,12 +349,16 @@ const PaymentCallback = () => {
                         <XCircle size={56} />
                     </div>
                     <h2>Payment Failed</h2>
-                    <p>Your payment could not be completed. No amount has been deducted from your account.</p>
+                    <p>
+                        {paymentData?.payment_window_expired
+                            ? 'Payment was not completed within the allowed time window, so this order was marked as failed.'
+                            : 'Your payment could not be completed. No amount has been deducted from your account.'}
+                    </p>
 
                     <div className="callback-actions">
-                        <button className="btn btn-primary" onClick={() => navigate('/checkout')}>
+                        <button className="btn btn-primary" onClick={handleCompletePendingPayment} disabled={retryingPayment}>
                             <RefreshCw size={18} />
-                            Try Again
+                            {retryingPayment ? 'Opening payment...' : 'Complete Payment'}
                         </button>
                         <button className="btn btn-outline" onClick={() => navigate('/pharmacy')}>
                             Back to Pharmacy
@@ -231,6 +396,11 @@ const PaymentCallback = () => {
                     </div>
                     <h2>Payment Processing</h2>
                     <p>Your payment is still being processed by Razorpay. This usually takes a few seconds but can sometimes take longer.</p>
+                    {countdownSecs > 0 && (
+                        <p className="callback-note">
+                            Payment window remaining: <strong>{formatCountdown(countdownSecs)}</strong>. If payment is not completed in this time, the order will be marked failed automatically.
+                        </p>
+                    )}
 
                     {paymentData && paymentData.order_id && (
                         <div className="callback-details">
@@ -242,14 +412,21 @@ const PaymentCallback = () => {
                     )}
 
                     <div className="callback-actions">
-                        <button className="btn btn-primary" onClick={handleRetryCheck}>
+                        <button className="btn btn-primary" onClick={handleCompletePendingPayment} disabled={retryingPayment}>
                             <RefreshCw size={18} />
-                            Check Again
+                            {retryingPayment ? 'Opening payment...' : 'Complete Payment'}
+                        </button>
+                        <button className="btn btn-outline" onClick={handleRetryCheck}>
+                            <RefreshCw size={18} />
+                            Check Status
                         </button>
                         <button className="btn btn-outline" onClick={() => navigate('/profile')}>
                             View My Orders
                         </button>
                     </div>
+                    <p className="callback-note">
+                        You can retry payment while the payment window is active.
+                    </p>
 
                     <p className="callback-note">
                         If money was deducted and the payment doesn't confirm within a few minutes, it will be automatically refunded within 5-7 business days.

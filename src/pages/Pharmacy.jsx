@@ -262,10 +262,7 @@ const Pharmacy = () => {
                 manufacturer: brand?.manufacturer || null,
                 brandId: brand?.id || null,
                 maxStock: max > 0 ? max : undefined,
-                requiresPrescription:
-                    prod.requiresPrescription === true ||
-                    prod.requires_prescription === true ||
-                    prod.is_prescription_required === true,
+                requiresPrescription: prod.requiresPrescription === true,
             };
             addToCart(cartItem, { quantity: 1 });
             toast.success(`${prod.name} added to cart`);
@@ -295,10 +292,7 @@ const Pharmacy = () => {
             brandId: brand.id,
             name: `${prod.name} (${brand.brand_name})`,
             maxStock: max > 0 ? max : undefined,
-            requiresPrescription:
-                prod.requiresPrescription === true ||
-                prod.requires_prescription === true ||
-                prod.is_prescription_required === true,
+            requiresPrescription: prod.requiresPrescription === true,
         };
         addToCart(cartItem, { quantity: safeQty });
         toast.success(`${safeQty} × ${brand.brand_name} added to cart`);

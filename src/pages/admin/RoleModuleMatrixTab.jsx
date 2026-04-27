@@ -28,7 +28,7 @@ const RoleModuleMatrixTab = ({ showNotify }) => {
   const loadBase = useCallback(async () => {
     setLoading(true);
     try {
-      const [rRes, mods] = await Promise.all([getRoles({ limit: 200, sort_by: 'name', sort_order: 'asc' }), getModules()]);
+      const [rRes, mods] = await Promise.all([getRoles({ limit: 100, sort_by: 'name', sort_order: 'asc' }), getModules()]);
       setRoles((rRes.items || []).filter((x) => x && !x.is_deleted));
       setModules(Array.isArray(mods) ? mods : []);
     } catch (e) {

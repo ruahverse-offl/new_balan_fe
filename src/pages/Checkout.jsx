@@ -13,6 +13,26 @@ import { ShoppingBag, ArrowLeft, Plus, MapPin, X, FileText, AlertCircle } from '
 import { InlineSpinner } from '../components/common/PageLoading';
 import './Checkout.css';
 
+const PENDING_CART_SNAPSHOTS_KEY = 'nb_pending_cart_snapshots_v1';
+
+function readPendingCartSnapshots() {
+    try {
+        const raw = localStorage.getItem(PENDING_CART_SNAPSHOTS_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+        return {};
+    }
+}
+
+function writePendingCartSnapshots(map) {
+    try {
+        localStorage.setItem(PENDING_CART_SNAPSHOTS_KEY, JSON.stringify(map || {}));
+    } catch {
+        // Best effort only.
+    }
+}
+
 /**
  * Turn API/gateway error strings into short, non-technical copy for the checkout alert modal.
  * Log full errors with console.error; do not show raw exception types in the UI.
@@ -79,7 +99,7 @@ function computeDeliveryFee(subtotal, settings) {
 }
 
 const Checkout = () => {
-    const { cart, subtotal, updateQuantity, removeFromCart } = useCart();
+    const { cart, subtotal, updateQuantity, removeFromCart, clearCart } = useCart();
     const { user } = useAuth();
     const navigate = useNavigate();
     const [deliverySettings, setDeliverySettings] = useState({ is_enabled: true, show_marquee: true });
@@ -193,10 +213,7 @@ const Checkout = () => {
     // Minimum order amount
     const minOrderAmount = deliverySettings.min_order_amount || 0;
     const meetsMinOrder = subtotal >= minOrderAmount;
-    const itemNeedsPrescription = (item) =>
-        item.requires_prescription === true ||
-        item.requiresPrescription === true ||
-        item.is_prescription_required === true;
+    const itemNeedsPrescription = (item) => item.requiresPrescription === true;
     const cartNeedsPrescription = cart.some(itemNeedsPrescription);
     const prescriptionReady =
         !cartNeedsPrescription ||
@@ -465,6 +482,11 @@ const Checkout = () => {
 
             const orderId = result.order_id;
             sessionStorage.setItem('payment_order_id', orderId);
+            const cartSnapshot = (cart || []).map((item) => ({ ...item }));
+            const snapshots = readPendingCartSnapshots();
+            snapshots[String(orderId)] = cartSnapshot;
+            writePendingCartSnapshots(snapshots);
+            clearCart();
 
             const isRazorpayTest =
                 result.razorpay_mode === 'test' ||

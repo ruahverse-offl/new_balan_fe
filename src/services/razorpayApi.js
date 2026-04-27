@@ -59,6 +59,15 @@ export const checkPaymentStatus = async (orderId) => {
 };
 
 /**
+ * Get checkout payload to retry payment for existing pending order.
+ * @param {string} orderId - Our order UUID
+ * @returns {Promise<Object>} { order_id, razorpay_order_id, key_id, amount, ... }
+ */
+export const retryPendingPayment = async (orderId) => {
+  return await apiGet(`/razorpay/retry/${orderId}`);
+};
+
+/**
  * Initiate a refund for a paid order (admin only)
  * @param {string} orderId - Our order UUID
  * @param {Object} data - { amount?: number, reason?: string }

@@ -191,6 +191,7 @@ export const mapDoctorToBackendUpdatePayload = (doctor) => {
 export const mapMedicineToFrontend = (medicine) => {
   const rawPath = medicine.image_path;
   const imageUrl = rawPath ? getStorageFileUrl(rawPath) : '';
+  const requiresRx = medicine.is_prescription_required === true;
   return {
     id: medicine.id,
     name: medicine.name,
@@ -198,7 +199,9 @@ export const mapMedicineToFrontend = (medicine) => {
     price: 0, // Price comes from brand offerings
     discount: 0,
     description: medicine.description || '',
-    requiresPrescription: medicine.is_prescription_required || false,
+    requiresPrescription: requiresRx,
+    is_prescription_required: requiresRx,
+    requires_prescription: requiresRx,
     image: imageUrl,
     image_path: rawPath || '',
     stock: medicine.is_active !== false,

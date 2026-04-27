@@ -105,12 +105,7 @@ export const CartProvider = ({ children }) => {
     }, [cart]);
 
     const requiresPrescription = useMemo(() => {
-        return cart.some(
-            (item) =>
-                item.requiresPrescription === true ||
-                item.requires_prescription === true ||
-                item.is_prescription_required === true
-        );
+        return cart.some((item) => item.requiresPrescription === true);
     }, [cart]);
 
     const [isCartOpen, setIsCartOpen] = useState(false);

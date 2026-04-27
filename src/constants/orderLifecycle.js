@@ -6,16 +6,16 @@ import { hasModuleGrant } from '../utils/permissionMapper';
 
 export const ORDER_STATUS_LABELS = {
     PENDING: 'Payment pending',
-    PAYMENT_CANCELLED: 'Payment cancelled',
+    PAYMENT_CANCELLED: 'Payment failed',
     ORDER_RECEIVED: 'Order received (staff)',
     ORDER_TAKEN: 'Order taken',
     ORDER_PROCESSING: 'Processing',
-    DELIVERY_ASSIGNED: 'Delivery assigned',
-    PARCEL_TAKEN: 'Parcel picked up',
+    DELIVERY_ASSIGNED: 'Delivery agent assigned',
+    PARCEL_TAKEN: 'Given to delivery agent',
     OUT_FOR_DELIVERY: 'Out for delivery',
     DELIVERED: 'Delivered',
     CANCELLED_BY_STAFF: 'Cancelled by staff',
-    DELIVERY_RETURNED: 'Returned — customer refused',
+    DELIVERY_RETURNED: 'Delivery not done - returned to store',
     REFUND_INITIATED: 'Refund initiated',
     REFUNDED: 'Refunded',
     // Legacy API values still possible until DB migrated
@@ -60,8 +60,6 @@ const STAFF_NEXT = {
     ORDER_TAKEN: ['ORDER_PROCESSING', 'CANCELLED_BY_STAFF'],
     ORDER_PROCESSING: ['DELIVERY_ASSIGNED', 'CANCELLED_BY_STAFF'],
     DELIVERY_ASSIGNED: ['CANCELLED_BY_STAFF'],
-    PARCEL_TAKEN: ['CANCELLED_BY_STAFF'],
-    OUT_FOR_DELIVERY: ['CANCELLED_BY_STAFF'],
 };
 
 const DELIVERY_NEXT = {
@@ -147,10 +145,10 @@ export const FULFILLMENT_CHAIN_BUTTON_LABELS = {
     ORDER_TAKEN: 'Order packed',
     ORDER_PROCESSING: 'Order packed',
     DELIVERY_ASSIGNED: 'Assign delivery agent',
-    PARCEL_TAKEN: 'Parcel picked up',
+    PARCEL_TAKEN: 'Pick from store',
     OUT_FOR_DELIVERY: 'Out for delivery',
     DELIVERED: 'Mark delivered',
-    DELIVERY_RETURNED: 'Customer refused delivery',
+    DELIVERY_RETURNED: 'Delivery not done - return to store',
 };
 
 const STATUS_RANK = {
@@ -231,8 +229,8 @@ export function getAllowedNextStatusActions({ order, menuItems = [], userId, isA
 
     if (hasStaff) {
         (STAFF_NEXT[current] || []).forEach(add);
-        (DELIVERY_NEXT[current] || []).forEach(add);
-    } else if (hasDelivery && isAssignedCourier) {
+    }
+    if (hasDelivery && isAssignedCourier) {
         (DELIVERY_NEXT[current] || []).forEach(add);
     }
 

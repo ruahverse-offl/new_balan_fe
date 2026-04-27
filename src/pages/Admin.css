@@ -1573,6 +1573,46 @@ button.sidebar-profile-card.active .sidebar-profile-chevron {
     font-weight: 500;
     color: var(--admin-text-main);
 }
+.order-detail-milestones-grid {
+    margin-top: 0.6rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 0.7rem;
+}
+.order-detail-milestone-card {
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    padding: 0.65rem 0.75rem;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+.order-detail-milestone-card.is-done {
+    background: #f0f9ff;
+    border-color: #bae6fd;
+}
+.order-detail-milestone-card.is-pending {
+    opacity: 0.72;
+}
+.order-detail-milestone-label {
+    font-size: 0.74rem;
+    color: var(--admin-text-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.order-detail-milestone-date {
+    font-size: 0.92rem;
+    color: var(--admin-text-main);
+    font-weight: 600;
+    line-height: 1.35;
+}
+.order-detail-milestone-time {
+    font-size: 0.84rem;
+    color: #1d4ed8;
+    font-weight: 700;
+}
 .order-detail-status-row {
     display: flex;
     flex-wrap: wrap;
@@ -2580,6 +2620,125 @@ button.sidebar-profile-card.active .sidebar-profile-chevron {
 .admin-modal.compact-modal {
     max-width: 550px;
     padding: 1.75rem 2rem;
+}
+
+.assign-delivery-modal {
+    margin-top: 0.35rem;
+}
+
+.assign-delivery-modal__subtitle {
+    margin: 0 0 0.75rem;
+    color: var(--admin-text-muted);
+    font-size: 0.92rem;
+    line-height: 1.5;
+}
+
+.assign-delivery-modal__search-wrap {
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 0.65rem;
+    margin-bottom: 0.65rem;
+    background: color-mix(in srgb, var(--gray-50, #f8fafc) 70%, var(--white));
+}
+
+.assign-delivery-modal__search-wrap svg {
+    color: var(--admin-text-muted);
+    flex-shrink: 0;
+}
+
+.assign-delivery-modal__search {
+    border: none;
+    outline: none;
+    width: 100%;
+    background: transparent;
+    font-size: 0.9rem;
+    color: var(--admin-text-main);
+}
+
+.assign-delivery-modal__search::placeholder {
+    color: color-mix(in srgb, var(--admin-text-muted) 85%, #9ca3af);
+}
+
+.assign-delivery-modal__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    max-height: 290px;
+    overflow-y: auto;
+    padding-right: 0.2rem;
+}
+
+.assign-delivery-modal__empty {
+    border: 1px dashed var(--admin-border);
+    border-radius: 10px;
+    padding: 0.85rem 0.9rem;
+    color: var(--admin-text-muted);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.assign-delivery-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.8rem;
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    padding: 0.72rem 0.8rem;
+    background: var(--white);
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.assign-delivery-card:hover {
+    border-color: color-mix(in srgb, var(--primary, #6366f1) 35%, var(--admin-border));
+    background: color-mix(in srgb, var(--primary, #6366f1) 3%, var(--white));
+}
+
+.assign-delivery-card.selected {
+    border-color: color-mix(in srgb, var(--primary, #6366f1) 55%, var(--admin-border));
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.12);
+    background: color-mix(in srgb, var(--primary, #6366f1) 6%, var(--white));
+}
+
+.assign-delivery-card input[type='radio'] {
+    margin: 0;
+    accent-color: var(--primary, #6366f1);
+}
+
+.assign-delivery-card__main {
+    min-width: 0;
+}
+
+.assign-delivery-card__name {
+    display: flex;
+    align-items: center;
+    gap: 0.38rem;
+    font-weight: 700;
+    color: var(--admin-text-main);
+    font-size: 0.93rem;
+}
+
+.assign-delivery-card__meta {
+    margin-top: 0.12rem;
+    font-size: 0.83rem;
+    color: var(--admin-text-muted);
+}
+
+.assign-delivery-card__status {
+    font-size: 0.75rem;
+    font-weight: 700;
+    border: 1px solid color-mix(in srgb, var(--primary, #6366f1) 32%, #c7d2fe);
+    color: color-mix(in srgb, var(--primary, #4f46e5) 78%, #1f2937);
+    background: color-mix(in srgb, var(--primary, #6366f1) 10%, var(--white));
+    border-radius: 999px;
+    padding: 0.26rem 0.58rem;
+    white-space: nowrap;
 }
 
 .admin-modal.doctor-form-modal {

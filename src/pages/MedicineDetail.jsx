@@ -100,7 +100,7 @@ const MedicineDetail = () => {
         price: chosenBrand ? parseFloat(chosenBrand.mrp) : (medicine.min_price || 0),
         discount: 0,
         description: medicine.description || '',
-        requiresPrescription: medicine.is_prescription_required || false,
+        requiresPrescription: medicine.is_prescription_required === true,
         image: imgUrl,
         stock: medicine.is_active !== false,
         brandName: chosenBrand?.brand_name || null,

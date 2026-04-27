@@ -3,25 +3,40 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, FileText, ExternalLink, Copy, Check, Ban, RotateCcw } from 'lucide-react';
 import { PageLoading } from '../../components/common/PageLoading';
 import { getOrderDetail } from '../../services/ordersApi';
+import { getDeliveryAgents } from '../../services/usersApi';
 import { getPrescriptionFileUrl } from '../../utils/prescriptionUrl';
+import { hasModuleGrant } from '../../utils/permissionMapper';
 import {
     formatOrderStatusLabel,
     FULFILLMENT_CHAIN_BUTTON_LABELS,
     fulfillmentStatusRank,
     getAllowedNextStatusActions,
     getPackedActionFromActions,
-    getSortedForwardLifecycleActionsAfterPacked,
-    isTerminalOrderStatus,
+    normalizeOrderStatus,
     orderStatusTagClass,
     paymentStatusTagClass,
 } from '../../constants/orderLifecycle';
 
-function formatLifecycleTimestamp(iso) {
-    if (!iso) return '—';
+function formatTimestampParts(iso) {
+    if (!iso) return { date: '—', time: '', full: '—' };
     try {
-        return new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+        const d = new Date(iso);
+        return {
+            date: d.toLocaleDateString('en-IN', {
+                weekday: 'short',
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+            }),
+            time: d.toLocaleTimeString('en-IN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+            }),
+            full: d.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+        };
     } catch {
-        return String(iso);
+        return { date: String(iso), time: '', full: String(iso) };
     }
 }
 
@@ -53,6 +68,8 @@ const OrderDetailPage = ({
             : fromTab === 'delivery-orders'
               ? 'Back to My deliveries'
               : 'Back to Orders';
+    const isDeliveryOrdersView = fromTab === 'delivery-orders';
+    const isCompactOrderDetailView = isDeliveryOrdersView;
     const [detail, setDetail] = useState(
         orderFromState ? { order: orderFromState, items: [], payment: null } : null
     );
@@ -65,6 +82,7 @@ const OrderDetailPage = ({
     const [cancelSubmitting, setCancelSubmitting] = useState(false);
     const [refundModalOpen, setRefundModalOpen] = useState(false);
     const [refundError, setRefundError] = useState('');
+    const [assignedAgentStatus, setAssignedAgentStatus] = useState('');
     const didScrollStatusFocus = useRef(false);
 
     useEffect(() => {
@@ -155,10 +173,40 @@ const OrderDetailPage = ({
     });
     const cancelStaffAction = lifecycleActions.find((a) => a.status === 'CANCELLED_BY_STAFF');
     const canRefundPayment =
+        !isCompactOrderDetailView &&
         Boolean(onRefundPayment) &&
         payment &&
         String(payment.payment_status || '').toUpperCase() === 'SUCCESS' &&
         (!payment.refund_status || String(payment.refund_status).toUpperCase() === 'NONE');
+    const canStaffViewDeliveryAgentStatus =
+        isAdminRole ||
+        hasModuleGrant(menuItems, 'orders', 'read') ||
+        hasModuleGrant(menuItems, 'orders', 'update');
+
+    useEffect(() => {
+        let cancelled = false;
+        const loadAssignedAgentStatus = async () => {
+            setAssignedAgentStatus('');
+            if (!canStaffViewDeliveryAgentStatus || !order?.delivery_assigned_user_id) return;
+            try {
+                const res = await getDeliveryAgents();
+                if (cancelled) return;
+                const match = (res.items || []).find(
+                    (u) =>
+                        u &&
+                        u.id != null &&
+                        String(u.id) === String(order.delivery_assigned_user_id),
+                );
+                setAssignedAgentStatus(match?.delivery_status || '');
+            } catch {
+                if (!cancelled) setAssignedAgentStatus('');
+            }
+        };
+        loadAssignedAgentStatus();
+        return () => {
+            cancelled = true;
+        };
+    }, [canStaffViewDeliveryAgentStatus, order?.delivery_assigned_user_id]);
 
     const copyOrderId = async () => {
         if (!fullOrderId) return;
@@ -239,7 +287,7 @@ const OrderDetailPage = ({
                             <span className="label">Phone</span>
                             <div className="value">{order.customer_phone || 'N/A'}</div>
                         </div>
-                        {order.customer_email && (
+                        {!isCompactOrderDetailView && order.customer_email && (
                             <div>
                                 <span className="label">Email</span>
                                 <div className="value">{order.customer_email}</div>
@@ -285,7 +333,7 @@ const OrderDetailPage = ({
                                 <div className="value">{order.delivery_address}</div>
                             </div>
                         )}
-                        {order.notes && (
+                        {!isCompactOrderDetailView && order.notes && (
                             <div className="full-width">
                                 <span className="label">Notes</span>
                                 <div className="value">{order.notes}</div>
@@ -338,10 +386,21 @@ const OrderDetailPage = ({
                         </div>
                         {order.delivery_assigned_user_id && (
                             <div>
-                                <span className="label">Assigned delivery (user id)</span>
-                                <div className="value mono order-detail-mono-sm">
-                                    {String(order.delivery_assigned_user_id)}
+                                <span className="label">Assigned delivery agent</span>
+                                <div className="value">
+                                    {order.delivery_assigned_user_name || 'Delivery agent'}
+                                    {order.delivery_assigned_user_phone
+                                        ? ` · ${order.delivery_assigned_user_phone}`
+                                        : ''}
                                 </div>
+                                <div className="value mono order-detail-mono-sm" style={{ marginTop: '0.2rem' }}>
+                                    ID: {String(order.delivery_assigned_user_id)}
+                                </div>
+                                {assignedAgentStatus ? (
+                                    <div className="value" style={{ marginTop: '0.25rem' }}>
+                                        Status: {assignedAgentStatus}
+                                    </div>
+                                ) : null}
                             </div>
                         )}
                         {order.cancellation_reason && (
@@ -365,120 +424,229 @@ const OrderDetailPage = ({
                         order.payment_completed_at) && (
                         <div className="order-detail-milestones" style={{ marginTop: '1rem' }}>
                             <span className="label">Milestone timestamps</span>
-                            <dl
-                                className="order-detail-grid"
-                                style={{ marginTop: '0.5rem', rowGap: '0.35rem' }}
-                            >
-                                <dt className="label">Order received (paid)</dt>
-                                <dd className="value">
-                                    {formatLifecycleTimestamp(
-                                        order.order_received_at || order.payment_completed_at,
-                                    )}
-                                </dd>
-                                <dt className="label">Order packed</dt>
-                                <dd className="value">{formatLifecycleTimestamp(order.order_packed_at)}</dd>
-                                <dt className="label">Delivery assigned</dt>
-                                <dd className="value">{formatLifecycleTimestamp(order.delivery_assigned_at)}</dd>
-                                <dt className="label">Delivered</dt>
-                                <dd className="value">{formatLifecycleTimestamp(order.delivered_at)}</dd>
-                            </dl>
-                        </div>
-                    )}
-
-                    {!isTerminalOrderStatus(order.order_status) && (
-                        <div className="order-detail-fulfillment-chain-wrap">
-                            <p className="order-detail-chain-title">Progress</p>
-                            <div className="order-detail-fulfillment-chain" aria-label="Order fulfillment steps">
-                                {(() => {
-                                    const rank = fulfillmentStatusRank(order.order_status);
-                                    const packedAct = getPackedActionFromActions(lifecycleActions);
-                                    const tailActs = getSortedForwardLifecycleActionsAfterPacked({
-                                        order,
-                                        menuItems,
-                                        userId,
-                                        isAdminRole,
-                                    });
-                                    const nodes = [];
-
-                                    nodes.push(
-                                        <div
-                                            key="received"
-                                            className={`order-detail-chain-node ${rank >= 1 ? 'done' : rank === 0 ? 'pending' : ''}`}
-                                        >
-                                            {rank >= 1 ? <Check size={14} className="order-detail-chain-check" aria-hidden /> : null}
-                                            <span>Order received</span>
-                                        </div>,
-                                    );
-
-                                    const packedDone = rank >= 3;
-                                    nodes.push(
-                                        <span key="a1" className="order-detail-chain-arrow" aria-hidden>
-                                            →
-                                        </span>,
-                                    );
-                                    if (packedAct && onOrderLifecycleIntent) {
-                                        nodes.push(
-                                            <button
-                                                key="packed"
-                                                type="button"
-                                                className="order-detail-chain-btn"
-                                                onClick={() => onOrderLifecycleIntent(order, packedAct)}
-                                            >
-                                                {packedAct.label}
-                                            </button>,
-                                        );
-                                    } else {
-                                        nodes.push(
-                                            <div
-                                                key="packed"
-                                                className={`order-detail-chain-node ${packedDone ? 'done' : rank >= 1 ? 'waiting' : 'locked'}`}
-                                            >
-                                                {packedDone ? (
-                                                    <Check size={14} className="order-detail-chain-check" aria-hidden />
-                                                ) : null}
-                                                <span>Order packed</span>
-                                            </div>,
-                                        );
-                                    }
-
-                                    if (onOrderLifecycleIntent) {
-                                        tailActs.forEach((act) => {
-                                            nodes.push(
-                                                <span key={`arr-${act.status}`} className="order-detail-chain-arrow" aria-hidden>
-                                                    →
-                                                </span>,
-                                            );
-                                            const btnLabel =
-                                                FULFILLMENT_CHAIN_BUTTON_LABELS[act.status] || act.label || act.status;
-                                            nodes.push(
-                                                <button
-                                                    key={act.status}
-                                                    type="button"
-                                                    className="order-detail-chain-btn"
-                                                    onClick={() => onOrderLifecycleIntent(order, act)}
-                                                >
-                                                    {btnLabel}
-                                                </button>,
-                                            );
-                                        });
-                                    }
-
+                            <div className="order-detail-milestones-grid">
+                                {[
+                                    {
+                                        key: 'received',
+                                        label: 'Order received (paid)',
+                                        value: order.order_received_at || order.payment_completed_at,
+                                    },
+                                    { key: 'packed', label: 'Order packed', value: order.order_packed_at },
+                                    { key: 'assigned', label: 'Delivery assigned', value: order.delivery_assigned_at },
+                                    { key: 'delivered', label: 'Delivered', value: order.delivered_at },
+                                ].map((step) => {
+                                    const parts = formatTimestampParts(step.value);
+                                    const hasValue = parts.full !== '—';
                                     return (
-                                        <>
-                                            {rank === 0 ? (
-                                                <p className="order-detail-chain-payment-note">
-                                                    Awaiting payment. The steps below apply after payment is received.
-                                                </p>
-                                            ) : null}
-                                            <div className="order-detail-fulfillment-chain-row">{nodes}</div>
-                                        </>
+                                        <article key={step.key} className={`order-detail-milestone-card ${hasValue ? 'is-done' : 'is-pending'}`}>
+                                            <span className="order-detail-milestone-label">{step.label}</span>
+                                            <span className="order-detail-milestone-date">{parts.date}</span>
+                                            {parts.time ? <span className="order-detail-milestone-time">{parts.time}</span> : null}
+                                        </article>
                                     );
-                                })()}
+                                })}
                             </div>
                         </div>
                     )}
 
-                    {(cancelStaffAction && onCancelOrderWithReason) || canRefundPayment ? (
+                    <div className="order-detail-fulfillment-chain-wrap">
+                        {!isCompactOrderDetailView ? (
+                            <>
+                                <p className="order-detail-chain-title">Staff progress</p>
+                                <div className="order-detail-fulfillment-chain" aria-label="Staff order steps">
+                                    {(() => {
+                                        const rank = fulfillmentStatusRank(order.order_status);
+                                        const currentStatus = normalizeOrderStatus(order.order_status);
+                                        const packedAct = getPackedActionFromActions(lifecycleActions);
+                                        const actionByStatus = new Map(
+                                            (lifecycleActions || []).map((a) => [String(a.status || '').toUpperCase(), a]),
+                                        );
+                                        const nodes = [];
+                                        const chainSteps = [
+                                            {
+                                                key: 'ORDER_RECEIVED',
+                                                label: 'Order received',
+                                                done: rank >= 1,
+                                                active: currentStatus === 'ORDER_RECEIVED',
+                                                action: null,
+                                            },
+                                            {
+                                                key: 'ORDER_PACKED',
+                                                label: 'Order packed',
+                                                done: rank >= 3,
+                                                active: currentStatus === 'ORDER_TAKEN' || currentStatus === 'ORDER_PROCESSING',
+                                                action: packedAct || null,
+                                            },
+                                            {
+                                                key: 'DELIVERY_ASSIGNED',
+                                                label: 'Delivery agent assigned',
+                                                done: rank >= 4,
+                                                active: currentStatus === 'DELIVERY_ASSIGNED',
+                                                action: actionByStatus.get('DELIVERY_ASSIGNED') || null,
+                                            },
+                                        ];
+
+                                        chainSteps.forEach((step, idx) => {
+                                            if (idx > 0) {
+                                                nodes.push(
+                                                    <span key={`staff-arr-${step.key}`} className="order-detail-chain-arrow" aria-hidden>
+                                                        →
+                                                    </span>,
+                                                );
+                                            }
+                                            const canClick = Boolean(step.action && onOrderLifecycleIntent);
+                                            if (canClick) {
+                                                const act = step.action;
+                                                nodes.push(
+                                                    <button
+                                                        key={`staff-${step.key}`}
+                                                        type="button"
+                                                        className="order-detail-chain-btn"
+                                                        onClick={() => onOrderLifecycleIntent(order, act)}
+                                                    >
+                                                        {FULFILLMENT_CHAIN_BUTTON_LABELS[act.status] || act.label || step.label}
+                                                    </button>,
+                                                );
+                                            } else {
+                                                const stateClass = step.done
+                                                    ? 'done'
+                                                    : step.active
+                                                      ? 'waiting'
+                                                      : rank >= 1
+                                                        ? 'waiting'
+                                                        : 'locked';
+                                                nodes.push(
+                                                    <div key={`staff-${step.key}`} className={`order-detail-chain-node ${stateClass}`}>
+                                                        {step.done ? (
+                                                            <Check size={14} className="order-detail-chain-check" aria-hidden />
+                                                        ) : null}
+                                                        <span>{step.label}</span>
+                                                    </div>,
+                                                );
+                                            }
+                                        });
+
+                                        return (
+                                            <>
+                                                {rank === 0 ? (
+                                                    <p className="order-detail-chain-payment-note">
+                                                        Awaiting payment. Staff processing starts after payment is received.
+                                                    </p>
+                                                ) : null}
+                                                <div className="order-detail-fulfillment-chain-row">{nodes}</div>
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+                            </>
+                        ) : null}
+
+                        <p className="order-detail-chain-title" style={{ marginTop: '1rem' }}>
+                            Delivery agent progress
+                        </p>
+                        <div className="order-detail-fulfillment-chain" aria-label="Delivery agent steps">
+                            {(() => {
+                                const rank = fulfillmentStatusRank(order.order_status);
+                                const currentStatus = normalizeOrderStatus(order.order_status);
+                                const actionByStatus = new Map(
+                                    (lifecycleActions || []).map((a) => [String(a.status || '').toUpperCase(), a]),
+                                );
+                                const deliveryReturnedAct = actionByStatus.get('DELIVERY_RETURNED');
+                                const pickedFromStoreAction =
+                                    actionByStatus.get('PARCEL_TAKEN') || actionByStatus.get('OUT_FOR_DELIVERY') || null;
+                                const chainSteps = [
+                                    {
+                                        key: 'PICKED_FROM_STORE',
+                                        label: 'Pick from store',
+                                        done: rank >= 6,
+                                        active: currentStatus === 'PARCEL_TAKEN' || currentStatus === 'OUT_FOR_DELIVERY',
+                                        action: pickedFromStoreAction,
+                                    },
+                                    {
+                                        key: 'DELIVERED',
+                                        label: currentStatus === 'DELIVERY_RETURNED' ? 'Returned to store' : 'Delivered',
+                                        done: rank >= 7,
+                                        active: currentStatus === 'DELIVERED' || currentStatus === 'DELIVERY_RETURNED',
+                                        action: actionByStatus.get('DELIVERED') || deliveryReturnedAct || null,
+                                    },
+                                ];
+                                const nodes = [];
+
+                                chainSteps.forEach((step, idx) => {
+                                    if (idx > 0) {
+                                        nodes.push(
+                                            <span key={`del-arr-${step.key}`} className="order-detail-chain-arrow" aria-hidden>
+                                                →
+                                            </span>,
+                                        );
+                                    }
+                                    const canClick = Boolean(step.action && onOrderLifecycleIntent);
+                                    if (canClick) {
+                                        const act = step.action;
+                                        const canShowReturnButton =
+                                            step.key === 'DELIVERED' &&
+                                            act.status === 'DELIVERED' &&
+                                            deliveryReturnedAct;
+                                        if (canShowReturnButton) {
+                                            nodes.push(
+                                                <div key={`del-${step.key}`} className="order-detail-chain-node waiting">
+                                                    <button
+                                                        type="button"
+                                                        className="order-detail-chain-btn"
+                                                        onClick={() => onOrderLifecycleIntent(order, act)}
+                                                    >
+                                                        {FULFILLMENT_CHAIN_BUTTON_LABELS.DELIVERED}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="order-detail-chain-btn"
+                                                        onClick={() => onOrderLifecycleIntent(order, deliveryReturnedAct)}
+                                                        style={{ marginTop: '0.35rem' }}
+                                                    >
+                                                        Delivery not done - return to store
+                                                    </button>
+                                                </div>,
+                                            );
+                                            return;
+                                        }
+                                        nodes.push(
+                                            <button
+                                                key={`del-${step.key}`}
+                                                type="button"
+                                                className="order-detail-chain-btn"
+                                                onClick={() => onOrderLifecycleIntent(order, act)}
+                                            >
+                                                {step.key === 'PICKED_FROM_STORE'
+                                                    ? 'Picked from store'
+                                                    : FULFILLMENT_CHAIN_BUTTON_LABELS[act.status] || act.label || step.label}
+                                            </button>,
+                                        );
+                                    } else {
+                                        const stateClass =
+                                            step.done || currentStatus === 'DELIVERY_RETURNED'
+                                                ? 'done'
+                                                : step.active
+                                                  ? 'waiting'
+                                                  : rank >= 4
+                                                    ? 'waiting'
+                                                    : 'locked';
+                                        nodes.push(
+                                            <div key={`del-${step.key}`} className={`order-detail-chain-node ${stateClass}`}>
+                                                {step.done || currentStatus === 'DELIVERY_RETURNED' ? (
+                                                    <Check size={14} className="order-detail-chain-check" aria-hidden />
+                                                ) : null}
+                                                <span>{step.label}</span>
+                                            </div>,
+                                        );
+                                    }
+                                });
+
+                                return <div className="order-detail-fulfillment-chain-row">{nodes}</div>;
+                            })()}
+                        </div>
+                    </div>
+
+                    {!isCompactOrderDetailView && ((cancelStaffAction && onCancelOrderWithReason) || canRefundPayment) ? (
                         <div className="order-detail-warning-actions" role="region" aria-label="Destructive actions">
                             <p className="order-detail-warning-title">
                                 <Ban size={16} aria-hidden /> Cancel or refund
@@ -694,79 +862,80 @@ const OrderDetailPage = ({
                     )}
                 </section>
 
-                {/* Payment & transaction */}
-                <section className="order-detail-section">
-                    <h3>Payment & transaction</h3>
-                    {payment ? (
-                        <div className="order-detail-payment-grid">
-                            <div>
-                                <span className="label">Status</span>
+                {!isCompactOrderDetailView ? (
+                    <section className="order-detail-section">
+                        <h3>Payment & transaction</h3>
+                        {payment ? (
+                            <div className="order-detail-payment-grid">
                                 <div>
-                                    <span className={`status-tag ${paymentStatusTagClass(payment.payment_status)}`}>
-                                        {payment.payment_status}
-                                    </span>
-                                </div>
-                            </div>
-                            <div>
-                                <span className="label">Method</span>
-                                <div className="value">{payment.payment_method || 'N/A'}</div>
-                            </div>
-                            {payment.payment_date && (
-                                <div>
-                                    <span className="label">Paid at</span>
-                                    <div className="value">{new Date(payment.payment_date).toLocaleString('en-IN')}</div>
-                                </div>
-                            )}
-                            {payment.merchant_transaction_id && (
-                                <div>
-                                    <span className="label">Merchant txn ID</span>
-                                    <div className="value mono break">{payment.merchant_transaction_id}</div>
-                                </div>
-                            )}
-                            {payment.gateway_transaction_id && (
-                                <div>
-                                    <span className="label">Gateway txn ID</span>
-                                    <div className="value mono break">{payment.gateway_transaction_id}</div>
-                                </div>
-                            )}
-                            {payment.refund_status && payment.refund_status !== 'NONE' && (
-                                <>
+                                    <span className="label">Status</span>
                                     <div>
-                                        <span className="label">Refund status</span>
+                                        <span className={`status-tag ${paymentStatusTagClass(payment.payment_status)}`}>
+                                            {payment.payment_status}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span className="label">Method</span>
+                                    <div className="value">{payment.payment_method || 'N/A'}</div>
+                                </div>
+                                {payment.payment_date && (
+                                    <div>
+                                        <span className="label">Paid at</span>
+                                        <div className="value">{new Date(payment.payment_date).toLocaleString('en-IN')}</div>
+                                    </div>
+                                )}
+                                {payment.merchant_transaction_id && (
+                                    <div>
+                                        <span className="label">Merchant txn ID</span>
+                                        <div className="value mono break">{payment.merchant_transaction_id}</div>
+                                    </div>
+                                )}
+                                {payment.gateway_transaction_id && (
+                                    <div>
+                                        <span className="label">Gateway txn ID</span>
+                                        <div className="value mono break">{payment.gateway_transaction_id}</div>
+                                    </div>
+                                )}
+                                {payment.refund_status && payment.refund_status !== 'NONE' && (
+                                    <>
                                         <div>
-                                            <span
-                                                className={`status-tag ${
-                                                    payment.refund_status === 'COMPLETED'
-                                                        ? 'active'
-                                                        : payment.refund_status === 'FAILED'
-                                                          ? 'inactive'
-                                                          : 'pending'
-                                                }`}
-                                            >
-                                                {payment.refund_status}
-                                            </span>
+                                            <span className="label">Refund status</span>
+                                            <div>
+                                                <span
+                                                    className={`status-tag ${
+                                                        payment.refund_status === 'COMPLETED'
+                                                            ? 'active'
+                                                            : payment.refund_status === 'FAILED'
+                                                              ? 'inactive'
+                                                              : 'pending'
+                                                    }`}
+                                                >
+                                                    {payment.refund_status}
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div>
-                                        <span className="label">Refund amount</span>
-                                        <div className="value">₹{parseFloat(payment.refund_amount || 0).toFixed(2)}</div>
-                                    </div>
-                                    {payment.refund_transaction_id && (
-                                        <div className="full-width">
-                                            <span className="label">Refund txn ID</span>
-                                            <div className="value mono break">{payment.refund_transaction_id}</div>
+                                        <div>
+                                            <span className="label">Refund amount</span>
+                                            <div className="value">₹{parseFloat(payment.refund_amount || 0).toFixed(2)}</div>
                                         </div>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                    ) : (
-                        <p className="order-detail-payment-empty">
-                            No payment record loaded. If the order is paid, refresh or check the API; unpaid orders may not
-                            have a row yet.
-                        </p>
-                    )}
-                </section>
+                                        {payment.refund_transaction_id && (
+                                            <div className="full-width">
+                                                <span className="label">Refund txn ID</span>
+                                                <div className="value mono break">{payment.refund_transaction_id}</div>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        ) : (
+                            <p className="order-detail-payment-empty">
+                                No payment record loaded. If the order is paid, refresh or check the API; unpaid orders may not
+                                have a row yet.
+                            </p>
+                        )}
+                    </section>
+                ) : null}
 
                 {/* Totals */}
                 <section className="order-detail-section order-detail-totals">

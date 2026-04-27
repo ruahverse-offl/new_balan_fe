@@ -1088,6 +1088,11 @@ const Admin = () => {
         );
     };
 
+    const refreshOrderViews = () => {
+        fetchTabData('orders', true).catch(() => {});
+        fetchTabData('delivery-orders', true).catch(() => {});
+    };
+
     const handleOrderLifecycleIntent = async (order, act) => {
         if (!order?.id || !act?.status) return;
         if (act.requires === 'cancellation_reason') {
@@ -1103,12 +1108,16 @@ const Admin = () => {
         if (act.requires === 'delivery_assigned_user_id') {
             setOrderLifecycleForm({ reason: '', assignUserId: '' });
             setAssignUserOptions([]);
+            setAssignUserSearch('');
+            setAssignUsersLoading(true);
             setOrderLifecycleDialog({ type: 'assign_delivery', order, targetStatus: act.status });
             try {
                 const res = await getDeliveryAgents();
                 setAssignUserOptions((res.items || []).filter((u) => u && u.id));
             } catch {
                 showNotify('Could not load delivery agents for assignment', 'error');
+            } finally {
+                setAssignUsersLoading(false);
             }
             return;
         }
@@ -1116,6 +1125,7 @@ const Admin = () => {
             const updated = await updateOrder(order.id, { order_status: act.status });
             mergeOrderFromApi(order.id, updated);
             setOrderDetailRefreshKey((k) => k + 1);
+            refreshOrderViews();
             showNotify('Order status updated', 'success');
         } catch (error) {
             showNotify('Failed to update order: ' + (error.message || 'Unknown error'), 'error');
@@ -1162,6 +1172,7 @@ const Admin = () => {
             }
             showNotify('Order updated', 'success');
             setOrderDetailRefreshKey((k) => k + 1);
+            refreshOrderViews();
             setOrderLifecycleDialog(null);
         } catch (error) {
             showNotify('Failed to update order: ' + (error.message || 'Unknown error'), 'error');
@@ -1179,7 +1190,7 @@ const Admin = () => {
         });
         mergeOrderFromApi(orderId, updated);
         setOrderDetailRefreshKey((k) => k + 1);
-        fetchTabData('orders', true).catch(() => {});
+        refreshOrderViews();
     };
 
     const handleRefund = async (payment) => {
@@ -1193,7 +1204,7 @@ const Admin = () => {
             const result = await refundPayment(orderIdForRefund, {});
             showNotify(`Refund ${result.refund_status}: ₹${result.refund_amount}`, 'success');
             setOrderDetailRefreshKey((k) => k + 1);
-            fetchTabData('orders', true).catch(() => {});
+            refreshOrderViews();
         } catch (error) {
             throw error;
         } finally {
@@ -1511,6 +1522,8 @@ const Admin = () => {
     const [orderLifecycleDialog, setOrderLifecycleDialog] = useState(null);
     const [orderLifecycleForm, setOrderLifecycleForm] = useState({ reason: '', assignUserId: '' });
     const [assignUserOptions, setAssignUserOptions] = useState([]);
+    const [assignUsersLoading, setAssignUsersLoading] = useState(false);
+    const [assignUserSearch, setAssignUserSearch] = useState('');
     const [orderDetailRefreshKey, setOrderDetailRefreshKey] = useState(0);
 
     const handleDoctorSubmit = async (e) => {
@@ -3374,7 +3387,7 @@ const Admin = () => {
                     <div className="admin-modal" style={{ maxWidth: '440px' }}>
                         <h3 style={{ marginTop: 0 }}>
                             {orderLifecycleDialog.type === 'cancel_staff' && 'Cancel order (staff)'}
-                            {orderLifecycleDialog.type === 'delivery_return' && 'Delivery returned'}
+                            {orderLifecycleDialog.type === 'delivery_return' && 'Delivery not done - return to store'}
                             {orderLifecycleDialog.type === 'assign_delivery' && 'Assign delivery'}
                         </h3>
                         {(orderLifecycleDialog.type === 'cancel_staff' ||
@@ -3383,7 +3396,7 @@ const Admin = () => {
                                 <p style={{ fontSize: '0.9rem', color: 'var(--admin-text-muted)' }}>
                                     {orderLifecycleDialog.type === 'cancel_staff'
                                         ? 'Provide a clear reason (e.g. invalid prescription, item unavailable).'
-                                        : 'Explain why the customer did not accept the order.'}
+                                        : 'Explain why delivery was not completed (e.g. customer unavailable, wrong address, customer requested later, or any other reason).'}
                                 </p>
                                 <textarea
                                     value={orderLifecycleForm.reason}
@@ -3391,7 +3404,7 @@ const Admin = () => {
                                         setOrderLifecycleForm((f) => ({ ...f, reason: e.target.value }))
                                     }
                                     rows={4}
-                                    placeholder="Reason…"
+                                    placeholder="Reason for returning to store…"
                                     style={{
                                         width: '100%',
                                         padding: '0.6rem',
@@ -3404,33 +3417,103 @@ const Admin = () => {
                             </>
                         )}
                         {orderLifecycleDialog.type === 'assign_delivery' && (
-                            <>
-                                <p style={{ fontSize: '0.9rem', color: 'var(--admin-text-muted)' }}>
-                                    Choose the user who will handle pickup and delivery for this order.
+                            <div className="assign-delivery-modal">
+                                <p className="assign-delivery-modal__subtitle">
+                                    Choose a <strong>delivery agent</strong> for this order. Staff can only assign and
+                                    monitor; delivery execution is done by the assigned agent.
                                 </p>
-                                <select
-                                    value={orderLifecycleForm.assignUserId}
-                                    onChange={(e) =>
-                                        setOrderLifecycleForm((f) => ({ ...f, assignUserId: e.target.value }))
-                                    }
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.5rem',
-                                        marginTop: '0.5rem',
-                                        borderRadius: '8px',
-                                        border: '1px solid var(--admin-border)',
-                                    }}
+                                {assignUserOptions.length > 0 ? (
+                                    <div className="assign-delivery-modal__search-wrap">
+                                        <Search size={16} aria-hidden />
+                                        <input
+                                            type="text"
+                                            className="assign-delivery-modal__search"
+                                            placeholder="Search by name, phone, or status…"
+                                            value={assignUserSearch}
+                                            onChange={(e) => setAssignUserSearch(e.target.value)}
+                                        />
+                                    </div>
+                                ) : null}
+                                <div
+                                    className="assign-delivery-modal__list"
+                                    role="radiogroup"
+                                    aria-label="Delivery agents"
                                 >
-                                    <option value="">Select user…</option>
-                                    {assignUserOptions.map((u) => (
-                                        <option key={u.id} value={u.id}>
-                                            {(u.full_name || u.name || 'Agent') +
-                                                (u.mobile_number ? ` · ${u.mobile_number}` : '') +
-                                                (u.delivery_status ? ` · ${u.delivery_status}` : '')}
-                                        </option>
-                                    ))}
-                                </select>
-                            </>
+                                    {assignUsersLoading ? (
+                                        <div className="assign-delivery-modal__empty">
+                                            <InlineSpinner size={18} /> Loading delivery agents…
+                                        </div>
+                                    ) : assignUserOptions.length === 0 ? (
+                                        <div className="assign-delivery-modal__empty">
+                                            No delivery-agent users found. Create an active user with role
+                                            <code> DELIVERY_AGENT </code>.
+                                        </div>
+                                    ) : (
+                                        assignUserOptions
+                                            .filter((u) => {
+                                                const q = String(assignUserSearch || '').trim().toLowerCase();
+                                                if (!q) return true;
+                                                const name = String(u.full_name || u.name || '').toLowerCase();
+                                                const phone = String(u.mobile_number || '').toLowerCase();
+                                                const statusTxt = String(u.delivery_status || '').toLowerCase();
+                                                return (
+                                                    name.includes(q) ||
+                                                    phone.includes(q) ||
+                                                    statusTxt.includes(q)
+                                                );
+                                            })
+                                            .map((u) => {
+                                            const selected =
+                                                String(orderLifecycleForm.assignUserId || '') === String(u.id || '');
+                                            return (
+                                                <label
+                                                    key={u.id}
+                                                    className={`assign-delivery-card ${selected ? 'selected' : ''}`}
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        name="assignDeliveryAgent"
+                                                        value={u.id}
+                                                        checked={selected}
+                                                        onChange={(e) =>
+                                                            setOrderLifecycleForm((f) => ({
+                                                                ...f,
+                                                                assignUserId: e.target.value,
+                                                            }))
+                                                        }
+                                                    />
+                                                    <div className="assign-delivery-card__main">
+                                                        <div className="assign-delivery-card__name">
+                                                            <UserCheck size={16} aria-hidden />{' '}
+                                                            {u.full_name || u.name || 'Delivery Agent'}
+                                                        </div>
+                                                        <div className="assign-delivery-card__meta">
+                                                            {u.mobile_number || 'No phone'}
+                                                        </div>
+                                                    </div>
+                                                    <span className="assign-delivery-card__status">
+                                                        {u.delivery_status || 'Available'}
+                                                    </span>
+                                                </label>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                                {!assignUsersLoading &&
+                                assignUserOptions.length > 0 &&
+                                !assignUserOptions.some((u) => {
+                                    const q = String(assignUserSearch || '').trim().toLowerCase();
+                                    if (!q) return true;
+                                    const name = String(u.full_name || u.name || '').toLowerCase();
+                                    const phone = String(u.mobile_number || '').toLowerCase();
+                                    const statusTxt = String(u.delivery_status || '').toLowerCase();
+                                    return name.includes(q) || phone.includes(q) || statusTxt.includes(q);
+                                }) ? (
+                                    <div className="assign-delivery-modal__empty" style={{ marginTop: '0.6rem' }}>
+                                        No delivery agent matched <strong>{assignUserSearch}</strong>.
+                                    </div>
+                                ) : null}
+                            </div>
                         )}
                         <div style={{ display: 'flex', gap: '1rem', marginTop: '1.25rem' }}>
                             <button
