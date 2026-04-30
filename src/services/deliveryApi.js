@@ -70,6 +70,12 @@ export const updateDeliverySettings = async (settingsData) => {
       payload.delivery_fee = df;
     }
   }
+  if (rest.min_order_amount !== undefined && rest.min_order_amount !== null && rest.min_order_amount !== '') {
+    const mo = num(rest.min_order_amount, null);
+    if (mo != null && !Number.isNaN(mo) && mo >= 0) {
+      payload.min_order_amount = mo;
+    }
+  }
   try {
     return await apiPatch('/delivery-settings/', payload);
   } catch (error) {
@@ -88,6 +94,10 @@ export const updateDeliverySettings = async (settingsData) => {
           rest.delivery_fee !== undefined && rest.delivery_fee !== null && rest.delivery_fee !== ''
             ? num(rest.delivery_fee, 40)
             : 40,
+        min_order_amount:
+          rest.min_order_amount !== undefined && rest.min_order_amount !== null && rest.min_order_amount !== ''
+            ? num(rest.min_order_amount, 0)
+            : 0,
       };
       if (rest.delivery_slot_times !== undefined) {
         const rows = Array.isArray(rest.delivery_slot_times) ? rest.delivery_slot_times : [];

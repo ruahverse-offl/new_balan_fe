@@ -663,6 +663,14 @@ const Checkout = () => {
                         }}
                     >
                         {deliverySettings.delivery_schedule.customer_message}
+                        {deliverySettings.delivery_schedule?.slot_label ? (
+                            <div style={{ marginTop: '0.35rem', fontWeight: 700 }}>
+                                Delivery window: {deliverySettings.delivery_schedule.slot_label}
+                                {deliverySettings.delivery_schedule?.fulfillment_date_iso
+                                    ? ` (${deliverySettings.delivery_schedule.fulfillment_date_iso})`
+                                    : ''}
+                            </div>
+                        ) : null}
                     </div>
                 )}
 

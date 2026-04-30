@@ -293,33 +293,35 @@ const OrderDetailPage = ({
                                 <div className="value">{order.customer_email}</div>
                             </div>
                         )}
-                        {order.pincode && (
+                        {!isDeliveryOrdersView && order.pincode && (
                             <div>
                                 <span className="label">Pincode</span>
                                 <div className="value">{order.pincode}</div>
                             </div>
                         )}
-                        {order.city && (
+                        {!isDeliveryOrdersView && order.city && (
                             <div>
                                 <span className="label">City</span>
                                 <div className="value">{order.city}</div>
                             </div>
                         )}
-                        <div>
-                            <span className="label">Source</span>
+                        {!isDeliveryOrdersView ? (
                             <div>
-                                <span className={`status-tag ${(order.order_source || '').toLowerCase()}`}>
-                                    {order.order_source || 'N/A'}
-                                </span>
+                                <span className="label">Source</span>
+                                <div>
+                                    <span className={`status-tag ${(order.order_source || '').toLowerCase()}`}>
+                                        {order.order_source || 'N/A'}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
+                        ) : null}
                         <div>
                             <span className="label">Placed at</span>
                             <div className="value">
                                 {order.created_at ? new Date(order.created_at).toLocaleString('en-IN') : 'N/A'}
                             </div>
                         </div>
-                        {order.payment_completed_at && (
+                        {!isDeliveryOrdersView && order.payment_completed_at && (
                             <div>
                                 <span className="label">Payment completed at</span>
                                 <div className="value">
@@ -342,7 +344,7 @@ const OrderDetailPage = ({
                     </div>
                 </section>
 
-                {order.prescription_path ? (
+                {!isDeliveryOrdersView && order.prescription_path ? (
                     <section className="order-detail-section order-detail-prescription">
                         <h3 className="order-detail-section-title-with-icon">
                             <FileText size={18} aria-hidden />
@@ -417,7 +419,7 @@ const OrderDetailPage = ({
                         )}
                     </div>
 
-                    {(order.order_received_at ||
+                    {!isDeliveryOrdersView && (order.order_received_at ||
                         order.order_packed_at ||
                         order.delivery_assigned_at ||
                         order.delivered_at ||
@@ -827,9 +829,9 @@ const OrderDetailPage = ({
                                     <tr>
                                         <th>Product (Medicine - Brand)</th>
                                         <th>Qty</th>
-                                        <th>Unit price</th>
-                                        <th>Total</th>
-                                        <th>Rx</th>
+                                        {!isDeliveryOrdersView ? <th>Unit price</th> : null}
+                                        {!isDeliveryOrdersView ? <th>Total</th> : null}
+                                        {!isDeliveryOrdersView ? <th>Rx</th> : null}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -843,15 +845,21 @@ const OrderDetailPage = ({
                                                 )}
                                             </td>
                                             <td>{item.quantity}</td>
-                                            <td>₹{parseFloat(item.unit_price || 0).toFixed(2)}</td>
-                                            <td className="amount">₹{parseFloat(item.total_price || 0).toFixed(2)}</td>
-                                            <td>
-                                                {item.requires_prescription ? (
-                                                    <span className="status-tag pending order-detail-rx-pill">Rx</span>
-                                                ) : (
-                                                    '—'
-                                                )}
-                                            </td>
+                                            {!isDeliveryOrdersView ? (
+                                                <td>₹{parseFloat(item.unit_price || 0).toFixed(2)}</td>
+                                            ) : null}
+                                            {!isDeliveryOrdersView ? (
+                                                <td className="amount">₹{parseFloat(item.total_price || 0).toFixed(2)}</td>
+                                            ) : null}
+                                            {!isDeliveryOrdersView ? (
+                                                <td>
+                                                    {item.requires_prescription ? (
+                                                        <span className="status-tag pending order-detail-rx-pill">Rx</span>
+                                                    ) : (
+                                                        '—'
+                                                    )}
+                                                </td>
+                                            ) : null}
                                         </tr>
                                     ))}
                                 </tbody>
@@ -938,31 +946,33 @@ const OrderDetailPage = ({
                 ) : null}
 
                 {/* Totals */}
-                <section className="order-detail-section order-detail-totals">
-                    <h3>Amount summary</h3>
-                    <div className="order-detail-summary">
-                        <div className="row">
-                            <span className="muted">Subtotal</span>
-                            <span>₹{parseFloat(order.total_amount || 0).toFixed(2)}</span>
-                        </div>
-                        {parseFloat(order.discount_amount || 0) > 0 && (
-                            <div className="row discount">
-                                <span>Discount</span>
-                                <span>-₹{parseFloat(order.discount_amount).toFixed(2)}</span>
-                            </div>
-                        )}
-                        {parseFloat(order.delivery_fee || 0) > 0 && (
+                {!isDeliveryOrdersView ? (
+                    <section className="order-detail-section order-detail-totals">
+                        <h3>Amount summary</h3>
+                        <div className="order-detail-summary">
                             <div className="row">
-                                <span className="muted">Delivery fee</span>
-                                <span>₹{parseFloat(order.delivery_fee).toFixed(2)}</span>
+                                <span className="muted">Subtotal</span>
+                                <span>₹{parseFloat(order.total_amount || 0).toFixed(2)}</span>
                             </div>
-                        )}
-                        <div className="row total">
-                            <span>Total</span>
-                            <span>₹{parseFloat(order.final_amount || 0).toFixed(2)}</span>
+                            {parseFloat(order.discount_amount || 0) > 0 && (
+                                <div className="row discount">
+                                    <span>Discount</span>
+                                    <span>-₹{parseFloat(order.discount_amount).toFixed(2)}</span>
+                                </div>
+                            )}
+                            {parseFloat(order.delivery_fee || 0) > 0 && (
+                                <div className="row">
+                                    <span className="muted">Delivery fee</span>
+                                    <span>₹{parseFloat(order.delivery_fee).toFixed(2)}</span>
+                                </div>
+                            )}
+                            <div className="row total">
+                                <span>Total</span>
+                                <span>₹{parseFloat(order.final_amount || 0).toFixed(2)}</span>
+                            </div>
                         </div>
-                    </div>
-                </section>
+                    </section>
+                ) : null}
             </div>
         </div>
     );

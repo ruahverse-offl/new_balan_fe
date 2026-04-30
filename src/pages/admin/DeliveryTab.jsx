@@ -154,6 +154,7 @@ const DeliveryTab = ({ deliverySettings, setDeliverySettings, updateDeliverySett
         free_delivery_min_amount: deliverySettings.free_delivery_min_amount,
         free_delivery_max_amount: deliverySettings.free_delivery_max_amount,
         delivery_fee: deliverySettings.delivery_fee,
+        min_order_amount: deliverySettings.min_order_amount,
       });
     } finally {
       setSavingFreeRange(false);
@@ -170,6 +171,7 @@ const DeliveryTab = ({ deliverySettings, setDeliverySettings, updateDeliverySett
     const minAmt = formatInr(deliverySettings.free_delivery_min_amount);
     const maxRaw = deliverySettings.free_delivery_max_amount;
     const maxAmt = maxRaw !== '' && maxRaw != null ? formatInr(maxRaw) : null;
+    const minOrder = formatInr(deliverySettings.min_order_amount);
     let band = '—';
     if (minAmt) {
       band = maxAmt ? `${minAmt} – ${maxAmt}` : `${minAmt}+ (no cap)`;
@@ -179,8 +181,9 @@ const DeliveryTab = ({ deliverySettings, setDeliverySettings, updateDeliverySett
       inactiveCount,
       feeLabel: fee || '—',
       freeBandLabel: band,
+      minOrderLabel: minOrder || '₹0.00',
     };
-  }, [slots, deliverySettings.delivery_fee, deliverySettings.free_delivery_min_amount, deliverySettings.free_delivery_max_amount]);
+  }, [slots, deliverySettings.delivery_fee, deliverySettings.free_delivery_min_amount, deliverySettings.free_delivery_max_amount, deliverySettings.min_order_amount]);
 
   const applyDeliveryEnabled = async (enabled) => {
     const wasEnabled = deliverySettings.is_enabled !== false;
@@ -253,6 +256,15 @@ const DeliveryTab = ({ deliverySettings, setDeliverySettings, updateDeliverySett
                 <span className="delivery-stat__sep">·</span>
                 {summary.freeBandLabel}
               </span>
+            </div>
+          </article>
+          <article className="delivery-stat">
+            <div className="delivery-stat__icon">
+              <IndianRupee size={18} strokeWidth={2} aria-hidden />
+            </div>
+            <div>
+              <span className="delivery-stat__label">Minimum order</span>
+              <span className="delivery-stat__value">{summary.minOrderLabel}</span>
             </div>
           </article>
         </div>
@@ -434,6 +446,29 @@ const DeliveryTab = ({ deliverySettings, setDeliverySettings, updateDeliverySett
             </div>
 
             <form onSubmit={saveFreeRange}>
+              <div className="delivery-field">
+                <label htmlFor="delivery-min-order">Minimum order amount</label>
+                <div className="delivery-input-wrap">
+                  <span className="delivery-input-wrap__prefix">₹</span>
+                  <input
+                    id="delivery-min-order"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={deliverySettings.min_order_amount ?? ''}
+                    onChange={(e) =>
+                      setDeliverySettings((prev) => ({
+                        ...prev,
+                        min_order_amount: e.target.value,
+                      }))
+                    }
+                    placeholder="0"
+                    required
+                  />
+                </div>
+                <small className="delivery-field-hint">Checkout blocks orders below this subtotal.</small>
+              </div>
+
               <div className="delivery-field">
                 <label htmlFor="delivery-fee">Delivery fee (outside band)</label>
                 <div className="delivery-input-wrap">
