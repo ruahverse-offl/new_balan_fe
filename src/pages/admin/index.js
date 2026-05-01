@@ -10,4 +10,7 @@ export { default as AdminLayout } from './AdminLayout';
 export { default as TestBookingsTab } from './TestBookingsTab';
 export { default as TherapeuticCategoriesTab } from './TherapeuticCategoriesTab';
 export { default as CouponUsagesTab } from './CouponUsagesTab';
+export { default as NotificationMasterTab } from './NotificationMasterTab';
+export { default as NotificationSettingsTab } from './NotificationSettingsTab';
+export { default as NotificationLogsTab } from './NotificationLogsTab';
 export { default as MyProfileTab } from './MyProfileTab';

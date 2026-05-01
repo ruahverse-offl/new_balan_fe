@@ -18,6 +18,15 @@ import { getCouponUsages } from '../services/couponUsagesApi';
 import { getInventoryAlerts } from '../services/inventoryApi';
 import { getTestBookings, createTestBooking, updateTestBooking, deleteTestBooking as deleteTestBookingApi } from '../services/testBookingsApi';
 import { getPolyclinicTests } from '../services/polyclinicTestsApi';
+import {
+    createNotificationMaster,
+    deleteNotificationMaster,
+    getNotificationLogs,
+    getNotificationMasters,
+    getNotificationSettings,
+    updateNotificationMaster,
+    updateNotificationSetting,
+} from '../services/notificationApi';
 import { buildApiUrl } from '../config/api';
 import { getStorageFileUrl } from '../utils/prescriptionUrl';
 import { mapDoctorToFrontend, mapDoctorToBackend, mapDoctorToBackendUpdatePayload, mapMedicineToFrontend, mapCouponToFrontend, mapCouponToBackend, mapAppointmentToFrontend, mapAppointmentToBackend, mapTestBookingToFrontend, mapTestBookingToBackend } from '../utils/dataMapper';
@@ -48,6 +57,9 @@ import BrandMasterTab from './admin/BrandMasterTab';
 import AccessControlTab from './admin/AccessControlTab';
 import AppModulesTab from './admin/AppModulesTab';
 import RoleModuleMatrixTab from './admin/RoleModuleMatrixTab';
+import NotificationMasterTab from './admin/NotificationMasterTab';
+import NotificationSettingsTab from './admin/NotificationSettingsTab';
+import NotificationLogsTab from './admin/NotificationLogsTab';
 import DatePicker from '../components/common/DatePicker';
 import TimeInput from '../components/common/TimeInput';
 import './Admin.css';
@@ -89,6 +101,9 @@ const ADMIN_TAB_PERMISSION_FALLBACK = {
     'test-bookings': 'appointments',
     'therapeutic-categories': 'medicines',
     'coupon-usages': 'coupons',
+    'notification-master': 'notification-master',
+    'notification-settings': 'notification-settings',
+    'notification-logs': 'notification-logs',
     inventory: 'inventory',
     'brand-master': 'medicines',
     roles: 'roles',
@@ -136,6 +151,9 @@ const ADMIN_PORTAL_TAB_IDS = new Set([
     'staff',
     'test-bookings',
     'coupon-usages',
+    'notification-master',
+    'notification-settings',
+    'notification-logs',
 ]);
 
 function buildSidebarItemsFromMenuItems(menuItemsFromApi) {
@@ -216,6 +234,9 @@ const LEGACY_SIDEBAR_TEMPLATE = [
     { id: 'therapeutic-categories', label: 'Medicine Cat.', icon: <Tags size={20} />, menuKey: 'nav_medicine_categories', permission: 'medicines' },
     { id: 'coupon-usages', label: 'Coupon Usages', icon: <BarChart3 size={20} />, menuKey: 'nav_coupon_usages', permission: 'coupons' },
     { id: 'brand-master', label: 'Brand catalog', icon: <Tag size={20} />, menuKey: 'nav_brand_catalog', permission: 'medicines' },
+    { id: 'notification-master', label: 'Notification master', icon: <Bell size={20} />, menuKey: 'nav_notification_master', permission: 'notification-master' },
+    { id: 'notification-settings', label: 'Notification settings', icon: <Bell size={20} />, menuKey: 'nav_notification_settings', permission: 'notification-settings' },
+    { id: 'notification-logs', label: 'Notification logs', icon: <Bell size={20} />, menuKey: 'nav_notification_logs', permission: 'notification-logs' },
 ].sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
 function computeAvailableMenuItems(user) {
@@ -463,6 +484,9 @@ const Admin = () => {
     const [polyclinicTests, setPolyclinicTests] = useState([]);
     const [therapeuticCategories, setTherapeuticCategories] = useState([]);
     const [couponUsages, setCouponUsages] = useState([]);
+    const [notificationMasters, setNotificationMasters] = useState([]);
+    const [notificationSettings, setNotificationSettings] = useState([]);
+    const [notificationLogs, setNotificationLogs] = useState([]);
     const [newOrderNotification, setNewOrderNotification] = useState(false);
     const ordersNewAlertBaselineDoneRef = React.useRef(false);
     const ordersSeenReceivedIdsRef = React.useRef(new Set());
@@ -680,6 +704,21 @@ const Admin = () => {
                     const cuRes = await getCouponUsages({ limit: 100 }).catch(() => ({ items: [] }));
                     setCouponUsages(cuRes.items || []);
                     break;
+                case 'notification-master': {
+                    const mastersRes = await getNotificationMasters({ limit: 200 }).catch(() => ({ items: [] }));
+                    setNotificationMasters(mastersRes.items || []);
+                    break;
+                }
+                case 'notification-settings': {
+                    const settingsRes = await getNotificationSettings({ limit: 200 }).catch(() => ({ items: [] }));
+                    setNotificationSettings(settingsRes.items || []);
+                    break;
+                }
+                case 'notification-logs': {
+                    const logsRes = await getNotificationLogs({ limit: 200 }).catch(() => ({ items: [] }));
+                    setNotificationLogs(logsRes.items || []);
+                    break;
+                }
                 case 'inventory':
                     break;
                 case 'brand-master':
@@ -1458,6 +1497,58 @@ const Admin = () => {
             return true;
         } catch (error) {
             showNotify('Failed to delete coupon: ' + error.message, 'error');
+            return false;
+        }
+    };
+
+    const addNotificationMasterFn = async (payload) => {
+        try {
+            const created = await createNotificationMaster(payload);
+            setNotificationMasters((prev) => [created, ...prev]);
+            showNotify('Notification master created', 'success');
+            return true;
+        } catch (error) {
+            showNotify('Failed to create notification master: ' + (error?.message || ''), 'error');
+            return false;
+        }
+    };
+
+    const updateNotificationMasterFn = async (id, payload) => {
+        try {
+            const updated = await updateNotificationMaster(id, payload);
+            setNotificationMasters((prev) => prev.map((r) => (r.id === id ? updated : r)));
+            showNotify('Notification master updated', 'success');
+            return true;
+        } catch (error) {
+            showNotify('Failed to update notification master: ' + (error?.message || ''), 'error');
+            return false;
+        }
+    };
+
+    const deleteNotificationMasterFn = async (row) => {
+        if (!row?.id) return false;
+        if (!window.confirm(`Delete notification template ${row.event_code || row.id}?`)) return false;
+        try {
+            await deleteNotificationMaster(row.id);
+            setNotificationMasters((prev) => prev.filter((r) => r.id !== row.id));
+            showNotify('Notification master deleted', 'success');
+            return true;
+        } catch (error) {
+            showNotify('Failed to delete notification master: ' + (error?.message || ''), 'error');
+            return false;
+        }
+    };
+
+    const toggleNotificationSettingPushFn = async (row) => {
+        if (!row?.id) return false;
+        const next = row.is_push_enabled !== true;
+        try {
+            const updated = await updateNotificationSetting(row.id, { is_push_enabled: next });
+            setNotificationSettings((prev) => prev.map((r) => (r.id === row.id ? updated : r)));
+            showNotify(next ? 'Push enabled for device' : 'Push disabled for device', 'success');
+            return true;
+        } catch (error) {
+            showNotify('Failed to update notification setting: ' + (error?.message || ''), 'error');
             return false;
         }
     };
@@ -2544,6 +2635,34 @@ const Admin = () => {
                             couponUsagesRowsPerPage={couponUsagesRowsPerPage}
                             setCouponUsagesRowsPerPage={setCouponUsagesRowsPerPage}
                             onViewOrder={(orderId) => navigate(`/admin/orders/${orderId}`, { state: { fromTab: 'coupon-usages' } })}
+                        />
+                    )}
+                    {activeTab === 'notification-master' && (
+                        <NotificationMasterTab
+                            rows={notificationMasters}
+                            searchTerm={getSearchForTab('notification-master')}
+                            setSearchTerm={(v) => setSearchForTab('notification-master', v)}
+                            onRefresh={() => fetchTabData('notification-master', true)}
+                            onCreate={addNotificationMasterFn}
+                            onUpdate={updateNotificationMasterFn}
+                            onDelete={deleteNotificationMasterFn}
+                        />
+                    )}
+                    {activeTab === 'notification-settings' && (
+                        <NotificationSettingsTab
+                            rows={notificationSettings}
+                            searchTerm={getSearchForTab('notification-settings')}
+                            setSearchTerm={(v) => setSearchForTab('notification-settings', v)}
+                            onRefresh={() => fetchTabData('notification-settings', true)}
+                            onTogglePush={toggleNotificationSettingPushFn}
+                        />
+                    )}
+                    {activeTab === 'notification-logs' && (
+                        <NotificationLogsTab
+                            rows={notificationLogs}
+                            searchTerm={getSearchForTab('notification-logs')}
+                            setSearchTerm={(v) => setSearchForTab('notification-logs', v)}
+                            onRefresh={() => fetchTabData('notification-logs', true)}
                         />
                     )}
                     {activeTab === 'my-profile' && (
