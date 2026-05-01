@@ -120,7 +120,7 @@ const OrderDetailPage = ({
                 }
             })
             .finally(() => setLoading(false));
-    }, [orderId, lifecycleRefreshKey]);
+    }, [orderId, lifecycleRefreshKey, location.key]);
 
     useEffect(() => {
         if (loading || error || !detail || didScrollStatusFocus.current) return;
@@ -505,6 +505,7 @@ const OrderDetailPage = ({
                                                         key={`staff-${step.key}`}
                                                         type="button"
                                                         className="order-detail-chain-btn"
+                                                        disabled={lifecycleUpdating || loading}
                                                         onClick={() => onOrderLifecycleIntent(order, act)}
                                                     >
                                                         {FULFILLMENT_CHAIN_BUTTON_LABELS[act.status] || act.label || step.label}
@@ -596,6 +597,7 @@ const OrderDetailPage = ({
                                                     <button
                                                         type="button"
                                                         className="order-detail-chain-btn"
+                                                        disabled={lifecycleUpdating || loading}
                                                         onClick={() => onOrderLifecycleIntent(order, act)}
                                                     >
                                                         {FULFILLMENT_CHAIN_BUTTON_LABELS.DELIVERED}
@@ -603,6 +605,7 @@ const OrderDetailPage = ({
                                                     <button
                                                         type="button"
                                                         className="order-detail-chain-btn"
+                                                        disabled={lifecycleUpdating || loading}
                                                         onClick={() => onOrderLifecycleIntent(order, deliveryReturnedAct)}
                                                         style={{ marginTop: '0.35rem' }}
                                                     >
@@ -617,6 +620,7 @@ const OrderDetailPage = ({
                                                 key={`del-${step.key}`}
                                                 type="button"
                                                 className="order-detail-chain-btn"
+                                                disabled={lifecycleUpdating || loading}
                                                 onClick={() => onOrderLifecycleIntent(order, act)}
                                             >
                                                 {step.key === 'PICKED_FROM_STORE'
@@ -659,6 +663,7 @@ const OrderDetailPage = ({
                                     <button
                                         type="button"
                                         className="order-detail-warning-btn order-detail-warning-btn-cancel"
+                                        disabled={lifecycleUpdating || loading}
                                         onClick={() => {
                                             setCancelReason('');
                                             setCancelModalOpen(true);

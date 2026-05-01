@@ -90,8 +90,8 @@ export default function NotificationLogsTab({
     const q = (searchTerm || '').trim().toLowerCase();
     if (!q) return rows;
     return (rows || []).filter((r) =>
-      [r.user_id, r.notification_master_id, r.notification_setting_id,
-        r.send_status, r.channel, r.error_message, r.expo_push_token]
+      [r.user_id, r.user_name, r.notification_master_id, r.event_code,
+        r.notification_setting_id, r.send_status, r.channel, r.error_message, r.expo_push_token]
         .some((v) => String(v || '').toLowerCase().includes(q)),
     );
   }, [rows, searchTerm]);
@@ -245,7 +245,9 @@ export default function NotificationLogsTab({
                       <td data-label="Created">{formatDate(row.created_at)}</td>
                       <td data-label="User">
                         <div className="ntf-token-cell" onClick={(e) => e.stopPropagation()}>
-                          <span className="ntf-mono" title={row.user_id}>{shortId(row.user_id)}</span>
+                          <span title={String(row.user_id)}>
+                            {row.user_name || shortId(row.user_id)}
+                          </span>
                           <button type="button" className="ntf-icon-btn" title="Copy user id"
                             onClick={() => copyText(row.user_id)}>
                             <Copy size={14} />
@@ -253,8 +255,8 @@ export default function NotificationLogsTab({
                         </div>
                       </td>
                       <td data-label="Template">
-                        <span className="ntf-mono-sm" title={row.notification_master_id}>
-                          {shortId(row.notification_master_id)}
+                        <span title={String(row.notification_master_id)}>
+                          {row.event_code || shortId(row.notification_master_id)}
                         </span>
                       </td>
                       <td data-label="Channel">
@@ -370,12 +372,18 @@ export default function NotificationLogsTab({
                     <dd>{detail.channel || 'push'}</dd>
                   </div>
                   <div className="ntf-dl" style={{ gridColumn: '1 / -1' }}>
-                    <dt>User id</dt>
-                    <dd className="ntf-mono" style={{ fontSize: '0.78rem' }}>{detail.user_id}</dd>
+                    <dt>User</dt>
+                    <dd>
+                      {detail.user_name ? <strong>{detail.user_name}</strong> : null}
+                      <span className="ntf-mono" style={{ fontSize: '0.78rem', display: 'block' }}>{detail.user_id}</span>
+                    </dd>
                   </div>
                   <div className="ntf-dl" style={{ gridColumn: '1 / -1' }}>
-                    <dt>Template id</dt>
-                    <dd className="ntf-mono" style={{ fontSize: '0.78rem' }}>{detail.notification_master_id}</dd>
+                    <dt>Template</dt>
+                    <dd>
+                      {detail.event_code ? <strong>{detail.event_code}</strong> : null}
+                      <span className="ntf-mono" style={{ fontSize: '0.78rem', display: 'block' }}>{detail.notification_master_id}</span>
+                    </dd>
                   </div>
                   {detail.notification_setting_id ? (
                     <div className="ntf-dl" style={{ gridColumn: '1 / -1' }}>

@@ -1249,14 +1249,20 @@ const Admin = () => {
             }
             return;
         }
+        setLifecycleUpdating(true);
         try {
             const updated = await updateOrder(order.id, { order_status: act.status });
             mergeOrderFromApi(order.id, updated);
-            setOrderDetailRefreshKey((k) => k + 1);
             refreshOrderViews();
             showNotify('Order status updated', 'success');
+            navigate(`/admin/orders/${order.id}`, {
+                replace: true,
+                state: { fromTab: location.state?.fromTab || 'orders' },
+            });
         } catch (error) {
             showNotify('Failed to update order: ' + (error.message || 'Unknown error'), 'error');
+        } finally {
+            setLifecycleUpdating(false);
         }
     };
 
@@ -1299,9 +1305,12 @@ const Admin = () => {
                 mergeOrderFromApi(order.id, updated);
             }
             showNotify('Order updated', 'success');
-            setOrderDetailRefreshKey((k) => k + 1);
             refreshOrderViews();
             setOrderLifecycleDialog(null);
+            navigate(`/admin/orders/${order.id}`, {
+                replace: true,
+                state: { fromTab: location.state?.fromTab || 'orders' },
+            });
         } catch (error) {
             showNotify('Failed to update order: ' + (error.message || 'Unknown error'), 'error');
         }
@@ -1317,8 +1326,11 @@ const Admin = () => {
             cancellation_reason: trimmed,
         });
         mergeOrderFromApi(orderId, updated);
-        setOrderDetailRefreshKey((k) => k + 1);
         refreshOrderViews();
+        navigate(`/admin/orders/${orderId}`, {
+            replace: true,
+            state: { fromTab: location.state?.fromTab || 'orders' },
+        });
     };
 
     const handleRefund = async (payment) => {
@@ -1705,6 +1717,7 @@ const Admin = () => {
     const [assignUsersLoading, setAssignUsersLoading] = useState(false);
     const [assignUserSearch, setAssignUserSearch] = useState('');
     const [orderDetailRefreshKey, setOrderDetailRefreshKey] = useState(0);
+    const [lifecycleUpdating, setLifecycleUpdating] = useState(false);
 
     const handleDoctorSubmit = async (e) => {
         e.preventDefault();
@@ -2373,6 +2386,7 @@ const Admin = () => {
                             userId={user?.id}
                             isAdminRole={isAdminUser}
                             lifecycleRefreshKey={orderDetailRefreshKey}
+                            lifecycleUpdating={lifecycleUpdating}
                         />
                     ) : loading ? (
                         <PageLoading

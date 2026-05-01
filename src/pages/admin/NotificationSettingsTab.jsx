@@ -41,7 +41,7 @@ export default function NotificationSettingsTab({
       if (pushFilter === 'on' && !r.is_push_enabled) return false;
       if (pushFilter === 'off' && r.is_push_enabled) return false;
       if (!q) return true;
-      return [r.user_id, r.device_id, r.device_platform, r.expo_push_token].some((v) =>
+      return [r.user_id, r.user_name, r.device_id, r.device_platform, r.expo_push_token].some((v) =>
         String(v || '').toLowerCase().includes(q),
       );
     });
@@ -187,8 +187,8 @@ export default function NotificationSettingsTab({
                     <tr key={row.id}>
                       <td data-label="User">
                         <div className="ntf-token-cell">
-                          <span className="ntf-mono" title={row.user_id}>
-                            {shortId(row.user_id)}
+                          <span title={String(row.user_id)}>
+                            {row.user_name || shortId(row.user_id)}
                           </span>
                           <button
                             type="button"

@@ -4,13 +4,29 @@
  */
 
 import { apiGet, apiPost, apiPatch } from '../utils/apiClient';
+import { parseDeliverySlotRangeToHHmm, buildDeliverySlotLabel } from '../utils/timeFormatters';
+
+function normalizeSlot(s) {
+  if (typeof s === 'string') {
+    const { startHm, endHm } = parseDeliverySlotRangeToHHmm(s);
+    const label = startHm && endHm ? buildDeliverySlotLabel(startHm, endHm) : s;
+    return { slot_time: label || s, is_active: true };
+  }
+  return { slot_time: String(s?.slot_time ?? ''), is_active: s?.is_active !== false };
+}
 
 /**
  * Get delivery settings (singleton).
  */
 export const getDeliverySettings = async () => {
   try {
-    return await apiGet('/delivery-settings/');
+    const data = await apiGet('/delivery-settings/');
+    if (data && Array.isArray(data.delivery_slot_times)) {
+      data.delivery_slot_times = data.delivery_slot_times
+        .map(normalizeSlot)
+        .filter((s) => s.slot_time);
+    }
+    return data;
   } catch (error) {
     if (error.message.includes('not found')) {
       return {
