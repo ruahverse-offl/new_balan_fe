@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import {
   Activity,
+  ArrowLeft,
   BellRing,
+  ChevronRight,
   Copy,
   Layers,
   RefreshCw,
@@ -53,11 +55,7 @@ function parseMaybeJson(val) {
   if (val == null) return null;
   if (typeof val === 'object') return val;
   if (typeof val === 'string') {
-    try {
-      return JSON.parse(val);
-    } catch {
-      return val;
-    }
+    try { return JSON.parse(val); } catch { return val; }
   }
   return val;
 }
@@ -65,48 +63,40 @@ function parseMaybeJson(val) {
 async function copyText(text) {
   const t = String(text ?? '');
   if (!t) return;
-  try {
-    await navigator.clipboard.writeText(t);
-  } catch {
-    // ignore
-  }
+  try { await navigator.clipboard.writeText(t); } catch { /* ignore */ }
 }
 
-export default function NotificationLogsTab({ rows = [], searchTerm = '', setSearchTerm, onRefresh }) {
-  const [statusFilter, setStatusFilter] = useState('');
-  const [channelFilter, setChannelFilter] = useState('');
+export default function NotificationLogsTab({
+  rows = [],
+  total = 0,
+  loading = false,
+  searchTerm = '',
+  setSearchTerm,
+  statusFilter = '',
+  setStatusFilter,
+  channelFilter = '',
+  setChannelFilter,
+  page = 1,
+  setPage,
+  rowsPerPage = 20,
+  setRowsPerPage,
+  onRefresh,
+}) {
   const [detail, setDetail] = useState(null);
   const [detailTab, setDetailTab] = useState('summary');
 
-  const filtered = useMemo(() => {
+  // Search is client-side only (backend logs endpoint has no search param)
+  const visible = useMemo(() => {
     const q = (searchTerm || '').trim().toLowerCase();
-    return (rows || []).filter((r) => {
-      const st = normalizeStatus(r.send_status);
-      if (statusFilter && st !== statusFilter) return false;
-      const ch = String(r.channel || 'push').toLowerCase();
-      if (channelFilter && ch !== channelFilter) return false;
-      if (!q) return true;
-      return [
-        r.user_id,
-        r.notification_master_id,
-        r.notification_setting_id,
-        r.send_status,
-        r.channel,
-        r.error_message,
-        r.expo_push_token,
-      ].some((v) => String(v || '').toLowerCase().includes(q));
-    });
-  }, [rows, searchTerm, statusFilter, channelFilter]);
+    if (!q) return rows;
+    return (rows || []).filter((r) =>
+      [r.user_id, r.notification_master_id, r.notification_setting_id,
+        r.send_status, r.channel, r.error_message, r.expo_push_token]
+        .some((v) => String(v || '').toLowerCase().includes(q)),
+    );
+  }, [rows, searchTerm]);
 
-  const statusCounts = useMemo(() => {
-    const acc = { queued: 0, sent: 0, failed: 0, retrying: 0, dropped: 0, other: 0 };
-    (rows || []).forEach((r) => {
-      const k = normalizeStatus(r.send_status);
-      if (acc[k] !== undefined) acc[k] += 1;
-      else acc.other += 1;
-    });
-    return acc;
-  }, [rows]);
+  const totalPages = Math.ceil(total / rowsPerPage) || 1;
 
   const openDetail = (row) => {
     setDetailTab('summary');
@@ -135,38 +125,38 @@ export default function NotificationLogsTab({ rows = [], searchTerm = '', setSea
 
       <section className="ntf-kpis" aria-label="Status breakdown">
         <div className="ntf-kpi">
-          <span className="ntf-kpi-value">{(rows || []).length}</span>
-          <span className="ntf-kpi-label">Loaded</span>
+          <span className="ntf-kpi-value">{total.toLocaleString('en-IN')}</span>
+          <span className="ntf-kpi-label">Total</span>
         </div>
         <div className="ntf-kpi">
           <span className="ntf-kpi-value" style={{ color: '#92400e' }}>
-            {statusCounts.queued}
+            {(rows || []).filter((r) => normalizeStatus(r.send_status) === 'queued').length}
           </span>
-          <span className="ntf-kpi-label">Queued</span>
+          <span className="ntf-kpi-label">Queued (page)</span>
         </div>
         <div className="ntf-kpi">
           <span className="ntf-kpi-value" style={{ color: '#166534' }}>
-            {statusCounts.sent}
+            {(rows || []).filter((r) => normalizeStatus(r.send_status) === 'sent').length}
           </span>
-          <span className="ntf-kpi-label">Sent</span>
+          <span className="ntf-kpi-label">Sent (page)</span>
         </div>
         <div className="ntf-kpi">
           <span className="ntf-kpi-value" style={{ color: '#991b1b' }}>
-            {statusCounts.failed}
+            {(rows || []).filter((r) => normalizeStatus(r.send_status) === 'failed').length}
           </span>
-          <span className="ntf-kpi-label">Failed</span>
+          <span className="ntf-kpi-label">Failed (page)</span>
         </div>
         <div className="ntf-kpi">
           <span className="ntf-kpi-value" style={{ color: '#5b21b6' }}>
-            {statusCounts.retrying}
+            {(rows || []).filter((r) => normalizeStatus(r.send_status) === 'retrying').length}
           </span>
-          <span className="ntf-kpi-label">Retrying</span>
+          <span className="ntf-kpi-label">Retrying (page)</span>
         </div>
         <div className="ntf-kpi">
           <span className="ntf-kpi-value" style={{ color: '#475569' }}>
-            {statusCounts.dropped}
+            {(rows || []).filter((r) => normalizeStatus(r.send_status) === 'dropped').length}
           </span>
-          <span className="ntf-kpi-label">Dropped</span>
+          <span className="ntf-kpi-label">Dropped (page)</span>
         </div>
       </section>
 
@@ -186,12 +176,10 @@ export default function NotificationLogsTab({ rows = [], searchTerm = '', setSea
           <select
             className="catalog-rows-select"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => { setStatusFilter?.(e.target.value); setPage?.(1); }}
           >
             {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value || 'all'} value={opt.value}>
-                {opt.label}
-              </option>
+              <option key={opt.value || 'all'} value={opt.value}>{opt.label}</option>
             ))}
           </select>
         </label>
@@ -200,33 +188,35 @@ export default function NotificationLogsTab({ rows = [], searchTerm = '', setSea
           <select
             className="catalog-rows-select"
             value={channelFilter}
-            onChange={(e) => setChannelFilter(e.target.value)}
+            onChange={(e) => { setChannelFilter?.(e.target.value); setPage?.(1); }}
           >
             {CHANNEL_OPTIONS.map((opt) => (
-              <option key={opt.value || 'all-ch'} value={opt.value}>
-                {opt.label}
-              </option>
+              <option key={opt.value || 'all-ch'} value={opt.value}>{opt.label}</option>
             ))}
           </select>
         </label>
-        <button type="button" className="btn-secondary" onClick={onRefresh}>
-          <RefreshCw size={16} /> Refresh
+        <button type="button" className="btn-secondary" onClick={onRefresh} disabled={loading}>
+          <RefreshCw size={16} className={loading ? 'spin' : ''} /> Refresh
         </button>
-        <span className="ntf-toolbar-meta">{filtered.length} rows</span>
+        <span className="ntf-toolbar-meta">{visible.length} rows{searchTerm?.trim() ? ` (filtered)` : ''}</span>
       </div>
 
       <div className="scrollable-section-wrapper">
         <div className="table-wrapper ntf-table-wrap">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="ntf-empty">
+              <p className="ntf-empty-title">Loading…</p>
+            </div>
+          ) : visible.length === 0 ? (
             <div className="ntf-empty">
               <div className="ntf-empty-icon">
                 <BellRing size={28} strokeWidth={1.75} />
               </div>
               <p className="ntf-empty-title">No log entries</p>
               <p>
-                {(rows || []).length === 0
+                {total === 0
                   ? 'When the backend enqueues or sends notifications, attempts will show up here.'
-                  : 'No rows match your filters. Try clearing status or channel.'}
+                  : 'No rows match your search. Try clearing the search term.'}
               </p>
             </div>
           ) : (
@@ -244,7 +234,7 @@ export default function NotificationLogsTab({ rows = [], searchTerm = '', setSea
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((row) => {
+                {visible.map((row) => {
                   const st = normalizeStatus(row.send_status);
                   const maxR = Number(row.max_retry_attempts || 0);
                   const cur = Number(row.retry_count || 0);
@@ -255,15 +245,9 @@ export default function NotificationLogsTab({ rows = [], searchTerm = '', setSea
                       <td data-label="Created">{formatDate(row.created_at)}</td>
                       <td data-label="User">
                         <div className="ntf-token-cell" onClick={(e) => e.stopPropagation()}>
-                          <span className="ntf-mono" title={row.user_id}>
-                            {shortId(row.user_id)}
-                          </span>
-                          <button
-                            type="button"
-                            className="ntf-icon-btn"
-                            title="Copy user id"
-                            onClick={() => copyText(row.user_id)}
-                          >
+                          <span className="ntf-mono" title={row.user_id}>{shortId(row.user_id)}</span>
+                          <button type="button" className="ntf-icon-btn" title="Copy user id"
+                            onClick={() => copyText(row.user_id)}>
                             <Copy size={14} />
                           </button>
                         </div>
@@ -286,9 +270,7 @@ export default function NotificationLogsTab({ rows = [], searchTerm = '', setSea
                           <div className="ntf-retry-bar">
                             <span style={{ width: `${pct}%` }} />
                           </div>
-                          <span className="ntf-retry-label">
-                            {cur}/{maxR || '—'}
-                          </span>
+                          <span className="ntf-retry-label">{cur}/{maxR || '—'}</span>
                         </div>
                       </td>
                       <td data-label="Timeline">
@@ -313,6 +295,44 @@ export default function NotificationLogsTab({ rows = [], searchTerm = '', setSea
         </div>
       </div>
 
+      <div className="catalog-tab-footer">
+        <label className="catalog-rows-label">
+          Rows
+          <select
+            className="catalog-rows-select"
+            value={rowsPerPage}
+            onChange={(e) => { setRowsPerPage?.(Number(e.target.value)); setPage?.(1); }}
+          >
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+          </select>
+        </label>
+        {totalPages > 1 && (
+          <div className="pagination-bar">
+            <button
+              type="button"
+              onClick={() => setPage?.((p) => Math.max(1, p - 1))}
+              disabled={page === 1 || loading}
+              className="page-nav-btn"
+            >
+              <ArrowLeft size={18} /> Prev
+            </button>
+            <div className="page-numbers">
+              Page <span>{page}</span> of {totalPages}
+            </div>
+            <button
+              type="button"
+              onClick={() => setPage?.((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages || loading}
+              className="page-nav-btn"
+            >
+              Next <ChevronRight size={18} />
+            </button>
+          </div>
+        )}
+      </div>
+
       {detail ? (
         <div className="admin-modal-overlay" onClick={() => setDetail(null)}>
           <div className="admin-modal ntf-detail-modal" onClick={(e) => e.stopPropagation()}>
@@ -327,13 +347,9 @@ export default function NotificationLogsTab({ rows = [], searchTerm = '', setSea
             </div>
             <div className="ntf-modal-tabs" role="tablist">
               {['summary', 'payload', 'provider'].map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  role="tab"
+                <button key={tab} type="button" role="tab"
                   className={`ntf-modal-tab ${detailTab === tab ? 'is-active' : ''}`}
-                  onClick={() => setDetailTab(tab)}
-                >
+                  onClick={() => setDetailTab(tab)}>
                   {tab === 'summary' ? 'Summary' : tab === 'payload' ? 'Payload' : 'Provider'}
                 </button>
               ))}
@@ -355,22 +371,16 @@ export default function NotificationLogsTab({ rows = [], searchTerm = '', setSea
                   </div>
                   <div className="ntf-dl" style={{ gridColumn: '1 / -1' }}>
                     <dt>User id</dt>
-                    <dd className="ntf-mono" style={{ fontSize: '0.78rem' }}>
-                      {detail.user_id}
-                    </dd>
+                    <dd className="ntf-mono" style={{ fontSize: '0.78rem' }}>{detail.user_id}</dd>
                   </div>
                   <div className="ntf-dl" style={{ gridColumn: '1 / -1' }}>
                     <dt>Template id</dt>
-                    <dd className="ntf-mono" style={{ fontSize: '0.78rem' }}>
-                      {detail.notification_master_id}
-                    </dd>
+                    <dd className="ntf-mono" style={{ fontSize: '0.78rem' }}>{detail.notification_master_id}</dd>
                   </div>
                   {detail.notification_setting_id ? (
                     <div className="ntf-dl" style={{ gridColumn: '1 / -1' }}>
                       <dt>Settings row</dt>
-                      <dd className="ntf-mono" style={{ fontSize: '0.78rem' }}>
-                        {detail.notification_setting_id}
-                      </dd>
+                      <dd className="ntf-mono" style={{ fontSize: '0.78rem' }}>{detail.notification_setting_id}</dd>
                     </div>
                   ) : null}
                   <div className="ntf-dl" style={{ gridColumn: '1 / -1' }}>
@@ -381,9 +391,7 @@ export default function NotificationLogsTab({ rows = [], searchTerm = '', setSea
                   </div>
                   <div className="ntf-dl">
                     <dt>Retries</dt>
-                    <dd>
-                      {detail.retry_count} / {detail.max_retry_attempts}
-                    </dd>
+                    <dd>{detail.retry_count} / {detail.max_retry_attempts}</dd>
                   </div>
                   <div className="ntf-dl">
                     <dt>Created</dt>
@@ -407,7 +415,12 @@ export default function NotificationLogsTab({ rows = [], searchTerm = '', setSea
               ) : null}
               {detailTab === 'payload' ? (
                 <pre className="ntf-view-pre">
-                  {JSON.stringify(detail.payload_snapshot && typeof detail.payload_snapshot === 'object' ? detail.payload_snapshot : parseMaybeJson(detail.payload_snapshot) || {}, null, 2)}
+                  {JSON.stringify(
+                    detail.payload_snapshot && typeof detail.payload_snapshot === 'object'
+                      ? detail.payload_snapshot
+                      : parseMaybeJson(detail.payload_snapshot) || {},
+                    null, 2,
+                  )}
                 </pre>
               ) : null}
               {detailTab === 'provider' ? (
@@ -418,28 +431,19 @@ export default function NotificationLogsTab({ rows = [], searchTerm = '', setSea
                 </pre>
               ) : null}
             </div>
-            <div
-              className="modal-actions"
-              style={{ borderTop: '1px solid var(--admin-border, #e2e8f0)', padding: '1rem 1.5rem', gap: '0.5rem' }}
-            >
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => {
-                  const blob =
-                    detailTab === 'payload'
-                      ? JSON.stringify(detail.payload_snapshot || {}, null, 2)
-                      : detailTab === 'provider'
-                        ? (typeof providerPretty === 'string' ? providerPretty : JSON.stringify(providerPretty ?? {}, null, 2))
-                        : JSON.stringify(detail, null, 2);
-                  copyText(blob);
-                }}
-              >
+            <div className="modal-actions"
+              style={{ borderTop: '1px solid var(--admin-border, #e2e8f0)', padding: '1rem 1.5rem', gap: '0.5rem' }}>
+              <button type="button" className="btn-secondary" onClick={() => {
+                const blob = detailTab === 'payload'
+                  ? JSON.stringify(detail.payload_snapshot || {}, null, 2)
+                  : detailTab === 'provider'
+                    ? (typeof providerPretty === 'string' ? providerPretty : JSON.stringify(providerPretty ?? {}, null, 2))
+                    : JSON.stringify(detail, null, 2);
+                copyText(blob);
+              }}>
                 <Copy size={15} /> Copy visible JSON
               </button>
-              <button type="button" className="btn-add" onClick={() => setDetail(null)}>
-                Close
-              </button>
+              <button type="button" className="btn-add" onClick={() => setDetail(null)}>Close</button>
             </div>
           </div>
         </div>

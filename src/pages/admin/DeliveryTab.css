@@ -165,6 +165,14 @@
     color: var(--dl-muted);
 }
 
+.delivery-stat__sub {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--dl-muted);
+    margin-top: 0.25rem;
+    line-height: 1.45;
+}
+
 /* —— Two-column layout —— */
 .delivery-layout {
     display: grid;

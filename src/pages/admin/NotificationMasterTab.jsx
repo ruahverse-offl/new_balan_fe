@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import {
+  ArrowLeft,
   Bell,
   Braces,
+  ChevronRight,
   Copy,
   Eye,
   Layers,
@@ -63,6 +65,8 @@ export default function NotificationMasterTab({
   const [editing, setEditing] = useState(null);
   const [viewRow, setViewRow] = useState(null);
   const [viewTab, setViewTab] = useState('overview');
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [form, setForm] = useState({
     event_code: '',
     event_name: '',
@@ -79,6 +83,9 @@ export default function NotificationMasterTab({
       [r.event_code, r.event_name, r.description].some((v) => String(v || '').toLowerCase().includes(q)),
     );
   }, [rows, searchTerm]);
+
+  const totalPages = Math.ceil(filtered.length / rowsPerPage) || 1;
+  const pageRows = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   const kpis = useMemo(() => {
     const list = rows || [];
@@ -214,7 +221,7 @@ export default function NotificationMasterTab({
             type="search"
             placeholder="Filter by code, name, or description…"
             value={searchTerm || ''}
-            onChange={(e) => setSearchTerm?.(e.target.value)}
+            onChange={(e) => { setSearchTerm?.(e.target.value); setPage(1); }}
             aria-label="Search templates"
           />
         </div>
@@ -255,7 +262,7 @@ export default function NotificationMasterTab({
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((row) => {
+                {pageRows.map((row) => {
                   const ch = row.channel_templates || {};
                   const keys = Object.keys(ch);
                   return (
@@ -313,6 +320,31 @@ export default function NotificationMasterTab({
             </table>
           )}
         </div>
+      </div>
+
+      <div className="catalog-tab-footer">
+        <label className="catalog-rows-label">
+          Rows
+          <select className="catalog-rows-select" value={rowsPerPage}
+            onChange={(e) => { setRowsPerPage(Number(e.target.value)); setPage(1); }}>
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+          </select>
+        </label>
+        {totalPages > 1 && (
+          <div className="pagination-bar">
+            <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1} className="page-nav-btn">
+              <ArrowLeft size={18} /> Prev
+            </button>
+            <div className="page-numbers">Page <span>{page}</span> of {totalPages}</div>
+            <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages} className="page-nav-btn">
+              Next <ChevronRight size={18} />
+            </button>
+          </div>
+        )}
       </div>
 
       {viewRow ? (

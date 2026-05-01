@@ -50,6 +50,7 @@ const OrderDetailPage = ({
     userId,
     isAdminRole = false,
     lifecycleRefreshKey = 0,
+    lifecycleUpdating = false,
 }) => {
     const { orderId } = useParams();
     const navigate = useNavigate();

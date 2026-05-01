@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Copy, Monitor, RefreshCw, Search, Smartphone } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Copy, Monitor, RefreshCw, Search, Smartphone } from 'lucide-react';
 
 import './AdminCatalogTabs.css';
 import './NotificationTabs.css';
@@ -30,6 +30,8 @@ export default function NotificationSettingsTab({
 }) {
   const [platformFilter, setPlatformFilter] = useState('all');
   const [pushFilter, setPushFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const filtered = useMemo(() => {
     const q = (searchTerm || '').trim().toLowerCase();
@@ -44,6 +46,9 @@ export default function NotificationSettingsTab({
       );
     });
   }, [rows, searchTerm, platformFilter, pushFilter]);
+
+  const totalPages = Math.ceil(filtered.length / rowsPerPage) || 1;
+  const pageRows = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   const kpis = useMemo(() => {
     const list = rows || [];
@@ -107,7 +112,7 @@ export default function NotificationSettingsTab({
             type="search"
             placeholder="Search user id, device id, platform, or token…"
             value={searchTerm || ''}
-            onChange={(e) => setSearchTerm?.(e.target.value)}
+            onChange={(e) => { setSearchTerm?.(e.target.value); setPage(1); }}
             aria-label="Search settings"
           />
         </div>
@@ -176,7 +181,7 @@ export default function NotificationSettingsTab({
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((row) => {
+                {pageRows.map((row) => {
                   const plat = String(row.device_platform || 'unknown').toLowerCase();
                   return (
                     <tr key={row.id}>
@@ -252,6 +257,31 @@ export default function NotificationSettingsTab({
             </table>
           )}
         </div>
+      </div>
+
+      <div className="catalog-tab-footer">
+        <label className="catalog-rows-label">
+          Rows
+          <select className="catalog-rows-select" value={rowsPerPage}
+            onChange={(e) => { setRowsPerPage(Number(e.target.value)); setPage(1); }}>
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+          </select>
+        </label>
+        {totalPages > 1 && (
+          <div className="pagination-bar">
+            <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1} className="page-nav-btn">
+              <ArrowLeft size={18} /> Prev
+            </button>
+            <div className="page-numbers">Page <span>{page}</span> of {totalPages}</div>
+            <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages} className="page-nav-btn">
+              Next <ChevronRight size={18} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

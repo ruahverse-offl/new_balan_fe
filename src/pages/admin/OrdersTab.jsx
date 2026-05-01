@@ -3,7 +3,6 @@ import { Search, Eye, Pencil, ArrowLeft, ChevronRight } from 'lucide-react';
 import {
     ORDER_STATUS_FILTER_VALUES,
     formatOrderStatusLabel,
-    normalizeOrderStatus,
 } from '../../constants/orderLifecycle';
 import './AdminCatalogTabs.css';
 
@@ -37,6 +36,8 @@ function formatOrderSource(order) {
 
 const OrdersTab = ({
     orders,
+    totalOrders,
+    ordersLoading,
     searchTerm,
     setSearchTerm,
     dateFilter,
@@ -50,38 +51,11 @@ const OrdersTab = ({
     onViewDetails,
     onEditDetails,
 }) => {
-    const filteredOrders = (orders || []).filter((o) => {
-        if (!o) return false;
-        const term = (searchTerm || '').toLowerCase();
-        const ref = (o.order_reference || '').toLowerCase();
-        const matchesSearch =
-            !term ||
-            (o.customer_name || '').toLowerCase().includes(term) ||
-            (o.customer_phone || '').includes(term) ||
-            (o.id || '').toLowerCase().includes(term) ||
-            (ref && ref.includes(term));
-        const matchesStatus =
-            !statusFilter ||
-            normalizeOrderStatus(o.order_status) === normalizeOrderStatus(statusFilter) ||
-            String(o.order_status || '').toUpperCase() === String(statusFilter || '').toUpperCase();
-        const matchesDate = (() => {
-            if (!dateFilter) return true;
-            const createdAt = o.created_at ? new Date(o.created_at) : null;
-            if (!createdAt || Number.isNaN(createdAt.getTime())) return false;
-            const createdDateStr = createdAt.toISOString().slice(0, 10);
-            return createdDateStr === dateFilter;
-        })();
-        return matchesSearch && matchesStatus && matchesDate;
-    });
+    const pageOrders = orders || [];
+    const total = totalOrders ?? pageOrders.length;
+    const totalPages = Math.ceil(total / ordersRowsPerPage) || 1;
 
-    const kpiOrderCount = filteredOrders.length;
-    const kpiTotalAmount = filteredOrders.reduce((sum, o) => sum + parseFloat(o.final_amount || 0), 0);
-
-    const totalPages = Math.ceil(filteredOrders.length / ordersRowsPerPage);
-    const paginatedOrders = filteredOrders.slice(
-        (ordersPage - 1) * ordersRowsPerPage,
-        ordersPage * ordersRowsPerPage,
-    );
+    const pageAmount = pageOrders.reduce((sum, o) => sum + parseFloat(o.final_amount || 0), 0);
 
     const openEdit = onEditDetails || onViewDetails;
 
@@ -100,13 +74,13 @@ const OrdersTab = ({
             <div className="orders-kpi-strip" aria-label="Order totals for current filters">
                 <div className="orders-kpi-card">
                     <span className="orders-kpi-label">Total orders</span>
-                    <span className="orders-kpi-value">{kpiOrderCount.toLocaleString('en-IN')}</span>
+                    <span className="orders-kpi-value">{total.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="orders-kpi-card orders-kpi-card-accent">
-                    <span className="orders-kpi-label">Total amount</span>
+                    <span className="orders-kpi-label">Page amount</span>
                     <span className="orders-kpi-value">
                         ₹
-                        {kpiTotalAmount.toLocaleString('en-IN', {
+                        {pageAmount.toLocaleString('en-IN', {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                         })}
@@ -174,75 +148,81 @@ const OrdersTab = ({
                             </tr>
                         </thead>
                         <tbody>
-                            {paginatedOrders.map((order) => {
-                                const src = formatOrderSource(order);
-
-                                return (
-                                    <tr key={order.id} className="orders-row-v2">
-                                        <td data-label="Customer" className="orders-cell-customer-name">
-                                            {order.customer_name?.trim() || '—'}
-                                        </td>
-                                        <td data-label="Source">
-                                            <span
-                                                className={`orders-source-tag status-tag ${src.tagClass}`.trim()}
-                                                title={src.title || undefined}
-                                            >
-                                                {src.label}
-                                            </span>
-                                        </td>
-                                        <td data-label="Date" className="orders-cell-date">
-                                            {order.created_at
-                                                ? new Date(order.created_at).toLocaleDateString('en-IN', {
-                                                      year: 'numeric',
-                                                      month: 'short',
-                                                      day: 'numeric',
-                                                  })
-                                                : '—'}
-                                        </td>
-                                        <td data-label="Amount" className="orders-cell-amount">
-                                            ₹
-                                            {parseFloat(order.final_amount || 0).toLocaleString('en-IN', {
-                                                minimumFractionDigits: 2,
-                                                maximumFractionDigits: 2,
-                                            })}
-                                        </td>
-                                        <td data-label="Payment" className="orders-cell-payment">
-                                            {order.payment_method || '—'}
-                                        </td>
-                                        <td data-label="Status" className="orders-cell-status-text">
-                                            {formatOrderStatusLabel(order.order_status)}
-                                        </td>
-                                        <td data-label="Action" className="orders-cell-actions">
-                                            <div className="orders-action-icons">
-                                                <button
-                                                    type="button"
-                                                    className="orders-icon-btn"
-                                                    title="View order"
-                                                    aria-label="View order"
-                                                    onClick={() => onViewDetails(order)}
-                                                >
-                                                    <Eye size={18} />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="orders-icon-btn orders-icon-btn-edit"
-                                                    title="Edit order — status and details"
-                                                    aria-label="Edit order"
-                                                    onClick={() => openEdit(order)}
-                                                >
-                                                    <Pencil size={18} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                            {filteredOrders.length === 0 && (
+                            {ordersLoading ? (
+                                <tr>
+                                    <td colSpan={7} className="orders-empty-cell">
+                                        Loading…
+                                    </td>
+                                </tr>
+                            ) : pageOrders.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="orders-empty-cell">
                                         No orders found.
                                     </td>
                                 </tr>
+                            ) : (
+                                pageOrders.map((order) => {
+                                    const src = formatOrderSource(order);
+                                    return (
+                                        <tr key={order.id} className="orders-row-v2">
+                                            <td data-label="Customer" className="orders-cell-customer-name">
+                                                {order.customer_name?.trim() || '—'}
+                                            </td>
+                                            <td data-label="Source">
+                                                <span
+                                                    className={`orders-source-tag status-tag ${src.tagClass}`.trim()}
+                                                    title={src.title || undefined}
+                                                >
+                                                    {src.label}
+                                                </span>
+                                            </td>
+                                            <td data-label="Date" className="orders-cell-date">
+                                                {order.created_at
+                                                    ? new Date(order.created_at).toLocaleDateString('en-IN', {
+                                                          year: 'numeric',
+                                                          month: 'short',
+                                                          day: 'numeric',
+                                                      })
+                                                    : '—'}
+                                            </td>
+                                            <td data-label="Amount" className="orders-cell-amount">
+                                                ₹
+                                                {parseFloat(order.final_amount || 0).toLocaleString('en-IN', {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2,
+                                                })}
+                                            </td>
+                                            <td data-label="Payment" className="orders-cell-payment">
+                                                {order.payment_method || '—'}
+                                            </td>
+                                            <td data-label="Status" className="orders-cell-status-text">
+                                                {formatOrderStatusLabel(order.order_status)}
+                                            </td>
+                                            <td data-label="Action" className="orders-cell-actions">
+                                                <div className="orders-action-icons">
+                                                    <button
+                                                        type="button"
+                                                        className="orders-icon-btn"
+                                                        title="View order"
+                                                        aria-label="View order"
+                                                        onClick={() => onViewDetails(order)}
+                                                    >
+                                                        <Eye size={18} />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="orders-icon-btn orders-icon-btn-edit"
+                                                        title="Edit order — status and details"
+                                                        aria-label="Edit order"
+                                                        onClick={() => openEdit(order)}
+                                                    >
+                                                        <Pencil size={18} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
@@ -260,11 +240,9 @@ const OrdersTab = ({
                             setOrdersPage(1);
                         }}
                     >
-                        <option value={5}>5</option>
                         <option value={10}>10</option>
                         <option value={20}>20</option>
                         <option value={50}>50</option>
-                        <option value={100}>100</option>
                     </select>
                 </label>
                 {totalPages > 1 && (
@@ -272,7 +250,7 @@ const OrdersTab = ({
                         <button
                             type="button"
                             onClick={() => setOrdersPage((p) => Math.max(1, p - 1))}
-                            disabled={ordersPage === 1}
+                            disabled={ordersPage === 1 || ordersLoading}
                             className="page-nav-btn"
                         >
                             <ArrowLeft size={18} /> Prev
@@ -283,7 +261,7 @@ const OrdersTab = ({
                         <button
                             type="button"
                             onClick={() => setOrdersPage((p) => Math.min(totalPages, p + 1))}
-                            disabled={ordersPage === totalPages}
+                            disabled={ordersPage === totalPages || ordersLoading}
                             className="page-nav-btn"
                         >
                             Next <ChevronRight size={18} />

@@ -487,6 +487,12 @@ const Admin = () => {
     const [notificationMasters, setNotificationMasters] = useState([]);
     const [notificationSettings, setNotificationSettings] = useState([]);
     const [notificationLogs, setNotificationLogs] = useState([]);
+    const [notifLogsPage, setNotifLogsPage] = useState(1);
+    const [notifLogsRowsPerPage, setNotifLogsRowsPerPage] = useState(20);
+    const [notifLogsTotal, setNotifLogsTotal] = useState(0);
+    const [notifLogsLoading, setNotifLogsLoading] = useState(false);
+    const [notifLogsStatusFilter, setNotifLogsStatusFilter] = useState('');
+    const [notifLogsChannelFilter, setNotifLogsChannelFilter] = useState('');
     const [newOrderNotification, setNewOrderNotification] = useState(false);
     const ordersNewAlertBaselineDoneRef = React.useRef(false);
     const ordersSeenReceivedIdsRef = React.useRef(new Set());
@@ -515,6 +521,8 @@ const Admin = () => {
     const [medicinesLoading, setMedicinesLoading] = useState(false);
     const [ordersPage, setOrdersPage] = useState(1);
     const [ordersRowsPerPage, setOrdersRowsPerPage] = useState(10);
+    const [ordersTotal, setOrdersTotal] = useState(0);
+    const [ordersLoading, setOrdersLoading] = useState(false);
     const [orderStatusFilter, setOrderStatusFilter] = useState('');
     const [orderDateFilter, setOrderDateFilter] = useState('');
     const [refundLoading, setRefundLoading] = useState(false);
@@ -591,12 +599,19 @@ const Admin = () => {
                     break;
                     
                 case 'orders':
-                case 'delivery-orders':
-                    if (forceReload || orders.length === 0) {
-                        const ordersRes = await getOrders({ limit: 100 }).catch(() => ({ items: [] }));
-                        setOrders(ordersRes.items || []);
-                    }
+                case 'delivery-orders': {
+                    const tabSearch = getSearchForTab(tab);
+                    const ordersRes = await getOrders({
+                        limit: ordersRowsPerPage,
+                        offset: (ordersPage - 1) * ordersRowsPerPage,
+                        search: tabSearch || undefined,
+                        order_status: orderStatusFilter || undefined,
+                        order_date: orderDateFilter || undefined,
+                    }).catch(() => ({ items: [], pagination: {} }));
+                    setOrders(ordersRes.items || []);
+                    setOrdersTotal(ordersRes.pagination?.total ?? 0);
                     break;
+                }
                     
                 case 'appointments': {
                     const [appointmentsRes, doctorsResForApt] = await Promise.all([
@@ -715,8 +730,14 @@ const Admin = () => {
                     break;
                 }
                 case 'notification-logs': {
-                    const logsRes = await getNotificationLogs({ limit: 200 }).catch(() => ({ items: [] }));
+                    const logsRes = await getNotificationLogs({
+                        limit: notifLogsRowsPerPage,
+                        offset: (notifLogsPage - 1) * notifLogsRowsPerPage,
+                        send_status: notifLogsStatusFilter || undefined,
+                        channel: notifLogsChannelFilter || undefined,
+                    }).catch(() => ({ items: [], pagination: {} }));
                     setNotificationLogs(logsRes.items || []);
+                    setNotifLogsTotal(logsRes.pagination?.total ?? 0);
                     break;
                 }
                 case 'inventory':
@@ -861,6 +882,77 @@ const Admin = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab, medicinesPage, searchByTab.medicines, medicinesRowsPerPage]);
 
+    // Fetch orders from backend with current page, search, and filter state
+    const fetchOrders = async (
+        page = ordersPage,
+        search = '',
+        rowsPerPage = ordersRowsPerPage,
+        statusFilter = orderStatusFilter,
+        dateFilter = orderDateFilter,
+    ) => {
+        setOrdersLoading(true);
+        try {
+            const offset = (page - 1) * rowsPerPage;
+            const res = await getOrders({
+                limit: rowsPerPage,
+                offset,
+                search: search || undefined,
+                order_status: statusFilter || undefined,
+                order_date: dateFilter || undefined,
+            }).catch(() => ({ items: [], pagination: {} }));
+            setOrders(res.items || []);
+            setOrdersTotal(res.pagination?.total ?? 0);
+        } catch (error) {
+            console.error('Error fetching orders:', error?.message ?? 'Unknown error');
+            setOrders([]);
+            setOrdersTotal(0);
+        } finally {
+            setOrdersLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'orders' || activeTab === 'delivery-orders') {
+            const search = searchByTab[activeTab] ?? '';
+            fetchOrders(ordersPage, search, ordersRowsPerPage, orderStatusFilter, orderDateFilter);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab, ordersPage, searchByTab.orders, searchByTab['delivery-orders'], ordersRowsPerPage, orderStatusFilter, orderDateFilter]);
+
+    // Fetch notification logs with backend pagination + status/channel filters
+    const fetchNotificationLogs = async (
+        page = notifLogsPage,
+        rowsPerPage = notifLogsRowsPerPage,
+        statusFilter = notifLogsStatusFilter,
+        channelFilter = notifLogsChannelFilter,
+    ) => {
+        setNotifLogsLoading(true);
+        try {
+            const offset = (page - 1) * rowsPerPage;
+            const res = await getNotificationLogs({
+                limit: rowsPerPage,
+                offset,
+                send_status: statusFilter || undefined,
+                channel: channelFilter || undefined,
+            }).catch(() => ({ items: [], pagination: {} }));
+            setNotificationLogs(res.items || []);
+            setNotifLogsTotal(res.pagination?.total ?? 0);
+        } catch (err) {
+            console.error('Error fetching notification logs:', err?.message ?? 'Unknown error');
+            setNotificationLogs([]);
+            setNotifLogsTotal(0);
+        } finally {
+            setNotifLogsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'notification-logs') {
+            fetchNotificationLogs(notifLogsPage, notifLogsRowsPerPage, notifLogsStatusFilter, notifLogsChannelFilter);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab, notifLogsPage, notifLogsRowsPerPage, notifLogsStatusFilter, notifLogsChannelFilter]);
+
     // Notification Sound Effect
     useEffect(() => {
         if (newOrderNotification) {
@@ -874,11 +966,8 @@ const Admin = () => {
         if (activeTab !== 'orders' || !user) return undefined;
         const poll = async () => {
             try {
-                const res = await getOrders({ limit: 100 });
-                const items = res.items || [];
-                const received = items.filter(
-                    (o) => String(o.order_status || '').toUpperCase() === 'ORDER_RECEIVED',
-                );
+                const res = await getOrders({ limit: 50, order_status: 'ORDER_RECEIVED' });
+                const received = res.items || [];
                 if (!ordersNewAlertBaselineDoneRef.current) {
                     received.forEach((o) => {
                         if (o.id) ordersSeenReceivedIdsRef.current.add(String(o.id));
@@ -2354,6 +2443,8 @@ const Admin = () => {
                         ) : (
                         <OrdersTab
                             orders={orders}
+                            totalOrders={ordersTotal}
+                            ordersLoading={ordersLoading}
                             searchTerm={getSearchForTab('orders')}
                             setSearchTerm={(v) => setSearchForTab('orders', v)}
                             dateFilter={orderDateFilter}
@@ -2386,6 +2477,8 @@ const Admin = () => {
                         ) : (
                         <OrdersTab
                             orders={orders}
+                            totalOrders={ordersTotal}
+                            ordersLoading={ordersLoading}
                             searchTerm={getSearchForTab('delivery-orders')}
                             setSearchTerm={(v) => setSearchForTab('delivery-orders', v)}
                             dateFilter={orderDateFilter}
@@ -2660,9 +2753,19 @@ const Admin = () => {
                     {activeTab === 'notification-logs' && (
                         <NotificationLogsTab
                             rows={notificationLogs}
+                            total={notifLogsTotal}
+                            loading={notifLogsLoading}
                             searchTerm={getSearchForTab('notification-logs')}
                             setSearchTerm={(v) => setSearchForTab('notification-logs', v)}
-                            onRefresh={() => fetchTabData('notification-logs', true)}
+                            statusFilter={notifLogsStatusFilter}
+                            setStatusFilter={(v) => { setNotifLogsStatusFilter(v); setNotifLogsPage(1); }}
+                            channelFilter={notifLogsChannelFilter}
+                            setChannelFilter={(v) => { setNotifLogsChannelFilter(v); setNotifLogsPage(1); }}
+                            page={notifLogsPage}
+                            setPage={setNotifLogsPage}
+                            rowsPerPage={notifLogsRowsPerPage}
+                            setRowsPerPage={(v) => { setNotifLogsRowsPerPage(v); setNotifLogsPage(1); }}
+                            onRefresh={() => fetchNotificationLogs(notifLogsPage, notifLogsRowsPerPage, notifLogsStatusFilter, notifLogsChannelFilter)}
                         />
                     )}
                     {activeTab === 'my-profile' && (

@@ -11,15 +11,17 @@ import { apiGet, apiPost, apiPatch, apiDelete } from '../utils/apiClient';
  * @returns {Promise<Object>} List of orders with pagination
  */
 export const getOrders = async (params = {}) => {
-  const response = await apiGet('/orders/', {
-    limit: params.limit || 100,
+  const query = {
+    limit: params.limit || 20,
     offset: params.offset || 0,
-    search: params.search,
     sort_by: params.sort_by || 'created_at',
     sort_order: params.sort_order || 'desc',
-  });
-  
-  // Map backend response to frontend format
+  };
+  if (params.search) query.search = params.search;
+  if (params.order_status) query.order_status = params.order_status;
+  if (params.order_date) query.order_date = params.order_date;
+
+  const response = await apiGet('/orders/', query);
   return {
     items: response.items || [],
     pagination: response.pagination || {},

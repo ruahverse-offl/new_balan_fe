@@ -142,11 +142,13 @@ const Checkout = () => {
         fetchCoupons();
     }, [deliverySettings.show_marquee]);
 
+    const staticLocation = deliverySettings.delivery_location || null;
+
     const [formData, setFormData] = useState({
         name: user?.name || '',
         phone: user?.phone || '',
         street: '',
-        city: user?.city || '',
+        city: '',
         state: '',
         pincode: '',
         country: 'India',
@@ -180,6 +182,18 @@ const Checkout = () => {
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [checkoutErrorModal]);
+
+    // Pre-fill static city/state/pincode whenever delivery settings (with location) are loaded
+    useEffect(() => {
+        if (!staticLocation) return;
+        setFormData(prev => ({
+            ...prev,
+            city: staticLocation.city || prev.city,
+            state: staticLocation.state || prev.state,
+            pincode: staticLocation.pincode || prev.pincode,
+            country: staticLocation.country || prev.country || 'India',
+        }));
+    }, [staticLocation]);
 
     // Fetch saved addresses on mount
     useEffect(() => {
@@ -300,9 +314,6 @@ const Checkout = () => {
             if (phoneDigits.length < 10) errors.phone = 'Enter a valid 10-digit phone number';
         }
         if (!formData.street) errors.street = 'Required';
-        if (!formData.city) errors.city = 'Required';
-        if (!formData.state) errors.state = 'Required';
-        if (!formData.pincode) errors.pincode = 'Required';
 
         // Validate minimum order amount
         if (!meetsMinOrder && minOrderAmount > 0) {
@@ -332,10 +343,10 @@ const Checkout = () => {
         setFormData(prev => ({
             ...prev,
             street: address.street,
-            city: address.city,
-            state: address.state,
-            pincode: address.pincode,
-            country: address.country || 'India',
+            city: staticLocation?.city || address.city,
+            state: staticLocation?.state || address.state,
+            pincode: staticLocation?.pincode || address.pincode,
+            country: staticLocation?.country || address.country || 'India',
         }));
     };
 
@@ -345,10 +356,10 @@ const Checkout = () => {
         setFormData(prev => ({
             ...prev,
             street: '',
-            city: '',
-            state: '',
-            pincode: '',
-            country: 'India',
+            city: staticLocation?.city || '',
+            state: staticLocation?.state || '',
+            pincode: staticLocation?.pincode || '',
+            country: staticLocation?.country || 'India',
         }));
     };
 
@@ -831,51 +842,32 @@ const Checkout = () => {
 
                                     <div className="form-row-2">
                                         <div className="checkout-input-group">
-                                            <label className="checkout-label">City *</label>
-                                            <input
-                                                type="text"
-                                                name="city"
-                                                className={`checkout-input ${formErrors.city ? 'error' : ''}`}
-                                                placeholder="City"
-                                                value={formData.city}
-                                                onChange={handleChange}
-                                            />
+                                            <label className="checkout-label">City</label>
+                                            <div className="checkout-static-field">
+                                                <MapPin size={14} className="checkout-static-icon" aria-hidden />
+                                                {formData.city || '—'}
+                                            </div>
                                         </div>
                                         <div className="checkout-input-group">
-                                            <label className="checkout-label">State *</label>
-                                            <input
-                                                type="text"
-                                                name="state"
-                                                className={`checkout-input ${formErrors.state ? 'error' : ''}`}
-                                                placeholder="State"
-                                                value={formData.state}
-                                                onChange={handleChange}
-                                            />
+                                            <label className="checkout-label">State</label>
+                                            <div className="checkout-static-field">
+                                                {formData.state || '—'}
+                                            </div>
                                         </div>
                                     </div>
 
                                     <div className="form-row-2">
                                         <div className="checkout-input-group">
-                                            <label className="checkout-label">PIN Code *</label>
-                                            <input
-                                                type="text"
-                                                name="pincode"
-                                                className={`checkout-input ${formErrors.pincode ? 'error' : ''}`}
-                                                placeholder="PIN Code"
-                                                value={formData.pincode}
-                                                onChange={handleChange}
-                                            />
+                                            <label className="checkout-label">PIN Code</label>
+                                            <div className="checkout-static-field">
+                                                {formData.pincode || '—'}
+                                            </div>
                                         </div>
                                         <div className="checkout-input-group">
                                             <label className="checkout-label">Country</label>
-                                            <select
-                                                name="country"
-                                                className="checkout-select"
-                                                value={formData.country}
-                                                onChange={handleChange}
-                                            >
-                                                <option value="India">India</option>
-                                            </select>
+                                            <div className="checkout-static-field">
+                                                {formData.country || 'India'}
+                                            </div>
                                         </div>
                                     </div>
 
@@ -912,6 +904,19 @@ const Checkout = () => {
                     <div className="order-summary-section">
                         <div className="summary-card">
                             <h3 className="summary-title">Order Summary</h3>
+
+                            {minOrderAmount > 0 && (
+                                <div className={`checkout-min-order-banner ${meetsMinOrder ? 'checkout-min-order-banner--met' : 'checkout-min-order-banner--unmet'}`} role={meetsMinOrder ? undefined : 'alert'}>
+                                    {meetsMinOrder ? (
+                                        <span>Minimum order ₹{minOrderAmount.toFixed(2)} &mdash; <strong>met ✓</strong></span>
+                                    ) : (
+                                        <span>
+                                            Minimum order: <strong>₹{minOrderAmount.toFixed(2)}</strong>
+                                            &ensp;·&ensp;Add <strong>₹{(minOrderAmount - subtotal).toFixed(2)}</strong> more to proceed
+                                        </span>
+                                    )}
+                                </div>
+                            )}
 
                             <div className="summary-items">
                                 {cart.map(item => (
@@ -1096,13 +1101,6 @@ const Checkout = () => {
                                         </p>
                                     )}
                                 </div>
-                            )}
-
-                            {!meetsMinOrder && minOrderAmount > 0 && (
-                                <p className="checkout-summary-error" role="alert">
-                                    Minimum order is ₹{minOrderAmount.toFixed(2)}. Add more items to your cart to proceed to
-                                    payment.
-                                </p>
                             )}
 
                             <div className="summary-totals">

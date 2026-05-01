@@ -243,6 +243,11 @@ const DeliveryTab = ({ deliverySettings, setDeliverySettings, updateDeliverySett
             <div>
               <span className="delivery-stat__label">Time windows</span>
               <span className="delivery-stat__value">{windowsLine}</span>
+              {slots.filter((s) => s.is_active !== false).length > 0 && (
+                <span className="delivery-stat__sub">
+                  {slots.filter((s) => s.is_active !== false).map((s) => s.slot_time).join(' · ')}
+                </span>
+              )}
             </div>
           </article>
           <article className="delivery-stat">
