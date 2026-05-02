@@ -20,6 +20,7 @@ export const getOrders = async (params = {}) => {
   if (params.search) query.search = params.search;
   if (params.order_status) query.order_status = params.order_status;
   if (params.order_date) query.order_date = params.order_date;
+  if (params.staff_scope) query.staff_scope = params.staff_scope;
 
   const response = await apiGet('/orders/', query);
   return {
@@ -44,6 +45,14 @@ export const getOrderById = async (orderId) => {
  */
 export const getOrderDetail = async (orderId) => {
   return await apiGet(`/orders/${orderId}/detail`);
+};
+
+/**
+ * Get aggregated sales summary (delivered / returned / cancelled / net)
+ * @returns {Promise<{ delivered_amount, returned_amount, cancelled_amount, refunded_amount, net_sales }>}
+ */
+export const getOrdersSalesSummary = async () => {
+  return await apiGet('/orders/stats');
 };
 
 /**

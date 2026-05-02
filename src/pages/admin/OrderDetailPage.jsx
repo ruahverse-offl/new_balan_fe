@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, FileText, ExternalLink, Copy, Check, Ban, RotateCcw } from 'lucide-react';
+import { ArrowLeft, FileText, ExternalLink, Copy, Check, Ban, RotateCcw, Loader } from 'lucide-react';
 import { PageLoading } from '../../components/common/PageLoading';
 import { getOrderDetail } from '../../services/ordersApi';
 import { getDeliveryAgents } from '../../services/usersApi';
@@ -92,7 +92,15 @@ const OrderDetailPage = ({
 
     useEffect(() => {
         if (!orderId) return;
-        if (!orderFromState) setLoading(true);
+        if (orderFromState) {
+            setDetail((prev) =>
+                prev
+                    ? { ...prev, order: orderFromState }
+                    : { order: orderFromState, items: [], payment: null }
+            );
+        } else {
+            setLoading(true);
+        }
         setError('');
         setFetchError('');
         getOrderDetail(orderId)
@@ -378,7 +386,13 @@ const OrderDetailPage = ({
                 <section
                     id="order-detail-status-section"
                     className="order-detail-section order-detail-fulfillment"
+                    style={{ position: 'relative' }}
                 >
+                    {lifecycleUpdating && (
+                        <div className="order-detail-lifecycle-overlay" aria-label="Updating status…">
+                            <Loader size={28} className="spin-icon" style={{ color: 'var(--primary)' }} />
+                        </div>
+                    )}
                     <h3>Fulfillment</h3>
                     <div className="order-detail-status-row order-detail-fulfillment-status">
                         <div>
@@ -476,8 +490,8 @@ const OrderDetailPage = ({
                                             {
                                                 key: 'ORDER_PACKED',
                                                 label: 'Order packed',
-                                                done: rank >= 3,
-                                                active: currentStatus === 'ORDER_TAKEN' || currentStatus === 'ORDER_PROCESSING',
+                                                done: rank >= 2,
+                                                active: currentStatus === 'ORDER_RECEIVED',
                                                 action: packedAct || null,
                                             },
                                             {

@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "newbalan",
     "public": "dist",
     "ignore": [
       "firebase.json",

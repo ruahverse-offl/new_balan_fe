@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Eye, Pencil, ArrowLeft, ChevronRight } from 'lucide-react';
+import { Search, Eye, ArrowLeft, ChevronRight, History } from 'lucide-react';
 import {
     ORDER_STATUS_FILTER_VALUES,
     formatOrderStatusLabel,
@@ -34,6 +34,12 @@ function formatOrderSource(order) {
     return { label: label || raw, tagClass: norm.toLowerCase(), title: raw };
 }
 
+const fmt = (n) =>
+    Number.parseFloat(n || 0).toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+
 const OrdersTab = ({
     orders,
     totalOrders,
@@ -50,42 +56,59 @@ const OrdersTab = ({
     setStatusFilter,
     onViewDetails,
     onEditDetails,
+    onOpenHistory,
+    salesSummary,
 }) => {
     const pageOrders = orders || [];
     const total = totalOrders ?? pageOrders.length;
     const totalPages = Math.ceil(total / ordersRowsPerPage) || 1;
 
-    const pageAmount = pageOrders.reduce((sum, o) => sum + parseFloat(o.final_amount || 0), 0);
-
-    const openEdit = onEditDetails || onViewDetails;
+    const netRevenue =
+        salesSummary != null
+            ? Number.parseFloat(
+                  salesSummary.net_revenue !== undefined && salesSummary.net_revenue !== null
+                      ? salesSummary.net_revenue
+                      : salesSummary.net_sales || 0,
+              )
+            : null;
+    const delivered = salesSummary ? Number.parseFloat(salesSummary.delivered_amount || 0) : null;
+    const cancelled = salesSummary ? Number.parseFloat(salesSummary.cancelled_amount || 0) : null;
+    const returned = salesSummary ? Number.parseFloat(salesSummary.returned_amount || 0) : null;
+    const refunded = salesSummary ? Number.parseFloat(salesSummary.refunded_amount || 0) : null;
 
     return (
         <div className="admin-table-card catalog-tab-card orders-tab-card animate-slide-up">
-            <div className="catalog-tab-header orders-tab-header-compact">
-                <div>
-                    <h2 className="catalog-tab-title">Orders</h2>
-                    <p className="catalog-tab-subtitle">
-                        Filter by date and status, search by customer, phone, or order id. Use view or edit to open an
-                        order.
-                    </p>
-                </div>
-            </div>
-
             <div className="orders-kpi-strip" aria-label="Order totals for current filters">
                 <div className="orders-kpi-card">
                     <span className="orders-kpi-label">Total orders</span>
                     <span className="orders-kpi-value">{total.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="orders-kpi-card orders-kpi-card-accent">
-                    <span className="orders-kpi-label">Page amount</span>
-                    <span className="orders-kpi-value">
-                        ₹
-                        {pageAmount.toLocaleString('en-IN', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                        })}
-                    </span>
+                <div className="orders-kpi-card orders-kpi-card-accent" title="Net revenue = delivered minus returns and refunds. Cancelled value is shown separately. True profit also needs inventory and operating costs.">
+                    <span className="orders-kpi-label">Net revenue</span>
+                    {salesSummary ? (
+                        <>
+                            <span className="orders-kpi-value">₹{fmt(netRevenue)}</span>
+                            <span className="orders-kpi-breakdown">
+                                ₹{fmt(delivered)} delivered
+                                {returned > 0 && <> · −₹{fmt(returned)} returned</>}
+                                {refunded > 0 && <> · −₹{fmt(refunded)} refunds</>}
+                                {cancelled > 0 && (
+                                    <> · ₹{fmt(cancelled)} cancelled (separate)</>
+                                )}
+                            </span>
+                            <span className="orders-kpi-footnote">
+                                Before inventory &amp; operating costs — not net profit.
+                            </span>
+                        </>
+                    ) : (
+                        <span className="orders-kpi-value orders-kpi-loading">—</span>
+                    )}
                 </div>
+                {onOpenHistory && (
+                    <button type="button" className="btn-add orders-history-btn" onClick={onOpenHistory}>
+                        <History size={16} aria-hidden /> History
+                    </button>
+                )}
             </div>
 
             <div className="catalog-tab-toolbar orders-tab-toolbar">
@@ -131,11 +154,12 @@ const OrdersTab = ({
                 </select>
             </div>
 
-            <div className="scrollable-section-wrapper">
-                <div className="table-wrapper">
+            <div className="scrollable-section-wrapper orders-table-scroll">
+                <div className="table-wrapper orders-table-inner">
                     <table className="admin-table orders-table orders-table-v2">
                         <thead>
                             <tr>
+                                <th scope="col" style={{ width: '3rem' }}>#</th>
                                 <th scope="col">Name of the customer</th>
                                 <th scope="col">Source</th>
                                 <th scope="col">Date</th>
@@ -150,21 +174,23 @@ const OrdersTab = ({
                         <tbody>
                             {ordersLoading ? (
                                 <tr>
-                                    <td colSpan={7} className="orders-empty-cell">
+                                    <td colSpan={8} className="orders-empty-cell">
                                         Loading…
                                     </td>
                                 </tr>
                             ) : pageOrders.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="orders-empty-cell">
+                                    <td colSpan={8} className="orders-empty-cell">
                                         No orders found.
                                     </td>
                                 </tr>
                             ) : (
-                                pageOrders.map((order) => {
+                                pageOrders.map((order, idx) => {
                                     const src = formatOrderSource(order);
+                                    const sno = (ordersPage - 1) * ordersRowsPerPage + idx + 1;
                                     return (
                                         <tr key={order.id} className="orders-row-v2">
+                                            <td data-label="#" style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>{sno}</td>
                                             <td data-label="Customer" className="orders-cell-customer-name">
                                                 {order.customer_name?.trim() || '—'}
                                             </td>
@@ -187,7 +213,7 @@ const OrdersTab = ({
                                             </td>
                                             <td data-label="Amount" className="orders-cell-amount">
                                                 ₹
-                                                {parseFloat(order.final_amount || 0).toLocaleString('en-IN', {
+                                                {Number.parseFloat(order.final_amount || 0).toLocaleString('en-IN', {
                                                     minimumFractionDigits: 2,
                                                     maximumFractionDigits: 2,
                                                 })}
@@ -208,15 +234,6 @@ const OrdersTab = ({
                                                         onClick={() => onViewDetails(order)}
                                                     >
                                                         <Eye size={18} />
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        className="orders-icon-btn orders-icon-btn-edit"
-                                                        title="Edit order — status and details"
-                                                        aria-label="Edit order"
-                                                        onClick={() => openEdit(order)}
-                                                    >
-                                                        <Pencil size={18} />
                                                     </button>
                                                 </div>
                                             </td>

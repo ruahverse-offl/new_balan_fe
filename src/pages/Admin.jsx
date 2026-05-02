@@ -5,7 +5,7 @@ import { PageLoading, InlineSpinner } from '../components/common/PageLoading';
 import { useAuth } from '../context/AuthContext';
 import { getDoctors, createDoctor, updateDoctor, deleteDoctor as deleteDoctorApi } from '../services/doctorsApi';
 import { getMedicines, createMedicine, updateMedicine, deleteMedicine as deleteMedicineApi } from '../services/medicinesApi';
-import { getOrders, updateOrder } from '../services/ordersApi';
+import { getOrders, updateOrder, getOrdersSalesSummary } from '../services/ordersApi';
 import { getAppointments, createAppointment, updateAppointment, deleteAppointment as deleteAppointmentApi } from '../services/appointmentsApi';
 import { getCoupons, createCoupon, updateCoupon, deleteCoupon as deleteCouponApi } from '../services/couponsApi';
 import { getUsers, getUserById, getDeliveryAgents, createUser, updateUser as updateUserApi, deleteUser as deleteUserApi } from '../services/usersApi';
@@ -33,6 +33,7 @@ import { mapDoctorToFrontend, mapDoctorToBackend, mapDoctorToBackendUpdatePayloa
 import { formatTimeTo12h, parseTimeToHHmm, formatTimeRangeTo24h } from '../utils/timeFormatters';
 import { validateDoctorForm } from '../utils/doctorFormValidation';
 import { hasModuleGrant } from '../utils/permissionMapper';
+import { formatOrderStatusLabel, orderStatusTagClass } from '../constants/orderLifecycle';
 import { formatRoleCodeForDisplay } from '../utils/roleDisplay';
 import { getUserPermissions } from '../services/authApi';
 import DoctorsTab from './admin/DoctorsTab';
@@ -48,6 +49,7 @@ import TherapeuticCategoriesTab from './admin/TherapeuticCategoriesTab';
 import CouponUsagesTab from './admin/CouponUsagesTab';
 import MyProfileTab from './admin/MyProfileTab';
 import OrderDetailPage from './admin/OrderDetailPage';
+import OrderHistoryPage from './admin/OrderHistoryPage';
 import MedicineCategoryRecordPage from './admin/MedicineCategoryRecordPage';
 import MedicineRecordPage from './admin/MedicineRecordPage';
 import InventoryOfferingRecordPage from './admin/InventoryOfferingRecordPage';
@@ -525,6 +527,8 @@ const Admin = () => {
     const [ordersLoading, setOrdersLoading] = useState(false);
     const [orderStatusFilter, setOrderStatusFilter] = useState('');
     const [orderDateFilter, setOrderDateFilter] = useState('');
+    const [salesSummary, setSalesSummary] = useState(null);
+
     const [refundLoading, setRefundLoading] = useState(false);
     const [appointmentsPage, setAppointmentsPage] = useState(1);
     const [appointmentsRowsPerPage, setAppointmentsRowsPerPage] = useState(10);
@@ -882,6 +886,15 @@ const Admin = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab, medicinesPage, searchByTab.medicines, medicinesRowsPerPage]);
 
+    const fetchSalesSummary = async () => {
+        try {
+            const data = await getOrdersSalesSummary();
+            setSalesSummary(data);
+        } catch {
+            // non-critical — leave previous value
+        }
+    };
+
     // Fetch orders from backend with current page, search, and filter state
     const fetchOrders = async (
         page = ordersPage,
@@ -899,6 +912,7 @@ const Admin = () => {
                 search: search || undefined,
                 order_status: statusFilter || undefined,
                 order_date: dateFilter || undefined,
+                staff_scope: statusFilter ? undefined : 'active',
             }).catch(() => ({ items: [], pagination: {} }));
             setOrders(res.items || []);
             setOrdersTotal(res.pagination?.total ?? 0);
@@ -911,13 +925,15 @@ const Admin = () => {
         }
     };
 
+
     useEffect(() => {
-        if (activeTab === 'orders' || activeTab === 'delivery-orders') {
+        if ((activeTab === 'orders' || activeTab === 'delivery-orders') && !orderIdFromUrl) {
             const search = searchByTab[activeTab] ?? '';
             fetchOrders(ordersPage, search, ordersRowsPerPage, orderStatusFilter, orderDateFilter);
+            if (activeTab === 'orders') fetchSalesSummary();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeTab, ordersPage, searchByTab.orders, searchByTab['delivery-orders'], ordersRowsPerPage, orderStatusFilter, orderDateFilter]);
+    }, [activeTab, ordersPage, searchByTab.orders, searchByTab['delivery-orders'], ordersRowsPerPage, orderStatusFilter, orderDateFilter, orderIdFromUrl]);
 
     // Fetch notification logs with backend pagination + status/channel filters
     const fetchNotificationLogs = async (
@@ -961,9 +977,10 @@ const Admin = () => {
         }
     }, [newOrderNotification]);
 
-    // Poll for new ORDER_RECEIVED while Orders tab is open (sound + toast; excludes customer delivery notifications).
+    // Poll for new ORDER_RECEIVED while Orders tab list is open (sound + toast; excludes customer delivery notifications).
+    // Pauses while the browser tab is hidden so the API is not hit in the background without active use.
     useEffect(() => {
-        if (activeTab !== 'orders' || !user) return undefined;
+        if (activeTab !== 'orders' || orderIdFromUrl || !user) return undefined;
         const poll = async () => {
             try {
                 const res = await getOrders({ limit: 50, order_status: 'ORDER_RECEIVED' });
@@ -987,12 +1004,37 @@ const Admin = () => {
                 /* ignore poll errors */
             }
         };
-        poll();
-        const t = setInterval(poll, 22000);
-        return () => clearInterval(t);
+
+        let intervalId = null;
+        const stop = () => {
+            if (intervalId != null) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+        };
+        const start = () => {
+            if (intervalId != null) return;
+            poll();
+            intervalId = setInterval(poll, 22000);
+        };
+        const syncVisibility = () => {
+            if (typeof document === 'undefined') return;
+            if (document.visibilityState === 'hidden') {
+                stop();
+            } else {
+                start();
+            }
+        };
+
+        syncVisibility();
+        document.addEventListener('visibilitychange', syncVisibility);
+        return () => {
+            document.removeEventListener('visibilitychange', syncVisibility);
+            stop();
+        };
         // showNotify is stable enough for polling; avoid re-subscribing every parent render.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeTab, user?.id]);
+    }, [activeTab, orderIdFromUrl, user?.id]);
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
     const [editingId, setEditingId] = useState(null);
@@ -1217,8 +1259,14 @@ const Admin = () => {
     };
 
     const refreshOrderViews = () => {
-        fetchTabData('orders', true).catch(() => {});
-        fetchTabData('delivery-orders', true).catch(() => {});
+        // Invalidate so the list re-fetches when the user actually navigates back to it.
+        // Avoid making background API calls when the list isn't visible.
+        setLoadedTabs(prev => {
+            const s = new Set(prev);
+            s.delete('orders');
+            s.delete('delivery-orders');
+            return s;
+        });
     };
 
     const handleOrderLifecycleIntent = async (order, act) => {
@@ -1257,7 +1305,7 @@ const Admin = () => {
             showNotify('Order status updated', 'success');
             navigate(`/admin/orders/${order.id}`, {
                 replace: true,
-                state: { fromTab: location.state?.fromTab || 'orders' },
+                state: { fromTab: location.state?.fromTab || 'orders', order: updated },
             });
         } catch (error) {
             showNotify('Failed to update order: ' + (error.message || 'Unknown error'), 'error');
@@ -1269,50 +1317,54 @@ const Admin = () => {
     const confirmOrderLifecycleDialog = async () => {
         if (!orderLifecycleDialog?.order?.id) return;
         const { order, targetStatus, type } = orderLifecycleDialog;
+        setLifecycleUpdating(true);
         try {
+            let updatedOrder = null;
             if (type === 'cancel_staff') {
                 const reason = (orderLifecycleForm.reason || '').trim();
                 if (!reason) {
                     showNotify('Please enter a cancellation reason', 'error');
                     return;
                 }
-                const updated = await updateOrder(order.id, {
+                updatedOrder = await updateOrder(order.id, {
                     order_status: targetStatus,
                     cancellation_reason: reason,
                 });
-                mergeOrderFromApi(order.id, updated);
+                mergeOrderFromApi(order.id, updatedOrder);
             } else if (type === 'delivery_return') {
                 const reason = (orderLifecycleForm.reason || '').trim();
                 if (!reason) {
                     showNotify('Please enter a return reason', 'error');
                     return;
                 }
-                const updated = await updateOrder(order.id, {
+                updatedOrder = await updateOrder(order.id, {
                     order_status: targetStatus,
                     return_reason: reason,
                 });
-                mergeOrderFromApi(order.id, updated);
+                mergeOrderFromApi(order.id, updatedOrder);
             } else if (type === 'assign_delivery') {
                 const uid = (orderLifecycleForm.assignUserId || '').trim();
                 if (!uid) {
                     showNotify('Select a user to assign for delivery', 'error');
                     return;
                 }
-                const updated = await updateOrder(order.id, {
+                updatedOrder = await updateOrder(order.id, {
                     order_status: targetStatus,
                     delivery_assigned_user_id: uid,
                 });
-                mergeOrderFromApi(order.id, updated);
+                mergeOrderFromApi(order.id, updatedOrder);
             }
             showNotify('Order updated', 'success');
             refreshOrderViews();
             setOrderLifecycleDialog(null);
             navigate(`/admin/orders/${order.id}`, {
                 replace: true,
-                state: { fromTab: location.state?.fromTab || 'orders' },
+                state: { fromTab: location.state?.fromTab || 'orders', order: updatedOrder },
             });
         } catch (error) {
             showNotify('Failed to update order: ' + (error.message || 'Unknown error'), 'error');
+        } finally {
+            setLifecycleUpdating(false);
         }
     };
 
@@ -1329,7 +1381,7 @@ const Admin = () => {
         refreshOrderViews();
         navigate(`/admin/orders/${orderId}`, {
             replace: true,
-            state: { fromTab: location.state?.fromTab || 'orders' },
+            state: { fromTab: location.state?.fromTab || 'orders', order: updated },
         });
     };
 
@@ -2375,6 +2427,8 @@ const Admin = () => {
                             showNotify={showNotify}
                             onCategoriesChanged={refreshTherapeuticCategories}
                         />
+                    ) : orderIdFromUrl === 'history' ? (
+                        <OrderHistoryPage />
                     ) : orderIdFromUrl ? (
                         <OrderDetailPage
                             onOrderLifecycleIntent={handleOrderLifecycleIntent}
@@ -2477,6 +2531,8 @@ const Admin = () => {
                                     state: { order, fromTab: 'orders', orderDetailFocus: 'status' },
                                 })
                             }
+                            onOpenHistory={() => navigate('/admin/orders/history')}
+                            salesSummary={salesSummary}
                         />
                         )
                     )}
@@ -3763,10 +3819,12 @@ const Admin = () => {
                             <button
                                 type="button"
                                 className="btn-add"
-                                style={{ flex: 1 }}
+                                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                                disabled={lifecycleUpdating}
                                 onClick={confirmOrderLifecycleDialog}
                             >
-                                Confirm
+                                {lifecycleUpdating && <InlineSpinner size={16} />}
+                                {lifecycleUpdating ? 'Confirming…' : 'Confirm'}
                             </button>
                         </div>
                     </div>

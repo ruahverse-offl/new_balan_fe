@@ -81,7 +81,7 @@ const Footer = () => {
                     </div>
                     <p>&copy; {new Date().getFullYear()} NEW BALAN Medical Shop & Clinic. All rights reserved.</p>
                     <p>
-                        Designed by{' '}
+                        Designed & Developed by{' '}
                         <a href="https://ruahverse.com" target="_blank" rel="noopener noreferrer">
                             <strong>Ruah Verse</strong>
                         </a>
