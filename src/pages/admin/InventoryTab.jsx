@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Search, Package, TrendingDown, AlertTriangle,
-    CheckCircle, Minus, Plus as PlusIcon, X,
+    Minus, Plus as PlusIcon, X,
 } from 'lucide-react';
 import { PageLoading, InlineSpinner } from '../../components/common/PageLoading';
 import { useAuth } from '../../context/AuthContext';
 import { hasModuleGrant } from '../../utils/permissionMapper';
-import { getMedicines, getAllMedicinesForSelect } from '../../services/medicinesApi';
+import { getMedicines } from '../../services/medicinesApi';
 import { updateOfferingStock } from '../../services/inventoryApi';
-import { fetchAllBrandMasters, createBrand } from '../../services/brandsApi';
 import './AdminCatalogTabs.css';
 import './InventoryTab.css';
 
@@ -19,14 +18,6 @@ function stockStatus(qty) {
     if (qty <= LOW_STOCK_THRESHOLD) return 'low';
     return 'ok';
 }
-
-const emptyAddForm = () => ({
-    medicineId: '',
-    brandId: '',
-    mrp: '',
-    description: '',
-    initialStock: '0',
-});
 
 const InventoryTab = ({ showNotify, refreshToken = 0 }) => {
     const { user } = useAuth();
@@ -46,14 +37,6 @@ const InventoryTab = ({ showNotify, refreshToken = 0 }) => {
     const [editingOffering, setEditingOffering] = useState(null);
     const [editStock, setEditStock]             = useState('');
     const [saving, setSaving]                   = useState(false);
-
-    // Add entry modal
-    const [addModalOpen, setAddModalOpen]     = useState(false);
-    const [addForm, setAddForm]               = useState(emptyAddForm);
-    const [addSaving, setAddSaving]           = useState(false);
-    const [allMedicines, setAllMedicines]     = useState([]);
-    const [allBrands, setAllBrands]           = useState([]);
-    const [addOptsLoading, setAddOptsLoading] = useState(false);
 
     useEffect(() => {
         const t = setTimeout(() => setDebounced(search), 350);
@@ -85,70 +68,6 @@ const InventoryTab = ({ showNotify, refreshToken = 0 }) => {
 
     useEffect(() => { loadList(); }, [loadList, refreshToken]);
 
-    // Load dropdown options when add modal opens
-    useEffect(() => {
-        if (!addModalOpen) return;
-        let cancelled = false;
-        (async () => {
-            setAddOptsLoading(true);
-            try {
-                const [meds, brands] = await Promise.all([
-                    getAllMedicinesForSelect(),
-                    fetchAllBrandMasters(),
-                ]);
-                if (!cancelled) {
-                    setAllMedicines(meds || []);
-                    setAllBrands(brands || []);
-                }
-            } catch (e) {
-                if (!cancelled) showNotify(e?.message || 'Failed to load options', 'error');
-            } finally {
-                if (!cancelled) setAddOptsLoading(false);
-            }
-        })();
-        return () => { cancelled = true; };
-    }, [addModalOpen, showNotify]);
-
-    const openAdd = () => {
-        setAddForm(emptyAddForm());
-        setAddModalOpen(true);
-    };
-
-    const closeAdd = () => { if (!addSaving) setAddModalOpen(false); };
-
-    const handleAddEntry = async (e) => {
-        e?.preventDefault();
-        const { medicineId, brandId, mrp, description, initialStock } = addForm;
-        if (!medicineId) { showNotify('Select a medicine', 'error'); return; }
-        if (!brandId)    { showNotify('Select a brand', 'error'); return; }
-        if (!mrp || Number.isNaN(Number(mrp)) || Number(mrp) < 0) {
-            showNotify('Enter a valid MRP (₹0 or more)', 'error'); return;
-        }
-        const stockN = parseInt(String(initialStock).trim(), 10);
-        if (Number.isNaN(stockN) || stockN < 0) {
-            showNotify('Enter a valid initial stock count', 'error'); return;
-        }
-        setAddSaving(true);
-        try {
-            const offering = await createBrand({
-                medicine_id: medicineId,
-                brand_id: brandId,
-                mrp: Number(mrp),
-                description: description.trim() || null,
-            });
-            if (offering?.id && stockN > 0) {
-                await updateOfferingStock(offering.id, stockN);
-            }
-            showNotify('Stock entry added', 'success');
-            setAddModalOpen(false);
-            await loadList();
-        } catch (e) {
-            showNotify(e?.message || 'Failed to add entry', 'error');
-        } finally {
-            setAddSaving(false);
-        }
-    };
-
     const flatRows = useMemo(() => {
         const rows = [];
         for (const m of items) {
@@ -170,7 +89,6 @@ const InventoryTab = ({ showNotify, refreshToken = 0 }) => {
         total: flatRows.length,
         out:   flatRows.filter(r => r.stock === 0).length,
         low:   flatRows.filter(r => r.stock > 0 && r.stock <= LOW_STOCK_THRESHOLD).length,
-        ok:    flatRows.filter(r => r.stock > LOW_STOCK_THRESHOLD).length,
     }), [flatRows]);
 
     const filteredRows = useMemo(() => {
@@ -222,7 +140,6 @@ const InventoryTab = ({ showNotify, refreshToken = 0 }) => {
                     { key: 'all',  icon: <Package size={18} />,       cls: 'total', val: stats.total, label: 'Total SKUs' },
                     { key: 'out',  icon: <AlertTriangle size={18} />, cls: 'out',   val: stats.out,   label: 'Out of stock' },
                     { key: 'low',  icon: <TrendingDown size={18} />,  cls: 'low',   val: stats.low,   label: `Low (≤${LOW_STOCK_THRESHOLD})` },
-                    { key: null,   icon: <CheckCircle size={18} />,   cls: 'ok',    val: stats.ok,    label: 'Well stocked' },
                 ].map(({ key, icon, cls, val, label }) => (
                     <div
                         key={cls}
@@ -271,12 +188,6 @@ const InventoryTab = ({ showNotify, refreshToken = 0 }) => {
                         {filter !== 'all' ? ` · ${FILTER_LABELS[filter].toLowerCase()}` : ''}
                     </span>
                 )}
-                {canUpdateStock && (
-                    <button type="button" className="btn-add inv2-add-btn" onClick={openAdd}>
-                        <PlusIcon size={16} aria-hidden />
-                        Add Entry
-                    </button>
-                )}
             </div>
 
             {/* ── Content ── */}
@@ -290,18 +201,13 @@ const InventoryTab = ({ showNotify, refreshToken = 0 }) => {
                             ? 'No matches for your search.'
                             : filter !== 'all'
                                 ? `No items are ${filter === 'out' ? 'out of stock' : 'low on stock'}.`
-                                : 'No stock entries yet. Use Add Entry to link a medicine to a brand.'}
+                                : 'No inventory lines on this page. Add brand lines to a medicine under Medicines — they will show up here.'}
                     </p>
                     {filter !== 'all' ? (
                         <button type="button" className="inv2-empty__reset" onClick={() => setFilter('all')}>
                             Show all
                         </button>
-                    ) : canUpdateStock && (
-                        <button type="button" className="btn-add inv2-empty-add-btn" onClick={openAdd}>
-                            <PlusIcon size={16} aria-hidden />
-                            Add Entry
-                        </button>
-                    )}
+                    ) : null}
                 </div>
             ) : (
                 <div className="inv2-grid">
@@ -373,149 +279,33 @@ const InventoryTab = ({ showNotify, refreshToken = 0 }) => {
                 </div>
             )}
 
-            {/* ── Add entry modal ── */}
-            {addModalOpen && (
-                <div
-                    className="admin-modal-overlay"
-                    role="presentation"
-                    onClick={(e) => { if (e.target === e.currentTarget) closeAdd(); }}
-                >
-                    <div
-                        className="admin-modal inv2-add-modal"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="inv2-add-title"
-                        onClick={e => e.stopPropagation()}
-                    >
-                        <div className="admin-modal-header">
-                            <h3 id="inv2-add-title" className="admin-modal-title">Add Stock Entry</h3>
-                            <button type="button" className="admin-modal-close" onClick={closeAdd} aria-label="Close">
-                                <X size={18} />
-                            </button>
-                        </div>
-
-                        {addOptsLoading ? (
-                            <div className="inv2-add-loading">
-                                <InlineSpinner size={20} />
-                                <span>Loading options…</span>
-                            </div>
-                        ) : (
-                            <form onSubmit={handleAddEntry}>
-                                <div className="form-group">
-                                    <label htmlFor="inv2-add-medicine">Medicine</label>
-                                    <select
-                                        id="inv2-add-medicine"
-                                        value={addForm.medicineId}
-                                        onChange={e => setAddForm(f => ({ ...f, medicineId: e.target.value, brandId: '' }))}
-                                        required
-                                    >
-                                        <option value="">Choose a medicine…</option>
-                                        {allMedicines.map(m => (
-                                            <option key={m.id} value={m.id}>{m.name || m.id}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="form-group">
-                                    <label htmlFor="inv2-add-brand">Brand</label>
-                                    <select
-                                        id="inv2-add-brand"
-                                        value={addForm.brandId}
-                                        onChange={e => setAddForm(f => ({ ...f, brandId: e.target.value }))}
-                                        required
-                                    >
-                                        <option value="">Choose a brand…</option>
-                                        {allBrands.map(b => (
-                                            <option key={b.id} value={b.id}>{b.name || b.id}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="inv2-add-row2">
-                                    <div className="form-group">
-                                        <label htmlFor="inv2-add-mrp">MRP (₹)</label>
-                                        <input
-                                            id="inv2-add-mrp"
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            inputMode="decimal"
-                                            placeholder="0.00"
-                                            value={addForm.mrp}
-                                            onChange={e => setAddForm(f => ({ ...f, mrp: e.target.value }))}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label htmlFor="inv2-add-stock">Initial stock</label>
-                                        <input
-                                            id="inv2-add-stock"
-                                            type="number"
-                                            min="0"
-                                            step="1"
-                                            inputMode="numeric"
-                                            placeholder="0"
-                                            value={addForm.initialStock}
-                                            onChange={e => setAddForm(f => ({ ...f, initialStock: e.target.value }))}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="form-group">
-                                    <label htmlFor="inv2-add-desc">Pack / variant note <span className="inv2-add-optional">(optional)</span></label>
-                                    <input
-                                        id="inv2-add-desc"
-                                        type="text"
-                                        placeholder="e.g. 500 mg · strip of 10"
-                                        value={addForm.description}
-                                        onChange={e => setAddForm(f => ({ ...f, description: e.target.value }))}
-                                    />
-                                </div>
-
-                                <div className="admin-modal-footer">
-                                    <button
-                                        type="button"
-                                        className="btn-secondary"
-                                        onClick={closeAdd}
-                                        disabled={addSaving}
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="btn-add"
-                                        disabled={addSaving}
-                                    >
-                                        {addSaving
-                                            ? <><InlineSpinner size={14} /> Adding…</>
-                                            : <><PlusIcon size={15} aria-hidden /> Add Entry</>}
-                                    </button>
-                                </div>
-                            </form>
-                        )}
-                    </div>
-                </div>
-            )}
-
             {/* ── Update stock modal ── */}
             {editingOffering && (
                 <div
                     className="admin-modal-overlay"
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="inv2-modal-title"
-                    onClick={closeEdit}
+                    role="presentation"
+                    onClick={(e) => { if (e.target === e.currentTarget) closeEdit(); }}
                 >
                     <div
-                        className="admin-modal inv2-update-modal"
+                        className="admin-modal compact-modal inv2-update-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="inv2-modal-title"
                         onClick={e => e.stopPropagation()}
                     >
-                        <div className="inv2-modal-header">
-                            <span className="inv2-modal-brand">{editingOffering.brandName}</span>
-                            <h3 id="inv2-modal-title" className="inv2-modal-name">
-                                {editingOffering.medicineName}
-                            </h3>
+                        <div className="modal-header inv2-update-modal__header">
+                            <div className="inv2-update-modal__titles">
+                                <span className="inv2-modal-brand">{editingOffering.brandName}</span>
+                                <h3 id="inv2-modal-title" className="inv2-modal-name">
+                                    {editingOffering.medicineName}
+                                </h3>
+                            </div>
+                            <button type="button" className="modal-close" onClick={closeEdit} aria-label="Close dialog">
+                                <X size={18} aria-hidden />
+                            </button>
                         </div>
+
+                        <div className="modal-form inv2-update-modal__body">
                         <p className="inv2-modal-hint">Set the current on-hand stock count.</p>
 
                         <div className="inv2-modal-qty-row">
@@ -550,10 +340,10 @@ const InventoryTab = ({ showNotify, refreshToken = 0 }) => {
                             </button>
                         </div>
 
-                        <div className="inv2-modal-actions">
+                        <div className="modal-actions inv2-modal-actions">
                             <button
                                 type="button"
-                                className="inv2-modal-cancel"
+                                className="btn-secondary"
                                 onClick={closeEdit}
                                 disabled={saving}
                             >
@@ -561,14 +351,15 @@ const InventoryTab = ({ showNotify, refreshToken = 0 }) => {
                             </button>
                             <button
                                 type="button"
-                                className="inv2-modal-save"
+                                className="btn-add"
                                 onClick={handleSaveStock}
                                 disabled={saving}
                             >
                                 {saving
                                     ? <><InlineSpinner size={14} /> Saving…</>
-                                    : 'Save Stock'}
+                                    : 'Save stock'}
                             </button>
+                        </div>
                         </div>
                     </div>
                 </div>

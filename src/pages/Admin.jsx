@@ -503,14 +503,6 @@ const Admin = () => {
     const [notifLogsLoading, setNotifLogsLoading] = useState(false);
     const [notifLogsStatusFilter, setNotifLogsStatusFilter] = useState('');
     const [notifLogsChannelFilter, setNotifLogsChannelFilter] = useState('');
-    const [newOrderNotification, setNewOrderNotification] = useState(false);
-    const ordersNewAlertBaselineDoneRef = React.useRef(false);
-    const ordersSeenReceivedIdsRef = React.useRef(new Set());
-
-    useEffect(() => {
-        ordersNewAlertBaselineDoneRef.current = false;
-        ordersSeenReceivedIdsRef.current = new Set();
-    }, [user?.id]);
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [searchByTab, setSearchByTab] = useState({});
@@ -982,72 +974,6 @@ const Admin = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab, notifLogsPage, notifLogsRowsPerPage, notifLogsStatusFilter, notifLogsChannelFilter]);
 
-    // Notification Sound Effect
-    useEffect(() => {
-        if (newOrderNotification) {
-            const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
-            audio.play().catch(e => console.log("Audio play failed interaction required:", e));
-        }
-    }, [newOrderNotification]);
-
-    // Poll for new ORDER_RECEIVED while Orders tab list is open (sound + toast; excludes customer delivery notifications).
-    // Pauses while the browser tab is hidden so the API is not hit in the background without active use.
-    useEffect(() => {
-        if (activeTab !== 'orders' || orderIdFromUrl || !user) return undefined;
-        const poll = async () => {
-            try {
-                const res = await getOrders({ limit: 50, order_status: 'ORDER_RECEIVED' });
-                const received = res.items || [];
-                if (!ordersNewAlertBaselineDoneRef.current) {
-                    received.forEach((o) => {
-                        if (o.id) ordersSeenReceivedIdsRef.current.add(String(o.id));
-                    });
-                    ordersNewAlertBaselineDoneRef.current = true;
-                    return;
-                }
-                for (const o of received) {
-                    const id = o.id != null ? String(o.id) : '';
-                    if (!id || ordersSeenReceivedIdsRef.current.has(id)) continue;
-                    ordersSeenReceivedIdsRef.current.add(id);
-                    setNewOrderNotification(true);
-                    setTimeout(() => setNewOrderNotification(false), 1800);
-                    showNotify(`New order: ${o.order_reference || `${id.slice(0, 8)}…`}`, 'success');
-                }
-            } catch {
-                /* ignore poll errors */
-            }
-        };
-
-        let intervalId = null;
-        const stop = () => {
-            if (intervalId != null) {
-                clearInterval(intervalId);
-                intervalId = null;
-            }
-        };
-        const start = () => {
-            if (intervalId != null) return;
-            poll();
-            intervalId = setInterval(poll, 22000);
-        };
-        const syncVisibility = () => {
-            if (typeof document === 'undefined') return;
-            if (document.visibilityState === 'hidden') {
-                stop();
-            } else {
-                start();
-            }
-        };
-
-        syncVisibility();
-        document.addEventListener('visibilitychange', syncVisibility);
-        return () => {
-            document.removeEventListener('visibilitychange', syncVisibility);
-            stop();
-        };
-        // showNotify is stable enough for polling; avoid re-subscribing every parent render.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeTab, orderIdFromUrl, user?.id]);
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
     const [editingId, setEditingId] = useState(null);
@@ -2882,10 +2808,17 @@ const Admin = () => {
 
             {/* Shared Modal Backdrop/Overlay */}
             {showModal && (
-                <div className="admin-modal-overlay">
+                <div
+                    className="admin-modal-overlay"
+                    role="presentation"
+                    onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
+                >
                     <div
-                        className={`admin-modal compact-modal ${activeTab === 'doctors' ? 'doctor-form-modal' : ''}`}
+                        className={`admin-modal compact-modal admin-modal--flush ${activeTab === 'doctors' ? 'doctor-form-modal' : ''}`}
                         style={{ position: 'relative' }}
+                        role="dialog"
+                        aria-modal="true"
+                        onClick={(e) => e.stopPropagation()}
                     >
                         {activeTab === 'doctors' && (
                             <ActionOverlay
@@ -2897,9 +2830,17 @@ const Admin = () => {
                             <h3>{modalMode === 'add' ? 'New' : 'Update'} {
                                 activeTab === 'staff' ? 'Staff' :
                                 activeTab === 'test-bookings' ? 'Test Booking' :
+                                activeTab === 'appointments' ? 'appointment' :
                                 activeTab.slice(0, -1)
                             }</h3>
-                            <button onClick={() => setShowModal(false)} style={{ color: 'var(--admin-text-muted)' }}><X size={24} /></button>
+                            <button
+                                type="button"
+                                className="modal-close"
+                                aria-label="Close dialog"
+                                onClick={() => setShowModal(false)}
+                            >
+                                <X size={18} aria-hidden />
+                            </button>
                         </div>
                         <form onSubmit={
                             activeTab === 'doctors' ? handleDoctorSubmit :
@@ -2938,15 +2879,15 @@ const Admin = () => {
                                     <div className="form-group"><label>Contact*</label><input type="tel" required value={appointmentForm.phone} onChange={e => setAppointmentForm({ ...appointmentForm, phone: e.target.value })} placeholder="Phone number" /></div>
                                     <div className="form-group">
                                         <label>Doctor*</label>
-                                        <select required value={appointmentForm.doctorId} onChange={e => setAppointmentForm({ ...appointmentForm, doctorId: e.target.value })} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--admin-border)' }}>
+                                        <select required value={appointmentForm.doctorId} onChange={e => setAppointmentForm({ ...appointmentForm, doctorId: e.target.value })}>
                                             <option value="">Select Doctor</option>
                                             {(doctors || []).filter(d => d && d.id).map(d => <option key={d.id} value={d.id}>{d.name || '—'} ({d.specialty || '—'})</option>)}
                                         </select>
-                                        {(doctors || []).length === 0 && <small style={{ color: 'var(--admin-text-muted)', marginTop: '0.25rem', display: 'block' }}>Loading doctors… Add doctors in Manage Doctors if the list is empty.</small>}
+                                        {(doctors || []).length === 0 && <small className="admin-modal-field-hint">Loading doctors… Add doctors in Manage Doctors if the list is empty.</small>}
                                     </div>
                                     <div className="form-group"><label>Date*</label><DatePicker required value={appointmentForm.date || ''} onChange={v => setAppointmentForm({ ...appointmentForm, date: v })} placeholder="Select date" /></div>
                                     <div className="form-group"><label>Time</label><TimeInput value={timeToHHmm(appointmentForm.time) || ''} onChange={v => setAppointmentForm({ ...appointmentForm, time: v })} placeholder="Optional" /></div>
-                                    <div className="form-group"><label>Status</label><select value={appointmentForm.status} onChange={e => setAppointmentForm({ ...appointmentForm, status: e.target.value })} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--admin-border)' }}><option value="PENDING">Pending</option><option value="CONFIRMED">Confirmed</option><option value="CANCELLED">Cancelled</option><option value="COMPLETED">Completed</option></select></div>
+                                    <div className="form-group"><label>Status</label><select value={appointmentForm.status} onChange={e => setAppointmentForm({ ...appointmentForm, status: e.target.value })}><option value="PENDING">Pending</option><option value="CONFIRMED">Confirmed</option><option value="CANCELLED">Cancelled</option><option value="COMPLETED">Completed</option></select></div>
                                     <div className="form-group"><label>Patient Message</label><textarea value={appointmentForm.message} onChange={e => setAppointmentForm({ ...appointmentForm, message: e.target.value })} placeholder="Message from patient (optional)"></textarea></div>
                                 </>
                             )}
@@ -3062,11 +3003,10 @@ const Admin = () => {
                                     </div>
                                 </>
                             )}
-                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                            <div className="modal-actions">
                                 <button
                                     type="button"
-                                    className="btn-add btn-cancel"
-                                    style={{ flex: 1 }}
+                                    className="btn-secondary"
                                     disabled={activeTab === 'doctors' && doctorFormSubmitting}
                                     onClick={() => setShowModal(false)}
                                 >
@@ -3075,7 +3015,6 @@ const Admin = () => {
                                 <button
                                     type="submit"
                                     className="btn-add"
-                                    style={{ flex: 2 }}
                                     disabled={activeTab === 'doctors' && doctorFormSubmitting}
                                 >
                                     {activeTab === 'doctors' && doctorFormSubmitting
@@ -3094,23 +3033,40 @@ const Admin = () => {
 
             {/* Appointment / Patient Details Modal (eye icon) */}
             {showAppointmentDetails && appointmentDetails && (
-                <div className="admin-modal-overlay">
-                    <div className="admin-modal" style={{ maxWidth: '560px' }}>
+                <div
+                    className="admin-modal-overlay"
+                    role="presentation"
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) {
+                            setShowAppointmentDetails(false);
+                            setAppointmentDetails(null);
+                        }
+                    }}
+                >
+                    <div
+                        className="admin-modal compact-modal admin-modal--flush"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="apt-details-title"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className="modal-header">
-                            <h3>Patient Details</h3>
+                            <h3 id="apt-details-title">Patient details</h3>
                             <button
+                                type="button"
+                                className="modal-close"
+                                aria-label="Close dialog"
                                 onClick={() => {
                                     setShowAppointmentDetails(false);
                                     setAppointmentDetails(null);
                                 }}
-                                style={{ color: 'var(--admin-text-muted)' }}
-                                type="button"
                             >
-                                <X size={24} />
+                                <X size={18} aria-hidden />
                             </button>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1rem' }}>
+                        <div className="admin-modal-body">
+                        <div className="admin-detail-grid">
                             <div>
                                 <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>Patient</div>
                                 <div style={{ fontWeight: 700 }}>{appointmentDetails.patientName || 'N/A'}</div>
@@ -3156,12 +3112,12 @@ const Admin = () => {
                                 </div>
                             )}
                         </div>
+                        </div>
 
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                        <div className="modal-actions">
                             <button
                                 type="button"
-                                className="btn-add btn-cancel"
-                                style={{ flex: 1 }}
+                                className="btn-secondary"
                                 onClick={() => {
                                     setShowAppointmentDetails(false);
                                     setAppointmentDetails(null);

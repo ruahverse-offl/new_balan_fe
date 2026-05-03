@@ -70,11 +70,6 @@
     color: #d97706;
 }
 
-.inv2-stat--ok .inv2-stat__icon {
-    background: #dcfce7;
-    color: #16a34a;
-}
-
 .inv2-stat--total.inv2-stat--active {
     border-color: #7c3aed;
     background: #faf5ff;
@@ -354,13 +349,44 @@
     padding-top: 0.25rem;
 }
 
-/* ── Update stock modal ── */
-.inv2-update-modal {
-    width: min(26rem, 92vw);
+/* ── Update stock modal (flush shell) ── */
+.admin-modal.inv2-update-modal {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    max-width: min(26rem, calc(100vw - 2rem));
 }
 
-.inv2-modal-header {
-    margin-bottom: 0.75rem;
+.inv2-modal-actions {
+    margin-top: 0.35rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid var(--admin-border, #e2e8f0);
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.inv2-modal-actions .btn-add,
+.inv2-modal-actions .btn-secondary {
+    min-height: 2.5rem;
+}
+
+.inv2-update-modal__header.modal-header {
+    align-items: flex-start;
+}
+
+.inv2-update-modal__titles {
+    flex: 1;
+    min-width: 0;
+    padding-right: 0.5rem;
+}
+
+.inv2-update-modal__header .modal-close {
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+}
+
+.inv2-update-modal__body {
+    padding-bottom: 1.25rem;
 }
 
 .inv2-modal-brand {
@@ -385,8 +411,9 @@
 }
 
 .inv2-modal-hint {
-    margin: 0 0 1.25rem;
+    margin: 0 0 1rem;
     font-size: 0.875rem;
+    line-height: 1.5;
     color: var(--admin-text-muted, #64748b);
 }
 
@@ -450,58 +477,6 @@
     outline: none;
     border-color: var(--primary, #6366f1);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, #6366f1) 18%, transparent);
-}
-
-/* Modal action buttons */
-.inv2-modal-actions {
-    display: flex;
-    gap: 0.75rem;
-    justify-content: flex-end;
-}
-
-.inv2-modal-cancel {
-    padding: 0.55rem 1.25rem;
-    border-radius: 9px;
-    border: 1px solid var(--admin-border, #e2e8f0);
-    background: transparent;
-    color: var(--admin-text-muted, #64748b);
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.12s;
-}
-
-.inv2-modal-cancel:hover:not(:disabled) {
-    background: var(--admin-bg, #f8fafc);
-}
-
-.inv2-modal-cancel:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.inv2-modal-save {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.55rem 1.4rem;
-    border-radius: 9px;
-    border: none;
-    background: var(--primary, #6366f1);
-    color: #fff;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.12s, opacity 0.12s;
-}
-
-.inv2-modal-save:hover:not(:disabled) {
-    background: #4f46e5;
-}
-
-.inv2-modal-save:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
 }
 
 /* ── Responsive ── */
@@ -580,8 +555,8 @@
         flex-direction: column-reverse;
     }
 
-    .inv2-modal-cancel,
-    .inv2-modal-save {
+    .inv2-modal-actions .btn-secondary,
+    .inv2-modal-actions .btn-add {
         width: 100%;
         justify-content: center;
     }

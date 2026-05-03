@@ -2696,6 +2696,100 @@ button.sidebar-profile-card.active .sidebar-profile-chevron {
     padding: 1.75rem 2rem;
 }
 
+/* Flush shell — full-width header/footer band (inventory-style; shared add/edit + read-only modals) */
+.admin-modal.admin-modal--flush {
+    padding: 0;
+    max-width: min(32rem, calc(100vw - 2rem));
+    overflow: hidden;
+}
+
+.admin-modal.admin-modal--flush .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0;
+    padding: 1rem 1.25rem;
+    border-bottom: 2px solid var(--admin-border);
+    background: var(--gray-50, #f9fafb);
+}
+
+.admin-modal.admin-modal--flush .modal-header h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--admin-text-main);
+    letter-spacing: -0.02em;
+    text-transform: none;
+    line-height: 1.25;
+}
+
+.admin-modal.admin-modal--flush .modal-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex-shrink: 0;
+    border: none;
+    border-radius: var(--radius, 10px);
+    background: transparent;
+    color: var(--admin-text-muted);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.admin-modal.admin-modal--flush .modal-close:hover {
+    background: var(--gray-100, #f3f4f6);
+    color: var(--admin-text-main);
+}
+
+.admin-modal.admin-modal--flush .modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.25rem;
+    margin-right: 0;
+}
+
+.admin-modal.admin-modal--flush .modal-form > .form-group {
+    margin-bottom: 0;
+}
+
+.admin-modal.admin-modal--flush .modal-form .modal-actions {
+    margin-top: 0.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--admin-border);
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.admin-modal.admin-modal--flush .admin-modal-body {
+    padding: 1.25rem;
+}
+
+.admin-modal.admin-modal--flush .admin-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem 1rem;
+}
+
+@media (max-width: 480px) {
+    .admin-modal.admin-modal--flush .admin-detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.admin-modal-field-hint {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.8125rem;
+    color: var(--admin-text-muted);
+    line-height: 1.4;
+}
+
 .assign-delivery-modal {
     margin-top: 0.35rem;
 }
