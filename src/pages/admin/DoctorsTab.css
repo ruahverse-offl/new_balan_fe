@@ -6,16 +6,41 @@
     gap: 0;
 }
 
-/* Header + toolbar layout: shared catalog-tab-* (AdminCatalogTabs.css) */
+/* Toolbar (AdminUI) — no duplicate in-card title; admin header is “Manage Doctors” */
 
-.doctors-tab-toolbar .table-search {
-    flex: 1;
-    min-width: 200px;
-    max-width: 320px;
+.doctors-tab-toolbar {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
 }
 
-.doctors-tab-meta {
+.doctors-tab-toolbar .aui-search {
+    flex: 1;
+    min-width: 200px;
+    max-width: 420px;
+}
+
+.doctors-tab-toolbar-meta {
+    margin-left: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--admin-text-muted, #64748b);
+}
+
+.doctors-tab-add-btn {
     margin-left: auto;
+}
+
+.doctors-tab-table-wrap {
+    border-top: 1px solid var(--admin-border, #e2e8f0);
+}
+
+.doctors-tab-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
 }
 
 .doctors-table .doctors-cell-name {
@@ -26,47 +51,6 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-}
-
-/* View details — icon + label; must override global .action-btn fixed 36×36 or the Eye is clipped */
-.admin-table td.actions .action-btn.doctors-view-btn {
-    width: auto;
-    min-width: auto;
-    height: auto;
-    min-height: 36px;
-    padding: 0.45rem 0.75rem;
-}
-
-.doctors-view-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--primary, #6366f1);
-    border-radius: 8px;
-    border: 1px solid color-mix(in srgb, var(--primary, #6366f1) 30%, var(--admin-border, #e5e7eb));
-    background: color-mix(in srgb, var(--primary, #6366f1) 8%, var(--white, #fff));
-}
-
-.doctors-view-btn svg {
-    flex-shrink: 0;
-    color: var(--primary, #6366f1);
-}
-
-.doctors-view-btn:hover {
-    background: color-mix(in srgb, var(--primary, #6366f1) 16%, var(--white, #fff));
-    border-color: color-mix(in srgb, var(--primary, #6366f1) 45%, var(--admin-border, #e5e7eb));
-    color: var(--primary, #6366f1);
-}
-
-.doctors-view-btn:focus-visible {
-    outline: 2px solid var(--primary, #6366f1);
-    outline-offset: 2px;
-}
-
-.doctors-view-btn-label {
-    line-height: 1;
 }
 
 .doctors-avatar {
@@ -120,19 +104,6 @@
     background: var(--admin-bg-subtle, #f3f4f6);
     color: var(--admin-text, #374151);
     margin-top: 0.15rem;
-}
-
-.doctors-empty {
-    text-align: center;
-    padding: 2.5rem 1.5rem;
-    color: var(--admin-text-muted, #6b7280);
-}
-
-.doctors-empty-title {
-    margin: 0 0 0.5rem;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--admin-text, #374151);
 }
 
 /* Modal sections (DoctorModalForm) */

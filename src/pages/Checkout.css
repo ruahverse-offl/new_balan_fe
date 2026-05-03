@@ -1069,6 +1069,26 @@
     letter-spacing: 0.02em;
 }
 
+/* Service area (city/state from env + admin delivery_location) */
+.checkout-service-area-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    margin: 0 0 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: #1e40af;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+}
+.checkout-service-area-notice__icon {
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+    color: #2563eb;
+}
+
 /* === Saved Addresses === */
 /* Select address block (saved addresses from profile + Add address) */
 .checkout-select-address-block {

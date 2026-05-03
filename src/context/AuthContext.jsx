@@ -220,21 +220,22 @@ export const AuthProvider = ({ children }) => {
                 // Permission/role updates are local-only (from RBAC system)
                 updatedUser = { ...user, ...updates };
             } else {
-                // Send profile updates to backend
+                // Send profile updates to backend (server requires current_password for self-service name/email/phone)
                 const backendData = {};
                 if (updates.name || updates.full_name) backendData.full_name = updates.name || updates.full_name;
                 if (updates.phone || updates.mobile_number) backendData.mobile_number = updates.phone || updates.mobile_number;
                 if (updates.email) backendData.email = updates.email;
+                const cp = updates.current_password;
+                if (cp != null && String(cp).trim() !== '') {
+                    backendData.current_password = String(cp).trim();
+                }
 
                 if (Object.keys(backendData).length > 0) {
-                    try {
-                        await updateCurrentUser(backendData);
-                    } catch (apiError) {
-                        console.warn('Backend profile update failed:', apiError);
-                        // Continue with local update even if backend fails
-                    }
+                    await updateCurrentUser(backendData);
                 }
-                updatedUser = { ...user, ...updates };
+
+                const { current_password: _omit, ...rest } = updates;
+                updatedUser = { ...user, ...rest };
             }
 
             const newUserState = { ...user, ...updatedUser };

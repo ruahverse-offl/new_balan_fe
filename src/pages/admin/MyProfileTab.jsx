@@ -3,6 +3,7 @@ import { User, Lock, Shield, Save, Mail, Phone, CheckCircle, AlertCircle, Calend
 import { InlineSpinner } from '../../components/common/PageLoading';
 import { useAuth } from '../../context/AuthContext';
 import { changePassword } from '../../services/authApi';
+import { getPasswordPolicyError, PASSWORD_POLICY_HINT } from '../../utils/passwordPolicy';
 import { getUserById } from '../../services/usersApi';
 
 const sectionCardStyle = {
@@ -111,6 +112,9 @@ const MyProfileTab = ({ user }) => {
     });
     const [profileSaving, setProfileSaving] = useState(false);
     const [profileMessage, setProfileMessage] = useState({ text: '', type: '' });
+    const [saveProfilePassword, setSaveProfilePassword] = useState('');
+    const [showSaveProfilePassword, setShowSaveProfilePassword] = useState(false);
+    const [saveProfilePasswordError, setSaveProfilePasswordError] = useState('');
     const [focusedField, setFocusedField] = useState(null);
 
     // Password form state
@@ -164,20 +168,29 @@ const MyProfileTab = ({ user }) => {
     const handleProfileChange = (field, value) => {
         setProfileForm((prev) => ({ ...prev, [field]: value }));
         if (profileMessage.text) setProfileMessage({ text: '', type: '' });
+        setSaveProfilePasswordError('');
     };
 
     const handleSaveProfile = async () => {
-        setProfileSaving(true);
+        setSaveProfilePasswordError('');
         setProfileMessage({ text: '', type: '' });
+        if (!saveProfilePassword.trim()) {
+            setSaveProfilePasswordError('Enter your account password to save profile changes.');
+            return;
+        }
+        setProfileSaving(true);
 
         try {
             const result = await updateUser({
                 full_name: profileForm.full_name,
                 email: profileForm.email,
                 mobile_number: profileForm.mobile_number,
+                current_password: saveProfilePassword.trim(),
             });
 
             if (result.success) {
+                setSaveProfilePassword('');
+                setShowSaveProfilePassword(false);
                 setProfileMessage({ text: 'Profile updated successfully!', type: 'success' });
             } else {
                 setProfileMessage({ text: result.message || 'Failed to update profile.', type: 'error' });
@@ -199,8 +212,9 @@ const MyProfileTab = ({ user }) => {
             setPasswordMessage({ text: 'Both fields are required.', type: 'error' });
             return;
         }
-        if (passwordForm.newPassword.length < 6) {
-            setPasswordMessage({ text: 'New password must be at least 6 characters.', type: 'error' });
+        const pwdErr = getPasswordPolicyError(passwordForm.newPassword);
+        if (pwdErr) {
+            setPasswordMessage({ text: pwdErr, type: 'error' });
             return;
         }
 
@@ -298,6 +312,62 @@ const MyProfileTab = ({ user }) => {
                             placeholder="Enter your phone number"
                         />
                     </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                        <label style={fieldLabelStyle}>
+                            <Lock size={13} style={{ verticalAlign: 'middle', marginRight: '0.25rem' }} />
+                            Password (confirm it&apos;s you)
+                        </label>
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'stretch' }}>
+                            <input
+                                type={showSaveProfilePassword ? 'text' : 'password'}
+                                autoComplete="current-password"
+                                value={saveProfilePassword}
+                                onChange={(e) => {
+                                    setSaveProfilePasswordError('');
+                                    setSaveProfilePassword(e.target.value);
+                                }}
+                                onFocus={() => setFocusedField('saveProfilePw')}
+                                onBlur={() => setFocusedField(null)}
+                                style={{
+                                    ...inputStyle,
+                                    paddingRight: '2.5rem',
+                                    ...(focusedField === 'saveProfilePw' ? inputFocusStyle : {}),
+                                }}
+                                placeholder="Enter your login password"
+                                aria-label="Password to confirm profile save"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowSaveProfilePassword((s) => !s)}
+                                title={showSaveProfilePassword ? 'Hide password' : 'Show password'}
+                                aria-label={showSaveProfilePassword ? 'Hide password' : 'Show password'}
+                                style={{
+                                    position: 'absolute',
+                                    right: '0.5rem',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    background: 'none',
+                                    border: 'none',
+                                    padding: '0.25rem',
+                                    cursor: 'pointer',
+                                    color: 'var(--admin-text-muted)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                }}
+                            >
+                                {showSaveProfilePassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                        </div>
+                        <p style={{ margin: '0.35rem 0 0', fontSize: '0.78rem', color: 'var(--gray-500)', lineHeight: 1.4 }}>
+                            Required to save changes to your name, email, or phone.
+                        </p>
+                        {saveProfilePasswordError && (
+                            <p style={{ margin: '0.35rem 0 0', fontSize: '0.8rem', color: '#b91c1c', fontWeight: 600 }} role="alert">
+                                {saveProfilePasswordError}
+                            </p>
+                        )}
+                    </div>
                 </div>
                 <div style={{ marginTop: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <button
@@ -385,8 +455,9 @@ const MyProfileTab = ({ user }) => {
                                     paddingRight: '2.5rem',
                                     ...(focusedField === 'newPassword' ? inputFocusStyle : {}),
                                 }}
-                                placeholder="Type new password (min. 6 characters)"
+                                placeholder="Min. 8 chars, upper, lower, special"
                                 aria-label="New password"
+                                minLength={8}
                             />
                             <button
                                 type="button"
@@ -411,6 +482,14 @@ const MyProfileTab = ({ user }) => {
                                 {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
                         </div>
+                        <p style={{ margin: '0.4rem 0 0', fontSize: '0.78rem', color: 'var(--gray-500)', lineHeight: 1.45 }}>
+                            {PASSWORD_POLICY_HINT}
+                        </p>
+                        {passwordForm.newPassword && getPasswordPolicyError(passwordForm.newPassword) && (
+                            <p style={{ margin: '0.25rem 0 0', fontSize: '0.78rem', color: '#b91c1c' }}>
+                                {getPasswordPolicyError(passwordForm.newPassword)}
+                            </p>
+                        )}
                     </div>
                 </div>
                 <div style={{ marginTop: '1.25rem' }}>

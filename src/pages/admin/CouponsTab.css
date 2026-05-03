@@ -13,17 +13,13 @@
     gap: 1.25rem;
 }
 
-.coupons-marquee-card .catalog-tab-header {
-    padding-bottom: 1rem;
-}
-
 .coupons-marquee-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 0 1.5rem 1.25rem;
+    padding: 1.25rem 1.5rem 1.25rem;
 }
 
 .coupons-marquee-actions {

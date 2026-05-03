@@ -1,110 +1,33 @@
-/* Manage Medicines — aligned with Doctors tab polish */
+/* Manage Medicines — AdminUI toolbar + table (no duplicate in-card title) */
 
 .medicines-tab-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
     overflow: hidden;
 }
 
-.medicines-tab-header {
-    padding: 1.25rem 1.5rem 0.75rem;
-    border-bottom: 1px solid var(--admin-border, #e2e8f0);
-    background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
-}
-
-.medicines-tab-title {
-    margin: 0 0 0.35rem;
-    font-size: 1.35rem;
-    font-weight: 800;
-    color: var(--admin-text-main, #0f172a);
-    letter-spacing: -0.02em;
-}
-
-.medicines-tab-subtitle {
-    margin: 0;
-    font-size: 0.875rem;
-    line-height: 1.5;
-    color: var(--admin-text-muted, #64748b);
-    max-width: 52rem;
-}
-
 .medicines-tab-toolbar {
-    display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.75rem 1rem;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--admin-border, #e2e8f0);
-    background: var(--admin-card, #fff);
 }
 
-.medicines-tab-toolbar .table-search {
+.medicines-tab-toolbar .aui-search {
     flex: 1;
     min-width: 200px;
     max-width: 420px;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.85rem;
-    border-radius: 12px;
-    border: 2px solid var(--admin-border, #e2e8f0);
-    background: var(--gray-50, #f8fafc);
-    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.medicines-tab-toolbar .table-search:focus-within {
-    border-color: var(--primary, #6366f1);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
-    background: #fff;
-}
-
-.medicines-tab-toolbar .table-search input {
-    flex: 1;
-    border: none;
-    background: transparent;
-    font-size: 0.9rem;
-    min-width: 0;
-    outline: none;
-    color: var(--admin-text-main, #0f172a);
-}
-
-.medicines-tab-toolbar .table-search svg {
-    color: var(--admin-text-muted, #94a3b8);
-    flex-shrink: 0;
-}
-
-.medicines-rows-label {
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
+.medicines-tab-toolbar-meta {
+    margin-left: 0;
     font-size: 0.8125rem;
     font-weight: 600;
     color: var(--admin-text-muted, #64748b);
-    white-space: nowrap;
 }
 
-.medicines-rows-select {
-    padding: 0.45rem 0.65rem;
-    border-radius: 10px;
-    border: 2px solid var(--admin-border, #e2e8f0);
-    background: #fff;
-    color: var(--admin-text-main, #0f172a);
-    font-size: 0.875rem;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.medicines-rows-select:focus {
-    outline: none;
-    border-color: var(--primary, #6366f1);
-}
-
-.medicines-tab-meta {
-    font-size: 0.8125rem;
-    color: var(--admin-text-muted, #64748b);
+.medicines-tab-add-btn {
     margin-left: auto;
-}
-
-.medicines-tab-toolbar .btn-add {
-    flex-shrink: 0;
 }
 
 .medicines-loading-overlay {
@@ -129,17 +52,16 @@
     }
 }
 
-.medicines-empty {
-    text-align: center;
-    padding: 2.75rem 1.5rem;
-    color: var(--admin-text-muted, #64748b);
+.medicines-tab-table-wrap {
+    border-top: 1px solid var(--admin-border, #e2e8f0);
 }
 
-.medicines-empty-title {
-    margin: 0 0 0.5rem;
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--admin-text-main, #334155);
+.medicines-tab-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
 }
 
 .medicines-table {
@@ -229,67 +151,10 @@
     cursor: not-allowed;
 }
 
-.medicines-tab-footer {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.85rem 1.5rem 1.15rem;
-    border-top: 1px solid var(--admin-border, #e2e8f0);
-    background: #fafbfc;
-}
-
-.medicines-tab-footer .pagination-bar {
-    margin: 0;
-}
-
 @media (max-width: 768px) {
-    .medicines-tab-toolbar .medicines-tab-meta {
+    .medicines-tab-toolbar .medicines-tab-toolbar-meta {
         width: 100%;
-        margin-left: 0;
     }
-}
-
-/* View row action — override global .action-btn 36×36 so Eye + label fit */
-.admin-table td.actions .action-btn.medicines-view-btn {
-    width: auto;
-    min-width: auto;
-    height: auto;
-    min-height: 36px;
-    padding: 0.45rem 0.75rem;
-}
-
-.medicines-view-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--primary, #6366f1);
-    border-radius: 8px;
-    border: 1px solid color-mix(in srgb, var(--primary, #6366f1) 30%, var(--admin-border, #e5e7eb));
-    background: color-mix(in srgb, var(--primary, #6366f1) 8%, var(--white, #fff));
-}
-
-.medicines-view-btn svg {
-    flex-shrink: 0;
-    color: var(--primary, #6366f1);
-}
-
-.medicines-view-btn:hover {
-    background: color-mix(in srgb, var(--primary, #6366f1) 16%, var(--white, #fff));
-    border-color: color-mix(in srgb, var(--primary, #6366f1) 45%, var(--admin-border, #e5e7eb));
-    color: var(--primary, #6366f1);
-}
-
-.medicines-view-btn:focus-visible {
-    outline: 2px solid var(--primary, #6366f1);
-    outline-offset: 2px;
-}
-
-.medicines-view-btn-label {
-    line-height: 1;
 }
 
 /* Read-only medicine details modal */

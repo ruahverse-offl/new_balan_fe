@@ -1,5 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, ChevronRight, Copy, Monitor, RefreshCw, Search, Smartphone } from 'lucide-react';
+import { Copy, Monitor, RefreshCw, Search } from 'lucide-react';
+
+import ActionOverlay from '../../components/admin/ActionOverlay';
+import { useActionLock } from '../../hooks/useActionLock';
+import { Btn, EmptyState, TableFooter } from '../../components/admin/AdminUI';
 
 import './AdminCatalogTabs.css';
 import './NotificationTabs.css';
@@ -32,6 +36,7 @@ export default function NotificationSettingsTab({
   const [pushFilter, setPushFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const { locked, message: lockMsg, run: lockRun } = useActionLock();
 
   const filtered = useMemo(() => {
     const q = (searchTerm || '').trim().toLowerCase();
@@ -63,22 +68,8 @@ export default function NotificationSettingsTab({
   }, [rows]);
 
   return (
-    <div className="admin-table-card catalog-tab-card animate-slide-up ntf-page">
-      <header className="ntf-hero">
-        <div className="ntf-hero-inner">
-          <div className="ntf-hero-text">
-            <div className="ntf-eyebrow">
-              <Smartphone size={12} strokeWidth={2.5} aria-hidden />
-              Device registry
-            </div>
-            <h2 className="ntf-title">Notification settings</h2>
-            <p className="ntf-lead">
-              Expo tokens registered per user and device. Use this view to audit installs and to disable push for a
-              specific token without touching the user account.
-            </p>
-          </div>
-        </div>
-      </header>
+    <div className="admin-table-card catalog-tab-card animate-slide-up ntf-page" style={{ position: 'relative' }}>
+      <ActionOverlay show={locked} message={lockMsg} />
 
       <section className="ntf-kpis" aria-label="Summary">
         <div className="ntf-kpi">
@@ -144,9 +135,9 @@ export default function NotificationSettingsTab({
             </button>
           ))}
         </div>
-        <button type="button" className="btn-secondary" onClick={onRefresh}>
+        <Btn variant="ghost" size="sm" onClick={() => lockRun(async () => { await onRefresh?.(); }, 'Refreshing…')}>
           <RefreshCw size={16} /> Refresh
-        </button>
+        </Btn>
         <span className="ntf-toolbar-meta">
           {filtered.length} shown
           {(searchTerm?.trim() || platformFilter !== 'all' || pushFilter !== 'all') && ` · ${(rows || []).length} total`}
@@ -156,17 +147,15 @@ export default function NotificationSettingsTab({
       <div className="scrollable-section-wrapper">
         <div className="table-wrapper ntf-table-wrap">
           {filtered.length === 0 ? (
-            <div className="ntf-empty">
-              <div className="ntf-empty-icon">
-                <Monitor size={28} strokeWidth={1.75} />
-              </div>
-              <p className="ntf-empty-title">Nothing to show</p>
-              <p>
-                {(rows || []).length === 0
+            <EmptyState
+              icon={Monitor}
+              title="Nothing to show"
+              description={
+                (rows || []).length === 0
                   ? 'Tokens appear after a signed-in user opens the app and notification permission is handled.'
-                  : 'Adjust filters or search — no rows match right now.'}
-              </p>
-            </div>
+                  : 'Adjust filters or search — no rows match right now.'
+              }
+            />
           ) : (
             <table className="admin-table catalog-table">
               <thead>
@@ -230,7 +219,11 @@ export default function NotificationSettingsTab({
                             className={`ntf-switch ${row.is_push_enabled ? 'on' : ''}`}
                             title={row.is_push_enabled ? 'Disable push for this token' : 'Enable push'}
                             aria-pressed={row.is_push_enabled}
-                            onClick={() => onTogglePush?.(row)}
+                            onClick={() =>
+                              lockRun(async () => {
+                                await onTogglePush?.(row);
+                              }, 'Updating push…')
+                            }
                           />
                           <span className="ntf-mono-sm">{row.is_push_enabled ? 'On' : 'Off'}</span>
                         </div>
@@ -259,30 +252,18 @@ export default function NotificationSettingsTab({
         </div>
       </div>
 
-      <div className="catalog-tab-footer">
-        <label className="catalog-rows-label">
-          Rows
-          <select className="catalog-rows-select" value={rowsPerPage}
-            onChange={(e) => { setRowsPerPage(Number(e.target.value)); setPage(1); }}>
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-          </select>
-        </label>
-        {totalPages > 1 && (
-          <div className="pagination-bar">
-            <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1} className="page-nav-btn">
-              <ArrowLeft size={18} /> Prev
-            </button>
-            <div className="page-numbers">Page <span>{page}</span> of {totalPages}</div>
-            <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages} className="page-nav-btn">
-              Next <ChevronRight size={18} />
-            </button>
-          </div>
-        )}
-      </div>
+      {filtered.length > 0 && (
+        <TableFooter
+          page={page}
+          totalPages={totalPages}
+          total={filtered.length}
+          rowsPerPage={rowsPerPage}
+          onRowsChange={(n) => { setRowsPerPage(n); setPage(1); }}
+          onPage={setPage}
+          label="devices"
+          rowsOptions={[10, 20, 50]}
+        />
+      )}
     </div>
   );
 }

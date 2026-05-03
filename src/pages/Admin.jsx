@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Link, useParams, useNavigate, useLocation, useMatch } from 'react-router-dom';
-import { LayoutDashboard, Users, User, Pill, ShoppingCart, Search, Plus, Trash2, Check, X, Menu, Clock, MapPin, Phone, Pencil, AlertCircle, Eye, EyeOff, CheckCircle, XCircle, LogOut, Bell, Truck, Ticket, UserCheck, ArrowLeft, ChevronRight, ChevronsLeft, ChevronsRight, Shield, CreditCard, Tags, BarChart3, Calendar, Home, Package, Tag, Layers, LayoutGrid } from 'lucide-react';
+import { LayoutDashboard, Users, User, Pill, ShoppingCart, Search, Plus, Trash2, Check, X, Menu, Clock, MapPin, Phone, Pencil, AlertCircle, Eye, EyeOff, CheckCircle, XCircle, LogOut, Bell, Truck, Ticket, UserCheck, ArrowLeft, ChevronRight, ChevronsLeft, ChevronsRight, Shield, CreditCard, Tags, BarChart3, Calendar, Home, Package, Tag, Layers, LayoutGrid, TestTube } from 'lucide-react';
 import { PageLoading, InlineSpinner } from '../components/common/PageLoading';
+import ActionOverlay from '../components/admin/ActionOverlay';
 import { useAuth } from '../context/AuthContext';
 import { getDoctors, createDoctor, updateDoctor, deleteDoctor as deleteDoctorApi } from '../services/doctorsApi';
 import { getMedicines, createMedicine, updateMedicine, deleteMedicine as deleteMedicineApi } from '../services/medicinesApi';
@@ -32,6 +33,7 @@ import { getStorageFileUrl } from '../utils/prescriptionUrl';
 import { mapDoctorToFrontend, mapDoctorToBackend, mapDoctorToBackendUpdatePayload, mapMedicineToFrontend, mapCouponToFrontend, mapCouponToBackend, mapAppointmentToFrontend, mapAppointmentToBackend, mapTestBookingToFrontend, mapTestBookingToBackend } from '../utils/dataMapper';
 import { formatTimeTo12h, parseTimeToHHmm, formatTimeRangeTo24h } from '../utils/timeFormatters';
 import { validateDoctorForm } from '../utils/doctorFormValidation';
+import { getPasswordPolicyError } from '../utils/passwordPolicy';
 import { hasModuleGrant } from '../utils/permissionMapper';
 import { formatOrderStatusLabel, orderStatusTagClass } from '../constants/orderLifecycle';
 import { formatRoleCodeForDisplay } from '../utils/roleDisplay';
@@ -45,6 +47,7 @@ import DeliveryTab from './admin/DeliveryTab';
 import CouponsTab from './admin/CouponsTab';
 import StaffTab from './admin/StaffTab';
 import TestBookingsTab from './admin/TestBookingsTab';
+import PolyclinicTestsTab from './admin/PolyclinicTestsTab';
 import TherapeuticCategoriesTab from './admin/TherapeuticCategoriesTab';
 import CouponUsagesTab from './admin/CouponUsagesTab';
 import MyProfileTab from './admin/MyProfileTab';
@@ -88,6 +91,7 @@ const ADMIN_SIDEBAR_ICON_MAP = {
     Shield,
     Layers,
     LayoutGrid,
+    TestTube,
 };
 
 /** Legacy permission filter when `menu_items` is absent (tab id → frontend permission key) */
@@ -111,6 +115,7 @@ const ADMIN_TAB_PERMISSION_FALLBACK = {
     roles: 'roles',
     'access-modules': 'access-modules',
     'role-access': 'role-access',
+    clinic: 'clinic',
 };
 
 /** Align DB `menu_tasks.code` with React tab ids (lowercase, hyphenated). Fixes Inventory etc. when API sends different casing. */
@@ -133,8 +138,9 @@ function resolveSidebarIcon(iconKey) {
 
 /**
  * Only these tab ids exist in the staff portal (`Admin.jsx` content). Anything else from
- * `M_menu_tasks` (e.g. "Home", "Polyclinic" meant for the public site) must not appear in
- * the sidebar — it would show wrong labels and `setActiveTab` would open no panel.
+ * `M_menu_tasks` (e.g. "Home" meant for the public site only) must not appear in the sidebar —
+ * it would show wrong labels and `setActiveTab` would open no panel. Staff tabs like
+ * `clinic` (Polyclinic tests) must be allowlisted here when they have a matching panel.
  */
 const ADMIN_PORTAL_TAB_IDS = new Set([
     'roles',
@@ -152,6 +158,7 @@ const ADMIN_PORTAL_TAB_IDS = new Set([
     'coupons',
     'staff',
     'test-bookings',
+    'clinic',
     'coupon-usages',
     'notification-master',
     'notification-settings',
@@ -233,6 +240,7 @@ const LEGACY_SIDEBAR_TEMPLATE = [
     { id: 'coupons', label: 'Coupons & Marquee', icon: <Ticket size={20} />, menuKey: 'nav_coupons', permission: 'coupons' },
     { id: 'staff', label: 'Manage Staff', icon: <UserCheck size={20} />, menuKey: 'nav_staff', permission: 'staff' },
     { id: 'test-bookings', label: 'Test Bookings', icon: <Calendar size={20} />, menuKey: 'nav_test_bookings', permission: 'appointments' },
+    { id: 'clinic', label: 'Polyclinic', icon: <TestTube size={20} />, menuKey: 'nav_clinic', permission: 'clinic' },
     { id: 'therapeutic-categories', label: 'Medicine Cat.', icon: <Tags size={20} />, menuKey: 'nav_medicine_categories', permission: 'medicines' },
     { id: 'coupon-usages', label: 'Coupon Usages', icon: <BarChart3 size={20} />, menuKey: 'nav_coupon_usages', permission: 'coupons' },
     { id: 'brand-master', label: 'Brand catalog', icon: <Tag size={20} />, menuKey: 'nav_brand_catalog', permission: 'medicines' },
@@ -715,6 +723,11 @@ const Admin = () => {
                     setTestBookings(enriched);
                     break;
                 }
+                case 'clinic': {
+                    const polyRes = await getPolyclinicTests({ limit: 100 }).catch(() => ({ items: [] }));
+                    setPolyclinicTests(polyRes.items || []);
+                    break;
+                }
                 case 'therapeutic-categories':
                     const tcRes = await getTherapeuticCategories({ limit: 100 }).catch(() => ({ items: [] }));
                     setTherapeuticCategories(tcRes.items || []);
@@ -1055,6 +1068,7 @@ const Admin = () => {
     };
 
     const [doctorForm, setDoctorForm] = useState(() => ({ ...INITIAL_DOCTOR_FORM }));
+    const [doctorFormSubmitting, setDoctorFormSubmitting] = useState(false);
     const [productForm, setProductForm] = useState({ name: '', category: 'OTC', price: '', image: '', discount: '0', requiresPrescription: false, stock: true });
     const [orderForm, setOrderForm] = useState({ customerId: '', customerName: '', phone: '', address: '', total: '', paymentMethod: 'cash' });
     const [appointmentForm, setAppointmentForm] = useState({ patientName: '', phone: '', doctorId: '', message: '', status: 'CONFIRMED', date: new Date().toISOString().slice(0, 10), time: '' });
@@ -1680,7 +1694,6 @@ const Admin = () => {
 
     const deleteNotificationMasterFn = async (row) => {
         if (!row?.id) return false;
-        if (!window.confirm(`Delete notification template ${row.event_code || row.id}?`)) return false;
         try {
             await deleteNotificationMaster(row.id);
             setNotificationMasters((prev) => prev.filter((r) => r.id !== row.id));
@@ -1792,14 +1805,19 @@ const Admin = () => {
         const evening = (payload.eveningStart != null && payload.eveningEnd != null && payload.eveningStart !== '' && payload.eveningEnd !== '')
             ? `${formatTimeTo12h(payload.eveningStart)} - ${formatTimeTo12h(payload.eveningEnd)}` : (payload.evening || '');
 
-        const ok =
-            mode === 'add'
-                ? await addDoctor({ ...payload, morning, evening })
-                : await updateDoctorFn(editingId, { ...payload, morning, evening });
+        setDoctorFormSubmitting(true);
+        try {
+            const ok =
+                mode === 'add'
+                    ? await addDoctor({ ...payload, morning, evening })
+                    : await updateDoctorFn(editingId, { ...payload, morning, evening });
 
-        if (ok) {
-            setShowModal(false);
-            setDoctorForm({ ...INITIAL_DOCTOR_FORM });
+            if (ok) {
+                setShowModal(false);
+                setDoctorForm({ ...INITIAL_DOCTOR_FORM });
+            }
+        } finally {
+            setDoctorFormSubmitting(false);
         }
     };
 
@@ -1970,6 +1988,14 @@ const Admin = () => {
         if (modalMode === 'add' && !managerForm.password) {
             showNotify('Password is required for new staff', 'error');
             return;
+        }
+        const managerPwd = (managerForm.password || '').trim();
+        if (modalMode === 'add' || managerPwd) {
+            const pwdErr = getPasswordPolicyError(modalMode === 'add' ? managerForm.password : managerPwd);
+            if (pwdErr) {
+                showNotify(pwdErr, 'error');
+                return;
+            }
         }
         if (modalMode === 'add') {
             const ok = await addManagerFn(managerForm);
@@ -2743,6 +2769,14 @@ const Admin = () => {
                         </div>
                     )}
 
+                    {activeTab === 'clinic' && (
+                        <PolyclinicTestsTab
+                            showNotify={showNotify}
+                            canCreate={hasModuleGrant(user?.menuItems, 'clinic', 'create')}
+                            canUpdate={hasModuleGrant(user?.menuItems, 'clinic', 'update')}
+                            canDelete={hasModuleGrant(user?.menuItems, 'clinic', 'delete')}
+                        />
+                    )}
                     {activeTab === 'test-bookings' && (
                         <TestBookingsTab
                             testBookings={testBookings}
@@ -2851,7 +2885,14 @@ const Admin = () => {
                 <div className="admin-modal-overlay">
                     <div
                         className={`admin-modal compact-modal ${activeTab === 'doctors' ? 'doctor-form-modal' : ''}`}
+                        style={{ position: 'relative' }}
                     >
+                        {activeTab === 'doctors' && (
+                            <ActionOverlay
+                                show={doctorFormSubmitting}
+                                message={modalMode === 'add' ? 'Adding doctor…' : 'Saving changes…'}
+                            />
+                        )}
                         <div className="modal-header">
                             <h3>{modalMode === 'add' ? 'New' : 'Update'} {
                                 activeTab === 'staff' ? 'Staff' :
@@ -3022,11 +3063,28 @@ const Admin = () => {
                                 </>
                             )}
                             <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                                <button type="button" className="btn-add btn-cancel" style={{ flex: 1 }} onClick={() => setShowModal(false)}>
+                                <button
+                                    type="button"
+                                    className="btn-add btn-cancel"
+                                    style={{ flex: 1 }}
+                                    disabled={activeTab === 'doctors' && doctorFormSubmitting}
+                                    onClick={() => setShowModal(false)}
+                                >
                                     Cancel
                                 </button>
-                                <button type="submit" className="btn-add" style={{ flex: 2 }}>
-                                    {modalMode === 'add' ? 'Confirm Addition' : 'Save Changes'}
+                                <button
+                                    type="submit"
+                                    className="btn-add"
+                                    style={{ flex: 2 }}
+                                    disabled={activeTab === 'doctors' && doctorFormSubmitting}
+                                >
+                                    {activeTab === 'doctors' && doctorFormSubmitting
+                                        ? modalMode === 'add'
+                                            ? 'Adding…'
+                                            : 'Saving…'
+                                        : modalMode === 'add'
+                                          ? 'Confirm Addition'
+                                          : 'Save Changes'}
                                 </button>
                             </div>
                         </form>

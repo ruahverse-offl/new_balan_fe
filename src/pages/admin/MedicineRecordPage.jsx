@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { Pill, Tag, Plus, Trash2, Pencil } from 'lucide-react';
 import { AdminRecordShell, AdminDetailGrid, AdminDetailField } from '../../components/admin/AdminRecordShell';
+import ActionOverlay from '../../components/admin/ActionOverlay';
 import { PageLoading, InlineSpinner } from '../../components/common/PageLoading';
 import {
   getMedicineById,
@@ -516,6 +517,13 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
     else goList();
   };
 
+  const overlayBusy = saving || addingBrandLine;
+  const overlayMessage = saving
+    ? isNew
+      ? 'Creating medicine…'
+      : 'Saving changes…'
+    : 'Adding brand line…';
+
   return (
     <AdminRecordShell
       wide
@@ -524,11 +532,13 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
       backLabel={isNew ? 'Back to medicines' : isEdit ? 'Back to details' : 'Back to medicines'}
       footer={null}
     >
-      <form
-        onSubmit={handleSubmit}
-        className="modal-form medicine-record-form"
-        style={{ margin: 0, padding: 0, border: 'none', boxShadow: 'none', background: 'transparent' }}
-      >
+      <div className="medicine-record-form-overlay-root" style={{ position: 'relative' }}>
+        <ActionOverlay show={overlayBusy} message={overlayMessage} />
+        <form
+          onSubmit={handleSubmit}
+          className="modal-form medicine-record-form"
+          style={{ margin: 0, padding: 0, border: 'none', boxShadow: 'none', background: 'transparent' }}
+        >
         <div className="form-group">
           <label htmlFor="med-rec-name">Medicine name*</label>
           <input
@@ -828,10 +838,7 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
                 onClick={handleAddMedicineOffering}
               >
                 {addingBrandLine ? (
-                  <>
-                    <InlineSpinner size={18} aria-hidden />
-                    Adding…
-                  </>
+                  'Adding…'
                 ) : (
                   <>
                     <Plus size={20} strokeWidth={2.5} aria-hidden />
@@ -851,22 +858,21 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
         </div>
 
         <div style={{ display: 'flex', gap: '1rem', marginTop: '1.25rem' }}>
-          <button type="button" className="btn-add btn-cancel" style={{ flex: 1 }} onClick={handleFormBack}>
+          <button
+            type="button"
+            className="btn-add btn-cancel"
+            style={{ flex: 1 }}
+            disabled={overlayBusy}
+            onClick={handleFormBack}
+          >
             Cancel
           </button>
-          <button type="submit" className="btn-add" style={{ flex: 2 }} disabled={saving}>
-            {saving ? (
-              <>
-                <InlineSpinner size={16} /> Saving…
-              </>
-            ) : isNew ? (
-              'Create'
-            ) : (
-              'Save'
-            )}
+          <button type="submit" className="btn-add" style={{ flex: 2 }} disabled={overlayBusy}>
+            {saving ? (isNew ? 'Creating…' : 'Saving…') : isNew ? 'Create' : 'Save'}
           </button>
         </div>
       </form>
+      </div>
     </AdminRecordShell>
   );
 };

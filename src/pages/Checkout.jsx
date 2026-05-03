@@ -1,15 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { prodCheck } from '../config';
+import {
+    mergeStaticDeliveryLocation,
+    deliveryLocationHasAny,
+    getDeliveryCityOnlyNotice,
+} from '../config/deliveryLocationEnv';
 import { getDeliverySettings } from '../services/deliveryApi';
 import { useRefreshDeliverySettingsOnFocus } from '../hooks/useRefreshDeliverySettingsOnFocus';
 import { validateCoupon as validateCouponApi, getActiveCoupons } from '../services/couponsApi';
 import { initiatePayment, verifyPayment, loadRazorpayScript, reportCheckoutOutcome } from '../services/razorpayApi';
 import { getMyAddresses, createAddress } from '../services/addressesApi';
 import { uploadPrescriptionFile } from '../services/uploadApi';
-import { ShoppingBag, ArrowLeft, Plus, MapPin, X, FileText, AlertCircle } from 'lucide-react';
+import { ShoppingBag, ArrowLeft, Plus, MapPin, X, FileText, AlertCircle, Info } from 'lucide-react';
 import { InlineSpinner } from '../components/common/PageLoading';
 import './Checkout.css';
 
@@ -142,7 +147,11 @@ const Checkout = () => {
         fetchCoupons();
     }, [deliverySettings.show_marquee]);
 
-    const staticLocation = deliverySettings.delivery_location || null;
+    const staticLocation = useMemo(
+        () => mergeStaticDeliveryLocation(deliverySettings.delivery_location),
+        [deliverySettings.delivery_location],
+    );
+    const deliveryCityOnlyNotice = getDeliveryCityOnlyNotice(staticLocation);
 
     const [formData, setFormData] = useState({
         name: user?.name || '',
@@ -183,10 +192,10 @@ const Checkout = () => {
         return () => window.removeEventListener('keydown', onKey);
     }, [checkoutErrorModal]);
 
-    // Pre-fill static city/state/pincode whenever delivery settings (with location) are loaded
+    // Pre-fill city/state/pincode/country from admin delivery_location and/or VITE_DELIVERY_* env
     useEffect(() => {
-        if (!staticLocation) return;
-        setFormData(prev => ({
+        if (!deliveryLocationHasAny(staticLocation)) return;
+        setFormData((prev) => ({
             ...prev,
             city: staticLocation.city || prev.city,
             state: staticLocation.state || prev.state,
@@ -206,13 +215,13 @@ const Checkout = () => {
                 const defaultAddr = (addresses || []).find(a => a.is_default);
                 if (defaultAddr) {
                     setSelectedAddressId(defaultAddr.id);
-                    setFormData(prev => ({
+                    setFormData((prev) => ({
                         ...prev,
                         street: defaultAddr.street,
-                        city: defaultAddr.city,
-                        state: defaultAddr.state,
-                        pincode: defaultAddr.pincode,
-                        country: defaultAddr.country || 'India',
+                        city: staticLocation.city || defaultAddr.city,
+                        state: staticLocation.state || defaultAddr.state,
+                        pincode: staticLocation.pincode || defaultAddr.pincode,
+                        country: staticLocation.country || defaultAddr.country || 'India',
                     }));
                 }
             } catch (error) {
@@ -222,7 +231,7 @@ const Checkout = () => {
             }
         };
         fetchAddresses();
-    }, [user]);
+    }, [user, staticLocation]);
 
     // Minimum order amount
     const minOrderAmount = deliverySettings.min_order_amount || 0;
@@ -751,6 +760,13 @@ const Checkout = () => {
                             <h3 className="checkout-section-title checkout-section-divider">
                                 <MapPin size={20} /> {user ? 'Select delivery address' : 'Shipping Address'}
                             </h3>
+
+                            {deliveryCityOnlyNotice && (
+                                <div className="checkout-service-area-notice" role="status">
+                                    <Info size={18} className="checkout-service-area-notice__icon" aria-hidden />
+                                    <span>{deliveryCityOnlyNotice}</span>
+                                </div>
+                            )}
 
                             {/* For logged-in users: Select address block (saved addresses + Add new address button) */}
                             {user && !loadingAddresses && (

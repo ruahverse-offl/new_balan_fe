@@ -5,6 +5,7 @@ import { isStaffRoleCode } from '../utils/roles';
 import { Lock, Mail, AlertCircle, ArrowRight, User, Phone, Eye, EyeOff } from 'lucide-react';
 import logo from '../assets/new_balan_logo.png';
 import { InlineSpinner } from '../components/common/PageLoading';
+import { getPasswordPolicyError, PASSWORD_POLICY_HINT } from '../utils/passwordPolicy';
 import './Login.css';
 
 const Login = () => {
@@ -58,8 +59,9 @@ const Login = () => {
                 setError('Email is required');
                 return;
             }
-            if (!formData.password || formData.password.length < 6) {
-                setError('Password must be at least 6 characters');
+            const pwdErr = getPasswordPolicyError(formData.password);
+            if (pwdErr) {
+                setError(pwdErr);
                 return;
             }
             if (!formData.phone?.trim()) {
@@ -166,7 +168,9 @@ const Login = () => {
                                 required
                                 value={formData.password}
                                 onChange={handleChange}
-                                placeholder="Enter your password"
+                                placeholder={mode === 'register' ? 'Min. 8 chars, upper, lower, special' : 'Enter your password'}
+                                minLength={mode === 'register' ? 8 : undefined}
+                                autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                                 className="styled-input"
                             />
                             <button
@@ -177,6 +181,11 @@ const Login = () => {
                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
                         </div>
+                        {mode === 'register' && (
+                            <p className="login-password-policy-hint" style={{ margin: '0.45rem 0 0', fontSize: '0.8rem', color: '#64748b', lineHeight: 1.4 }}>
+                                {PASSWORD_POLICY_HINT}
+                            </p>
+                        )}
                     </div>
 
                     <button type="submit" disabled={isLoading} className="login-submit-btn">

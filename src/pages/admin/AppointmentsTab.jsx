@@ -128,14 +128,6 @@ const AppointmentsTab = ({
 
     return (
         <div className="admin-table-card catalog-tab-card appointments-tab-card animate-slide-up">
-            <div className="catalog-tab-header">
-                <h2 className="catalog-tab-title">Appointments</h2>
-                <p className="catalog-tab-subtitle">
-                    Visit requests with doctor and schedule. Filter by date or status; search patients and messages.
-                    Confirm or cancel pending rows from the table.
-                </p>
-            </div>
-
             <div className="catalog-tab-toolbar">
                 <div className="table-search">
                     <Search size={18} aria-hidden />

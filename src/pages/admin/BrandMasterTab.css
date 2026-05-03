@@ -39,3 +39,108 @@
 .brand-master-view-btn-label {
     line-height: 1;
 }
+
+/* ── Brand details (view modal) ── */
+.bm-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem 1.25rem;
+    align-items: start;
+}
+
+@media (max-width: 520px) {
+    .bm-detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.bm-detail-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.bm-detail-row--full {
+    grid-column: 1 / -1;
+}
+
+.bm-detail-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--admin-text-muted, #64748b);
+}
+
+.bm-detail-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--admin-text-main, #0f172a);
+    word-break: break-word;
+}
+
+.bm-detail-name {
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.bm-detail-desc {
+    padding: 0.65rem 0.85rem;
+    border-radius: 10px;
+    border: 1px solid var(--admin-border, #e2e8f0);
+    background: var(--admin-bg, #f8fafc);
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: var(--admin-text-main, #0f172a);
+    max-height: 12rem;
+    overflow-y: auto;
+}
+
+.bm-detail-id {
+    font-size: 0.78rem;
+    font-weight: 600;
+    word-break: break-all;
+    padding: 0.2rem 0.45rem;
+    border-radius: 6px;
+    background: var(--gray-100, #f1f5f9);
+    color: var(--admin-text-main, #334155);
+}
+
+/* Table brand cell — mirrors AdminCatalogTabs when used without that import */
+.brand-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.brand-initial-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    font-size: 0.875rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+    color: #3730a3;
+    flex-shrink: 0;
+}
+
+.catalog-brand-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.22rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.775rem;
+    font-weight: 700;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

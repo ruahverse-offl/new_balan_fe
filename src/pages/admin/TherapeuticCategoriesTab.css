@@ -1,39 +1,36 @@
-/* Medicine categories — View action matches other catalog tabs */
-.admin-table td.actions .action-btn.tc-category-view-btn {
-    width: auto;
-    min-width: auto;
-    height: auto;
-    min-height: 36px;
-    padding: 0.45rem 0.75rem;
-}
+/* Medicine categories tab — toolbar + actions (no duplicate title; sidebar is the label) */
 
-.tc-category-view-btn {
-    display: inline-flex;
+.therap-cat-tab .therap-cat-toolbar {
+    flex-wrap: wrap;
     align-items: center;
-    gap: 0.45rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--primary, #6366f1);
-    border-radius: 8px;
-    border: 1px solid color-mix(in srgb, var(--primary, #6366f1) 30%, var(--admin-border, #e5e7eb));
-    background: color-mix(in srgb, var(--primary, #6366f1) 8%, var(--white, #fff));
+    gap: 0.75rem 1rem;
 }
 
-.tc-category-view-btn svg {
-    flex-shrink: 0;
-    color: var(--primary, #6366f1);
+.therap-cat-tab .therap-cat-toolbar .aui-search {
+    flex: 1;
+    min-width: 200px;
+    max-width: 420px;
 }
 
-.tc-category-view-btn:hover {
-    background: color-mix(in srgb, var(--primary, #6366f1) 16%, var(--white, #fff));
-    border-color: color-mix(in srgb, var(--primary, #6366f1) 45%, var(--admin-border, #e5e7eb));
+.therap-cat-toolbar-meta {
+    margin-left: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--admin-text-muted, #64748b);
 }
 
-.tc-category-view-btn:focus-visible {
-    outline: 2px solid var(--primary, #6366f1);
-    outline-offset: 2px;
+.therap-cat-tab .therap-cat-add-btn {
+    margin-left: auto;
 }
 
-.tc-category-view-btn-label {
-    line-height: 1;
+.therap-cat-table-wrap {
+    border-top: 1px solid var(--admin-border, #e2e8f0);
+}
+
+.therap-cat-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
 }

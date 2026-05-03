@@ -1,19 +1,31 @@
 import React, { useMemo, useState } from 'react';
 import {
-  ArrowLeft,
   Bell,
   Braces,
-  ChevronRight,
   Copy,
   Eye,
   Layers,
   Pencil,
   Plus,
   Search,
-  Sparkles,
   Trash2,
   X,
 } from 'lucide-react';
+
+import ActionOverlay from '../../components/admin/ActionOverlay';
+import { useActionLock } from '../../hooks/useActionLock';
+import {
+  Btn,
+  IconBtn,
+  StatusBadge,
+  EmptyState,
+  TableFooter,
+  ConfirmModal,
+  FormModal,
+  FormField,
+  Input,
+  Textarea,
+} from '../../components/admin/AdminUI';
 
 import './AdminCatalogTabs.css';
 import './NotificationTabs.css';
@@ -75,6 +87,8 @@ export default function NotificationMasterTab({
     channel_templates_text: EMPTY_CHANNELS,
   });
   const [jsonError, setJsonError] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const { locked, message: lockMsg, run: lockRun } = useActionLock();
 
   const filtered = useMemo(() => {
     const q = (searchTerm || '').trim().toLowerCase();
@@ -167,28 +181,26 @@ export default function NotificationMasterTab({
       channel_templates: parsed.value,
     };
     if (!payload.event_code || !payload.event_name) return;
-    if (mode === 'add') await onCreate?.(payload);
-    else if (editing?.id) await onUpdate?.(editing.id, payload);
-    setModalOpen(false);
+    await lockRun(async () => {
+      let ok = false;
+      if (mode === 'add') ok = Boolean(await onCreate?.(payload));
+      else if (editing?.id) ok = Boolean(await onUpdate?.(editing.id, payload));
+      if (ok) setModalOpen(false);
+    }, mode === 'add' ? 'Creating template…' : 'Saving template…');
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!deleteConfirm?.id) return;
+    const row = deleteConfirm;
+    setDeleteConfirm(null);
+    await lockRun(async () => {
+      await onDelete?.(row);
+    }, 'Deleting template…');
   };
 
   return (
-    <div className="admin-table-card catalog-tab-card animate-slide-up ntf-page">
-      <header className="ntf-hero">
-        <div className="ntf-hero-inner">
-          <div className="ntf-hero-text">
-            <div className="ntf-eyebrow">
-              <Sparkles size={12} strokeWidth={2.5} aria-hidden />
-              Master templates
-            </div>
-            <h2 className="ntf-title">Notification templates</h2>
-            <p className="ntf-lead">
-              One row per business event. Channel blocks define push (and future channels) copy, merge fields, and
-              on/off flags. Codes are immutable after create.
-            </p>
-          </div>
-        </div>
-      </header>
+    <div className="admin-table-card catalog-tab-card animate-slide-up ntf-page" style={{ position: 'relative' }}>
+      <ActionOverlay show={locked} message={lockMsg} />
 
       <section className="ntf-kpis" aria-label="Summary">
         <div className="ntf-kpi">
@@ -225,12 +237,12 @@ export default function NotificationMasterTab({
             aria-label="Search templates"
           />
         </div>
-        <button type="button" className="btn-secondary" onClick={onRefresh}>
+        <Btn variant="ghost" size="sm" onClick={() => lockRun(async () => { await onRefresh?.(); }, 'Refreshing…')}>
           Refresh
-        </button>
-        <button type="button" className="btn-add" onClick={openAdd}>
-          <Plus size={18} /> New template
-        </button>
+        </Btn>
+        <Btn variant="primary" size="md" onClick={openAdd} style={{ marginLeft: 'auto' }}>
+          <Plus size={15} /> New template
+        </Btn>
         <span className="ntf-toolbar-meta">
           Showing {filtered.length}
           {searchTerm?.trim() ? ` of ${(rows || []).length}` : ''}
@@ -240,17 +252,22 @@ export default function NotificationMasterTab({
       <div className="scrollable-section-wrapper">
         <div className="table-wrapper ntf-table-wrap">
           {filtered.length === 0 ? (
-            <div className="ntf-empty">
-              <div className="ntf-empty-icon">
-                <Bell size={28} strokeWidth={1.75} />
-              </div>
-              <p className="ntf-empty-title">No templates match</p>
-              <p>
-                {(rows || []).length === 0
+            <EmptyState
+              icon={Bell}
+              title="No templates match"
+              description={
+                (rows || []).length === 0
                   ? 'Create a template so outbound jobs can resolve title, body, and variables per event.'
-                  : 'Try clearing search or widening your filter.'}
-              </p>
-            </div>
+                  : 'Try clearing search or widening your filter.'
+              }
+              action={
+                (rows || []).length === 0 ? (
+                  <Btn variant="primary" size="sm" onClick={openAdd}>
+                    <Plus size={14} /> New template
+                  </Btn>
+                ) : null
+              }
+            />
           ) : (
             <table className="admin-table catalog-table">
               <thead>
@@ -298,20 +315,18 @@ export default function NotificationMasterTab({
                         </div>
                       </td>
                       <td data-label="Status">
-                        <span className={`status-tag ${row.is_active !== false ? 'active' : 'inactive'}`}>
-                          {row.is_active !== false ? 'Active' : 'Inactive'}
-                        </span>
+                        <StatusBadge status={row.is_active !== false ? 'active' : 'inactive'} />
                       </td>
                       <td data-label="Actions" className="actions">
-                        <button type="button" className="action-btn" title="View" onClick={() => openView(row)}>
-                          <Eye size={16} />
-                        </button>
-                        <button type="button" className="action-btn" title="Edit" onClick={() => openEdit(row)}>
-                          <Pencil size={16} />
-                        </button>
-                        <button type="button" className="action-btn delete" title="Delete" onClick={() => onDelete?.(row)}>
-                          <Trash2 size={16} />
-                        </button>
+                        <IconBtn title="View" onClick={() => openView(row)}>
+                          <Eye size={14} />
+                        </IconBtn>
+                        <IconBtn title="Edit" onClick={() => openEdit(row)}>
+                          <Pencil size={14} />
+                        </IconBtn>
+                        <IconBtn variant="danger" title="Delete" onClick={() => setDeleteConfirm(row)}>
+                          <Trash2 size={14} />
+                        </IconBtn>
                       </td>
                     </tr>
                   );
@@ -322,30 +337,18 @@ export default function NotificationMasterTab({
         </div>
       </div>
 
-      <div className="catalog-tab-footer">
-        <label className="catalog-rows-label">
-          Rows
-          <select className="catalog-rows-select" value={rowsPerPage}
-            onChange={(e) => { setRowsPerPage(Number(e.target.value)); setPage(1); }}>
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-          </select>
-        </label>
-        {totalPages > 1 && (
-          <div className="pagination-bar">
-            <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1} className="page-nav-btn">
-              <ArrowLeft size={18} /> Prev
-            </button>
-            <div className="page-numbers">Page <span>{page}</span> of {totalPages}</div>
-            <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages} className="page-nav-btn">
-              Next <ChevronRight size={18} />
-            </button>
-          </div>
-        )}
-      </div>
+      {filtered.length > 0 && (
+        <TableFooter
+          page={page}
+          totalPages={totalPages}
+          total={filtered.length}
+          rowsPerPage={rowsPerPage}
+          onRowsChange={(n) => { setRowsPerPage(n); setPage(1); }}
+          onPage={setPage}
+          label="templates"
+          rowsOptions={[10, 20, 50]}
+        />
+      )}
 
       {viewRow ? (
         <div className="admin-modal-overlay" onClick={() => setViewRow(null)}>
@@ -387,9 +390,7 @@ export default function NotificationMasterTab({
                   <div className="ntf-dl">
                     <dt>Status</dt>
                     <dd>
-                      <span className={`status-tag ${viewRow.is_active !== false ? 'active' : 'inactive'}`}>
-                        {viewRow.is_active !== false ? 'Active' : 'Inactive'}
-                      </span>
+                      <StatusBadge status={viewRow.is_active !== false ? 'active' : 'inactive'} />
                     </dd>
                   </div>
                   {viewRow.description ? (
@@ -419,124 +420,126 @@ export default function NotificationMasterTab({
               className="modal-actions"
               style={{ borderTop: '1px solid var(--admin-border, #e2e8f0)', padding: '1rem 1.5rem', gap: '0.5rem' }}
             >
-              <button type="button" className="btn-secondary" onClick={() => copyText(JSON.stringify(viewRow.channel_templates || {}, null, 2))}>
+              <Btn variant="ghost" size="sm" onClick={() => copyText(JSON.stringify(viewRow.channel_templates || {}, null, 2))}>
                 <Copy size={15} /> Copy JSON
-              </button>
-              <button
-                type="button"
-                className="btn-secondary"
+              </Btn>
+              <Btn
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setViewRow(null);
                   openEdit(viewRow);
                 }}
               >
                 <Pencil size={15} /> Edit
-              </button>
-              <button type="button" className="btn-add" onClick={() => setViewRow(null)}>
+              </Btn>
+              <Btn variant="primary" size="sm" onClick={() => setViewRow(null)}>
                 Close
-              </button>
+              </Btn>
             </div>
           </div>
         </div>
       ) : null}
 
-      {modalOpen ? (
-        <div className="admin-modal-overlay" onClick={() => setModalOpen(false)}>
-          <div className="admin-modal" style={{ maxWidth: '640px', width: '96vw' }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{mode === 'add' ? 'New template' : 'Edit template'}</h3>
-              <button type="button" onClick={() => setModalOpen(false)} aria-label="Close">
-                <X size={18} />
-              </button>
+      <FormModal
+        show={modalOpen}
+        title={mode === 'add' ? 'New template' : 'Edit template'}
+        icon={Bell}
+        iconColor="purple"
+        size="lg"
+        onClose={() => setModalOpen(false)}
+        footer={
+          <>
+            <Btn variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Btn>
+            <Btn variant="primary" onClick={submit} disabled={!!jsonError}>
+              {mode === 'add' ? 'Create' : 'Save'}
+            </Btn>
+          </>
+        }
+      >
+        <form id="ntf-master-form" onSubmit={submit}>
+          <FormField label="Event code" htmlFor="ntf-ev-code" required hint={mode === 'edit' ? 'Cannot change after create.' : undefined}>
+            <Input
+              id="ntf-ev-code"
+              value={form.event_code}
+              onChange={(e) => setForm((p) => ({ ...p, event_code: e.target.value }))}
+              placeholder="ORDER_PLACED"
+              required
+              disabled={mode === 'edit'}
+            />
+          </FormField>
+          <FormField label="Event name" htmlFor="ntf-ev-name" required>
+            <Input
+              id="ntf-ev-name"
+              value={form.event_name}
+              onChange={(e) => setForm((p) => ({ ...p, event_name: e.target.value }))}
+              placeholder="Human-readable label"
+              required
+            />
+          </FormField>
+          <FormField label="Description" htmlFor="ntf-desc">
+            <Textarea
+              id="ntf-desc"
+              value={form.description}
+              onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+              placeholder="Optional context for admins"
+              rows={2}
+            />
+          </FormField>
+
+          <div className="ntf-form-section">
+            <div className="ntf-form-actions-row">
+              <p className="ntf-form-section-label" style={{ margin: 0, flex: 1 }}>
+                Channel templates (JSON)
+              </p>
+              <Btn variant="ghost" size="sm" onClick={formatJson}>
+                <Braces size={14} /> Format
+              </Btn>
             </div>
-            <form className="modal-form" onSubmit={submit}>
-              <div className="form-group">
-                <label>Event code *</label>
-                <input
-                  type="text"
-                  value={form.event_code}
-                  onChange={(e) => setForm((p) => ({ ...p, event_code: e.target.value }))}
-                  placeholder="ORDER_PLACED"
-                  required
-                  disabled={mode === 'edit'}
-                />
-                {mode === 'edit' ? (
-                  <p className="ntf-json-hint" style={{ marginTop: '0.35rem' }}>
-                    Event code cannot change after create (downstream references rely on it).
-                  </p>
-                ) : null}
-              </div>
-              <div className="form-group">
-                <label>Event name *</label>
-                <input
-                  type="text"
-                  value={form.event_name}
-                  onChange={(e) => setForm((p) => ({ ...p, event_name: e.target.value }))}
-                  placeholder="Human-readable label"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Description</label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                  placeholder="Optional context for admins"
-                  rows={2}
-                />
-              </div>
-
-              <div className="ntf-form-section">
-                <div className="ntf-form-actions-row">
-                  <p className="ntf-form-section-label" style={{ margin: 0, flex: 1 }}>
-                    Channel templates (JSON)
-                  </p>
-                  <button type="button" className="btn-secondary mini" onClick={formatJson}>
-                    <Braces size={14} /> Format
-                  </button>
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <textarea
-                    className={`ntf-json${jsonError ? ' input-error' : ''}`}
-                    value={form.channel_templates_text}
-                    onChange={(e) => handleJsonChange(e.target.value)}
-                    required
-                    spellCheck={false}
-                    aria-invalid={!!jsonError}
-                  />
-                  {jsonError ? (
-                    <p style={{ color: '#991b1b', fontSize: '0.78rem', marginTop: '0.35rem' }}>{jsonError}</p>
-                  ) : (
-                    <p className="ntf-json-hint">
-                      Use <code>{'{{variable}}'}</code> in strings. Top-level keys are channel ids (e.g. <code>push</code>
-                      ).
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="checkbox">
-                  <input
-                    type="checkbox"
-                    checked={form.is_active}
-                    onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))}
-                  />
-                  Template is active
-                </label>
-              </div>
-              <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setModalOpen(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-add" disabled={!!jsonError}>
-                  {mode === 'add' ? 'Create' : 'Save'}
-                </button>
-              </div>
-            </form>
+            <FormField label="" htmlFor="ntf-json">
+              <Textarea
+                id="ntf-json"
+                className={`ntf-json${jsonError ? ' input-error' : ''}`}
+                value={form.channel_templates_text}
+                onChange={(e) => handleJsonChange(e.target.value)}
+                required
+                spellCheck={false}
+                aria-invalid={!!jsonError}
+                rows={12}
+              />
+              {jsonError ? (
+                <p style={{ color: '#991b1b', fontSize: '0.78rem', marginTop: '0.35rem' }}>{jsonError}</p>
+              ) : (
+                <p className="ntf-json-hint" style={{ marginTop: '0.35rem' }}>
+                  Use <code>{'{{variable}}'}</code> in strings. Top-level keys are channel ids (e.g. <code>push</code>).
+                </p>
+              )}
+            </FormField>
           </div>
-        </div>
-      ) : null}
+
+          <FormField label="" htmlFor="ntf-active">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem' }}>
+              <input
+                id="ntf-active"
+                type="checkbox"
+                checked={form.is_active}
+                onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))}
+              />
+              Template is active
+            </label>
+          </FormField>
+        </form>
+      </FormModal>
+
+      <ConfirmModal
+        show={!!deleteConfirm}
+        title="Delete template?"
+        message={`Remove notification template "${deleteConfirm?.event_code || deleteConfirm?.id}"? This cannot be undone if downstream jobs expect it.`}
+        confirmLabel="Delete"
+        danger
+        onConfirm={handleDeleteConfirmed}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </div>
   );
 }

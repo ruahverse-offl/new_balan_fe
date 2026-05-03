@@ -224,14 +224,6 @@ const InventoryTab = ({ showNotify, refreshToken = 0 }) => {
 
     return (
         <div className="admin-table-card catalog-tab-card inventory-tab-card animate-slide-up">
-            <div className="catalog-tab-header">
-                <h2 className="catalog-tab-title">Inventory</h2>
-                <p className="catalog-tab-subtitle">
-                    On-hand stock and MRP per sellable line (medicine + brand). Search by medicine;{' '}
-                    <strong>View</strong> / <strong>Edit</strong> open full pages. One row per brand line.
-                </p>
-            </div>
-
             <div className="catalog-tab-toolbar">
                 <div className="table-search">
                     <Search size={18} aria-hidden />

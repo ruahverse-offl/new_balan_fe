@@ -101,12 +101,6 @@ const CouponsTab = ({
     return (
         <div className="coupons-tab-stack animate-slide-up">
             <div className="admin-table-card catalog-tab-card coupons-marquee-card">
-                <div className="catalog-tab-header">
-                    <h2 className="catalog-tab-title">Coupon marquee</h2>
-                    <p className="catalog-tab-subtitle">
-                        Toggles the scrolling promo bar on the public site. Hide it without deleting coupons.
-                    </p>
-                </div>
                 <div className="coupons-marquee-row">
                     <div className="coupons-marquee-status" aria-live="polite">
                         <span
@@ -148,14 +142,6 @@ const CouponsTab = ({
             </div>
 
             <div className="admin-table-card catalog-tab-card coupons-list-card">
-                <div className="catalog-tab-header">
-                    <h2 className="catalog-tab-title">Discount coupons</h2>
-                    <p className="catalog-tab-subtitle">
-                        Discount codes with optional expiry and rules. Search by code; filter by status; edit or remove in
-                        the table.
-                    </p>
-                </div>
-
                 <div className="catalog-tab-toolbar">
                     <div className="table-search">
                         <Search size={18} aria-hidden />

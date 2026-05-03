@@ -1,15 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import {
-  Activity,
-  ArrowLeft,
-  BellRing,
-  ChevronRight,
-  Copy,
-  Layers,
-  RefreshCw,
-  Search,
-  X,
-} from 'lucide-react';
+import { BellRing, Copy, Layers, RefreshCw, Search, X } from 'lucide-react';
+
+import { PageLoading } from '../../components/common/PageLoading';
+import ActionOverlay from '../../components/admin/ActionOverlay';
+import { useActionLock } from '../../hooks/useActionLock';
+import { Btn, EmptyState, TableFooter } from '../../components/admin/AdminUI';
 
 import './AdminCatalogTabs.css';
 import './NotificationTabs.css';
@@ -84,6 +79,7 @@ export default function NotificationLogsTab({
 }) {
   const [detail, setDetail] = useState(null);
   const [detailTab, setDetailTab] = useState('summary');
+  const { locked, message: lockMsg, run: lockRun } = useActionLock();
 
   // Search is client-side only (backend logs endpoint has no search param)
   const visible = useMemo(() => {
@@ -106,22 +102,8 @@ export default function NotificationLogsTab({
   const providerPretty = detail ? parseMaybeJson(detail.provider_response) : null;
 
   return (
-    <div className="admin-table-card catalog-tab-card animate-slide-up ntf-page">
-      <header className="ntf-hero">
-        <div className="ntf-hero-inner">
-          <div className="ntf-hero-text">
-            <div className="ntf-eyebrow">
-              <Activity size={12} strokeWidth={2.5} aria-hidden />
-              Delivery audit
-            </div>
-            <h2 className="ntf-title">Notification logs</h2>
-            <p className="ntf-lead">
-              Each row is one send attempt: channel, token snapshot, retry state, provider echo, and errors. Open a row
-              for payload and response JSON.
-            </p>
-          </div>
-        </div>
-      </header>
+    <div className="admin-table-card catalog-tab-card animate-slide-up ntf-page" style={{ position: 'relative' }}>
+      <ActionOverlay show={locked} message={lockMsg} />
 
       <section className="ntf-kpis" aria-label="Status breakdown">
         <div className="ntf-kpi">
@@ -195,30 +177,31 @@ export default function NotificationLogsTab({
             ))}
           </select>
         </label>
-        <button type="button" className="btn-secondary" onClick={onRefresh} disabled={loading}>
-          <RefreshCw size={16} className={loading ? 'spin' : ''} /> Refresh
-        </button>
+        <Btn
+          variant="ghost"
+          size="sm"
+          disabled={loading}
+          onClick={() => lockRun(async () => { await onRefresh?.(); }, 'Refreshing logs…')}
+        >
+          <RefreshCw size={16} className={loading ? 'aui-spin' : ''} /> Refresh
+        </Btn>
         <span className="ntf-toolbar-meta">{visible.length} rows{searchTerm?.trim() ? ` (filtered)` : ''}</span>
       </div>
 
       <div className="scrollable-section-wrapper">
         <div className="table-wrapper ntf-table-wrap">
           {loading ? (
-            <div className="ntf-empty">
-              <p className="ntf-empty-title">Loading…</p>
-            </div>
+            <PageLoading variant="compact" className="catalog-loading" message="Loading notification logs…" />
           ) : visible.length === 0 ? (
-            <div className="ntf-empty">
-              <div className="ntf-empty-icon">
-                <BellRing size={28} strokeWidth={1.75} />
-              </div>
-              <p className="ntf-empty-title">No log entries</p>
-              <p>
-                {total === 0
+            <EmptyState
+              icon={BellRing}
+              title="No log entries"
+              description={
+                total === 0
                   ? 'When the backend enqueues or sends notifications, attempts will show up here.'
-                  : 'No rows match your search. Try clearing the search term.'}
-              </p>
-            </div>
+                  : 'No rows match your search. Try clearing the search term.'
+              }
+            />
           ) : (
             <table className="admin-table catalog-table">
               <thead>
@@ -297,43 +280,18 @@ export default function NotificationLogsTab({
         </div>
       </div>
 
-      <div className="catalog-tab-footer">
-        <label className="catalog-rows-label">
-          Rows
-          <select
-            className="catalog-rows-select"
-            value={rowsPerPage}
-            onChange={(e) => { setRowsPerPage?.(Number(e.target.value)); setPage?.(1); }}
-          >
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-          </select>
-        </label>
-        {totalPages > 1 && (
-          <div className="pagination-bar">
-            <button
-              type="button"
-              onClick={() => setPage?.((p) => Math.max(1, p - 1))}
-              disabled={page === 1 || loading}
-              className="page-nav-btn"
-            >
-              <ArrowLeft size={18} /> Prev
-            </button>
-            <div className="page-numbers">
-              Page <span>{page}</span> of {totalPages}
-            </div>
-            <button
-              type="button"
-              onClick={() => setPage?.((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages || loading}
-              className="page-nav-btn"
-            >
-              Next <ChevronRight size={18} />
-            </button>
-          </div>
-        )}
-      </div>
+      {!loading && total > 0 && (
+        <TableFooter
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          rowsPerPage={rowsPerPage}
+          onRowsChange={(n) => { setRowsPerPage?.(n); setPage?.(1); }}
+          onPage={(p) => setPage?.(p)}
+          label="log entries"
+          rowsOptions={[10, 20, 50]}
+        />
+      )}
 
       {detail ? (
         <div className="admin-modal-overlay" onClick={() => setDetail(null)}>
@@ -441,7 +399,7 @@ export default function NotificationLogsTab({
             </div>
             <div className="modal-actions"
               style={{ borderTop: '1px solid var(--admin-border, #e2e8f0)', padding: '1rem 1.5rem', gap: '0.5rem' }}>
-              <button type="button" className="btn-secondary" onClick={() => {
+              <Btn variant="ghost" size="sm" onClick={() => {
                 const blob = detailTab === 'payload'
                   ? JSON.stringify(detail.payload_snapshot || {}, null, 2)
                   : detailTab === 'provider'
@@ -450,8 +408,8 @@ export default function NotificationLogsTab({
                 copyText(blob);
               }}>
                 <Copy size={15} /> Copy visible JSON
-              </button>
-              <button type="button" className="btn-add" onClick={() => setDetail(null)}>Close</button>
+              </Btn>
+              <Btn variant="primary" size="sm" onClick={() => setDetail(null)}>Close</Btn>
             </div>
           </div>
         </div>

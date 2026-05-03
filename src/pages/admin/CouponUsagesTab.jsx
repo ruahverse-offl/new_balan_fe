@@ -93,14 +93,6 @@ const CouponUsagesTab = ({
 
     return (
         <div className="admin-table-card catalog-tab-card coupon-usages-tab-card animate-slide-up">
-            <div className="catalog-tab-header">
-                <h2 className="catalog-tab-title">Coupon usages</h2>
-                <p className="catalog-tab-subtitle">
-                    Each coupon application at checkout: code, discount, customer, and order. Filter by usage date; search
-                    code, customer, phone, or order. Open the order from a row when needed.
-                </p>
-            </div>
-
             <div className="catalog-tab-toolbar">
                 <div className="table-search">
                     <Search size={18} aria-hidden />

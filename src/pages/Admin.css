@@ -3978,6 +3978,9 @@ button.sidebar-profile-card.active .sidebar-profile-chevron {
     animation: slideUpFadeIn 0.4s ease-out forwards;
 }
 
+/* End with transform:none so animation-fill-mode:forwards does not leave a
+   transform on the element — otherwise position:fixed modals inside this box
+   are positioned against this ancestor instead of the viewport (broken layout). */
 @keyframes slideUpFadeIn {
     from {
         opacity: 0;
@@ -3985,7 +3988,7 @@ button.sidebar-profile-card.active .sidebar-profile-chevron {
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: none;
     }
 }
 

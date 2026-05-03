@@ -113,14 +113,6 @@ const TestBookingsTab = ({
 
     return (
         <div className="admin-table-card catalog-tab-card test-bookings-tab-card animate-slide-up">
-            <div className="catalog-tab-header">
-                <h2 className="catalog-tab-title">Test bookings</h2>
-                <p className="catalog-tab-subtitle">
-                    Lab test bookings: patient, test, and schedule. Filter by date or status; search by name; add or edit
-                    from the table.
-                </p>
-            </div>
-
             <div className="catalog-tab-toolbar">
                 <div className="table-search">
                     <Search size={18} aria-hidden />

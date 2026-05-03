@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { getDoctors } from '../services/doctorsApi';
 import { getOrders, getOrderDetail } from '../services/ordersApi';
 import { checkPaymentStatus } from '../services/razorpayApi';
 import { changePassword } from '../services/authApi';
@@ -10,19 +9,35 @@ import { getPrescriptionFileUrl } from '../utils/prescriptionUrl';
 import { getMyAddresses, createAddress, updateAddress, deleteAddress as deleteAddressApi, setDefaultAddress } from '../services/addressesApi';
 import {
     User, MapPin, Phone, Mail, Calendar,
-    LayoutDashboard, ShoppingBag, Users, Pill,
+    ShoppingBag, Pill,
     LogOut, Menu, X, ChevronRight,
     Bell, Edit, CheckCircle, Package, ArrowLeft,
-    Plus,
+    Plus, Info,
     Save, Trash2, Star, ShoppingCart,
     Lock, Eye, EyeOff, FileText, CreditCard, Clock,
-    Home, ExternalLink, Truck
+    Home, ExternalLink
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Footer from '../components/layout/Footer';
 import { PageLoading, InlineSpinner } from '../components/common/PageLoading';
 import { formatOrderStatusLabel } from '../constants/orderLifecycle';
+import { getDeliveryLocationFromEnv, mergeStaticDeliveryLocation, getDeliveryCityOnlyNotice } from '../config/deliveryLocationEnv';
+import { getPasswordPolicyError, PASSWORD_POLICY_HINT } from '../utils/passwordPolicy';
 import './Profile.css';
+
+/** Initial / reset state for the address form; locks city/state/pincode/country when set in VITE_DELIVERY_* env. */
+function buildInitialAddressForm() {
+    const { values, frozen } = getDeliveryLocationFromEnv();
+    return {
+        label: '',
+        street: '',
+        city: frozen.city ? values.city : '',
+        state: frozen.state ? values.state : '',
+        pincode: frozen.pincode ? values.pincode : '',
+        country: frozen.country ? values.country : 'India',
+        is_default: false,
+    };
+}
 
 const PENDING_CART_SNAPSHOTS_KEY = 'nb_pending_cart_snapshots_v1';
 
@@ -72,25 +87,25 @@ const Profile = () => {
     const { user, logout, updateUser } = useAuth();
     const { addToCart, clearCart } = useCart();
     const navigate = useNavigate();
-    const [doctors, setDoctors] = useState([]);
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const [activeTab, setActiveTab] = useState('dashboard');
+    const [activeTab, setActiveTab] = useState('profile');
     const [isSidebarCollapsed] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [profileUpdates, setProfileUpdates] = useState({
         name: user?.name || '',
         email: user?.email || '',
         phone: user?.phone || '',
-        city: user?.city || ''
     });
     const [isSaving, setIsSaving] = useState(false);
+    const [profileVerifyPassword, setProfileVerifyPassword] = useState('');
+    const [showProfileVerifyPassword, setShowProfileVerifyPassword] = useState(false);
+    const [profileSaveError, setProfileSaveError] = useState('');
 
     // Pagination State
     const [ordersPage, setOrdersPage] = useState(1);
 
-    const [showRecentOrders, setShowRecentOrders] = useState(true);
     const [paymentWindowByOrder, setPaymentWindowByOrder] = useState({});
 
     // Order Detail State
@@ -116,9 +131,7 @@ const Profile = () => {
     const [addresses, setAddresses] = useState([]);
     const [addressFormVisible, setAddressFormVisible] = useState(false);
     const [editingAddress, setEditingAddress] = useState(null);
-    const [addressForm, setAddressForm] = useState({
-        label: '', street: '', city: '', state: '', pincode: '', country: 'India', is_default: false
-    });
+    const [addressForm, setAddressForm] = useState(() => buildInitialAddressForm());
     const [addressSaving, setAddressSaving] = useState(false);
     const [addressError, setAddressError] = useState('');
 
@@ -215,13 +228,10 @@ const Profile = () => {
                 setLoading(true);
                 const userId = user?.id || user?.user?.id;
                 
-                const [doctorsResponse, ordersResponse] = await Promise.all([
-                    getDoctors({ is_active: true, limit: 100 }).catch(() => ({ items: [] })),
-                    userId ? getOrders({ limit: 100 }).catch(() => ({ items: [] })) : Promise.resolve({ items: [] }),
-                ]);
+                const ordersResponse = userId
+                    ? await getOrders({ limit: 100 }).catch(() => ({ items: [] }))
+                    : { items: [] };
 
-                setDoctors(doctorsResponse.items || []);
-                
                 // Filter orders for current user and map backend fields
                 const userOrdersList = (ordersResponse.items || [])
                     .filter(order => order.customer_id === userId)
@@ -252,21 +262,11 @@ const Profile = () => {
                 name: user.name || user.full_name || '',
                 email: user.email || '',
                 phone: user.phone || user.mobile_number || '',
-                city: user.city || ''
             });
         }
     }, [user]);
 
-    // Derived Data for User - orders are already filtered by user ID
-    const userOrders = orders;
-
-    const stats = [
-        { label: 'Total Orders', value: userOrders.length, icon: <Package size={24} />, color: '#3b82f6', bg: '#eff6ff' },
-        { label: 'Available Doctors', value: doctors.length, icon: <Users size={24} />, color: '#f59e0b', bg: '#fffbeb' },
-    ];
-
     const menuItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
         { id: 'profile', label: 'My Profile', icon: <User size={20} /> },
         { id: 'addresses', label: 'My Addresses', icon: <MapPin size={20} /> },
         { id: 'orders', label: 'My Orders', icon: <ShoppingBag size={20} /> },
@@ -275,14 +275,27 @@ const Profile = () => {
 
     const handleProfileUpdate = async (e) => {
         e.preventDefault();
-        setIsSaving(true);
-        const result = await updateUser(profileUpdates);
-        if (result.success) {
-            alert('Profile updated successfully!');
-        } else {
-            alert('Failed to update profile: ' + result.message);
+        setProfileSaveError('');
+        if (!profileVerifyPassword.trim()) {
+            setProfileSaveError('Enter your account password to save profile changes.');
+            return;
         }
-        setIsSaving(false);
+        setIsSaving(true);
+        try {
+            const result = await updateUser({
+                ...profileUpdates,
+                current_password: profileVerifyPassword.trim(),
+            });
+            if (result.success) {
+                setProfileVerifyPassword('');
+                setShowProfileVerifyPassword(false);
+                alert('Profile updated successfully!');
+            } else {
+                setProfileSaveError(result.message || 'Could not save profile.');
+            }
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     // Order Detail Handler
@@ -499,9 +512,9 @@ const Profile = () => {
         e.preventDefault();
         setPasswordMessage({ type: '', text: '' });
 
-        // Validation
-        if (passwordForm.newPassword.length < 6) {
-            setPasswordMessage({ type: 'error', text: 'New password must be at least 6 characters long' });
+        const pwdErr = getPasswordPolicyError(passwordForm.newPassword);
+        if (pwdErr) {
+            setPasswordMessage({ type: 'error', text: pwdErr });
             return;
         }
         if (passwordForm.newPassword !== passwordForm.confirmPassword) {
@@ -534,6 +547,8 @@ const Profile = () => {
 
     // Address handlers
     const handleAddressFormChange = (e) => {
+        const { frozen } = getDeliveryLocationFromEnv();
+        if (frozen[e.target.name]) return;
         setAddressForm({ ...addressForm, [e.target.name]: e.target.value });
     };
 
@@ -542,16 +557,24 @@ const Profile = () => {
         setAddressSaving(true);
         setAddressError('');
         try {
+            const { values, frozen } = getDeliveryLocationFromEnv();
+            const payload = {
+                ...addressForm,
+                city: frozen.city ? values.city : addressForm.city,
+                state: frozen.state ? values.state : addressForm.state,
+                pincode: frozen.pincode ? values.pincode : addressForm.pincode,
+                country: frozen.country ? values.country : addressForm.country,
+            };
             if (editingAddress) {
-                await updateAddress(editingAddress.id, addressForm);
+                await updateAddress(editingAddress.id, payload);
             } else {
-                await createAddress(addressForm);
+                await createAddress(payload);
             }
             const updated = await getMyAddresses();
             setAddresses(updated || []);
             setAddressFormVisible(false);
             setEditingAddress(null);
-            setAddressForm({ label: '', street: '', city: '', state: '', pincode: '', country: 'India', is_default: false });
+            setAddressForm(buildInitialAddressForm());
         } catch (error) {
             setAddressError(error.message || 'Failed to save address');
         } finally {
@@ -560,14 +583,15 @@ const Profile = () => {
     };
 
     const handleEditAddress = (addr) => {
+        const { values, frozen } = getDeliveryLocationFromEnv();
         setEditingAddress(addr);
         setAddressForm({
             label: addr.label || '',
             street: addr.street,
-            city: addr.city,
-            state: addr.state,
-            pincode: addr.pincode,
-            country: addr.country || 'India',
+            city: frozen.city ? values.city : addr.city,
+            state: frozen.state ? values.state : addr.state,
+            pincode: frozen.pincode ? values.pincode : addr.pincode,
+            country: frozen.country ? values.country : addr.country || 'India',
             is_default: addr.is_default,
         });
         setAddressFormVisible(true);
@@ -595,65 +619,6 @@ const Profile = () => {
 
     const renderSection = () => {
         switch (activeTab) {
-            case 'dashboard':
-                return (
-                    <div className="section-content animate-fade">
-                        <div className="stats-grid">
-                            {stats.map((stat, i) => (
-                                <div key={i} className="stat-card">
-                                    <div className="stat-icon" style={{ backgroundColor: stat.bg, color: stat.color }}>
-                                        {stat.icon}
-                                    </div>
-                                    <div className="stat-info">
-                                        <h3>{stat.value}</h3>
-                                        <p>{stat.label}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="section-card" style={{ marginBottom: '1.25rem' }}>
-                            <div className="card-header" style={{ marginBottom: '0.75rem' }}>
-                                <h3>
-                                    <Truck size={20} style={{ verticalAlign: 'middle', marginRight: '0.35rem' }} />
-                                    Delivery
-                                </h3>
-                            </div>
-                            <p style={{ margin: 0, color: 'var(--text-muted, #64748b)', fontSize: '0.95rem' }}>
-                                Current delivery fees, minimum order rules, and time windows are shown when you review your
-                                order at checkout. If home delivery is unavailable, you will see it there before you pay.
-                            </p>
-                        </div>
-
-                        <div className="dashboard-grid">
-                            {showRecentOrders && (
-                                <div className="recent-orders section-card">
-                                    <div className="card-header">
-                                        <h3>Recent Orders</h3>
-                                        <div className="card-header-actions">
-                                            <button onClick={() => setActiveTab('orders')} className="text-btn">View All</button>
-                                            <button onClick={() => setShowRecentOrders(false)} className="close-recent-orders"><X size={18} /></button>
-                                        </div>
-                                    </div>
-                                    <div className="mini-list">
-                                        {userOrders.slice(0, 5).map(order => (
-                                            <div key={order.id} className="mini-item">
-                                                <div className="item-icon"><Package size={18} /></div>
-                                                <div className="item-details">
-                                                    <p className="item-title">Order #{order.id.toString().slice(-6)}</p>
-                                                    <p className="item-sub">{order.date}</p>
-                                                </div>
-                                                <span className={`status-tag ${statusTagClass(order.status)}`}>{formatOrderStatusLabel(order.status)}</span>
-                                            </div>
-                                        ))}
-                                        {userOrders.length === 0 && <p className="empty-msg">No recent orders found.</p>}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                );
-
             case 'profile':
                 return (
                     <div className="section-card animate-slide-up">
@@ -669,30 +634,84 @@ const Profile = () => {
                             </div>
                         </div>
 
-                        <h2 className="section-title"><Edit size={20} /> Edit Profile</h2>
-                        <form onSubmit={handleProfileUpdate} className="profile-form">
-                            <div className="form-grid">
-                                <div className="form-group">
-                                    <label><User size={14} /> Full Name</label>
-                                    <input type="text" value={profileUpdates.name} onChange={e => setProfileUpdates({ ...profileUpdates, name: e.target.value })} placeholder="John Doe" />
+                        <div className="profile-edit-panel">
+                            <h2 className="section-title profile-section-heading"><Edit size={20} /> Edit Profile</h2>
+                            <form onSubmit={handleProfileUpdate} className="profile-form">
+                                <div className="form-grid">
+                                    <div className="form-group">
+                                        <label><User size={14} /> Full Name</label>
+                                        <input
+                                            type="text"
+                                            value={profileUpdates.name}
+                                            onChange={(e) => {
+                                                setProfileSaveError('');
+                                                setProfileUpdates({ ...profileUpdates, name: e.target.value });
+                                            }}
+                                            placeholder="John Doe"
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label><Mail size={14} /> Email Address</label>
+                                        <input
+                                            type="email"
+                                            value={profileUpdates.email}
+                                            onChange={(e) => {
+                                                setProfileSaveError('');
+                                                setProfileUpdates({ ...profileUpdates, email: e.target.value });
+                                            }}
+                                            placeholder="john@example.com"
+                                        />
+                                    </div>
+                                    <div className="form-group form-group--full-row">
+                                        <label><Phone size={14} /> Phone Number</label>
+                                        <input
+                                            type="tel"
+                                            value={profileUpdates.phone}
+                                            onChange={(e) => {
+                                                setProfileSaveError('');
+                                                setProfileUpdates({ ...profileUpdates, phone: e.target.value });
+                                            }}
+                                            placeholder="+91 XXXXX XXXXX"
+                                        />
+                                    </div>
+                                    <div className="form-group form-group--full-row">
+                                        <label><Lock size={14} /> Password (confirm it&apos;s you)</label>
+                                        <div className="password-input-wrapper">
+                                            <input
+                                                type={showProfileVerifyPassword ? 'text' : 'password'}
+                                                value={profileVerifyPassword}
+                                                onChange={(e) => {
+                                                    setProfileSaveError('');
+                                                    setProfileVerifyPassword(e.target.value);
+                                                }}
+                                                placeholder="Enter your login password"
+                                                autoComplete="current-password"
+                                            />
+                                            <button
+                                                type="button"
+                                                className="password-toggle"
+                                                onClick={() => setShowProfileVerifyPassword((s) => !s)}
+                                                tabIndex={-1}
+                                                aria-label={showProfileVerifyPassword ? 'Hide password' : 'Show password'}
+                                            >
+                                                {showProfileVerifyPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
+                                        <p className="profile-verify-password-hint">Required whenever you save changes to your name, email, or phone.</p>
+                                    </div>
                                 </div>
-                                <div className="form-group">
-                                    <label><Mail size={14} /> Email Address</label>
-                                    <input type="email" value={profileUpdates.email} onChange={e => setProfileUpdates({ ...profileUpdates, email: e.target.value })} placeholder="john@example.com" />
+                                {profileSaveError && (
+                                    <p className="form-hint form-hint--error" style={{ marginBottom: '0.5rem' }} role="alert">
+                                        {profileSaveError}
+                                    </p>
+                                )}
+                                <div className="profile-form-actions">
+                                    <button type="submit" className="save-btn profile-btn-primary" disabled={isSaving}>
+                                        {isSaving ? <><InlineSpinner size={16} /> Saving...</> : <><Save size={16} /> Save changes</>}
+                                    </button>
                                 </div>
-                                <div className="form-group">
-                                    <label><Phone size={14} /> Phone Number</label>
-                                    <input type="tel" value={profileUpdates.phone} onChange={e => setProfileUpdates({ ...profileUpdates, phone: e.target.value })} placeholder="+91 XXXXX XXXXX" />
-                                </div>
-                                <div className="form-group">
-                                    <label><MapPin size={14} /> City</label>
-                                    <input type="text" value={profileUpdates.city} onChange={e => setProfileUpdates({ ...profileUpdates, city: e.target.value })} placeholder="Chennai" />
-                                </div>
-                            </div>
-                            <button type="submit" className="save-btn" disabled={isSaving}>
-                                {isSaving ? <><InlineSpinner size={16} /> Saving...</> : <><Save size={16} /> Save Changes</>}
-                            </button>
-                        </form>
+                            </form>
+                        </div>
 
                         {/* Change Password Section */}
                         <div className="password-section">
@@ -735,16 +754,18 @@ const Profile = () => {
                                                 type={showNewPassword ? 'text' : 'password'}
                                                 value={passwordForm.newPassword}
                                                 onChange={e => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                                                placeholder="Min 6 characters"
+                                                placeholder="Min. 8 chars, upper, lower, special"
                                                 required
-                                                minLength={6}
+                                                minLength={8}
+                                                autoComplete="new-password"
                                             />
                                             <button type="button" className="password-toggle" onClick={() => setShowNewPassword(!showNewPassword)} tabIndex={-1}>
                                                 {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                             </button>
                                         </div>
-                                        {passwordForm.newPassword && passwordForm.newPassword.length < 6 && (
-                                            <p className="form-hint">Password must be at least 6 characters</p>
+                                        <p className="profile-password-policy-callout">{PASSWORD_POLICY_HINT}</p>
+                                        {passwordForm.newPassword && getPasswordPolicyError(passwordForm.newPassword) && (
+                                            <p className="form-hint form-hint--error">{getPasswordPolicyError(passwordForm.newPassword)}</p>
                                         )}
                                     </div>
                                     <div className="form-group">
@@ -762,23 +783,27 @@ const Profile = () => {
                                             </button>
                                         </div>
                                         {passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword && (
-                                            <p className="form-hint">Passwords do not match</p>
+                                            <p className="form-hint form-hint--error">Passwords do not match</p>
                                         )}
                                     </div>
                                 </div>
-                                <button type="submit" className="password-change-btn" disabled={passwordChanging}>
-                                    {passwordChanging ? (
-                                        <><InlineSpinner size={16} /> Changing...</>
-                                    ) : (
-                                        <><Lock size={16} /> Change Password</>
-                                    )}
-                                </button>
+                                <div className="profile-form-actions">
+                                    <button type="submit" className="password-change-btn profile-btn-secondary" disabled={passwordChanging}>
+                                        {passwordChanging ? (
+                                            <><InlineSpinner size={16} /> Updating…</>
+                                        ) : (
+                                            <><Lock size={16} /> Update password</>
+                                        )}
+                                    </button>
+                                </div>
                             </form>
                         </div>
                     </div>
                 );
 
-            case 'addresses':
+            case 'addresses': {
+                const { values: envLoc, frozen: envFrozen } = getDeliveryLocationFromEnv();
+                const profileDeliveryCityNotice = getDeliveryCityOnlyNotice(mergeStaticDeliveryLocation(null));
                 return (
                     <div className="section-card animate-slide-up">
                         <div className="addresses-header">
@@ -787,7 +812,7 @@ const Profile = () => {
                                 className="btn-primary"
                                 onClick={() => {
                                     setEditingAddress(null);
-                                    setAddressForm({ label: '', street: '', city: '', state: '', pincode: '', country: 'India', is_default: false });
+                                    setAddressForm(buildInitialAddressForm());
                                     setAddressFormVisible(true);
                                     setAddressError('');
                                 }}
@@ -795,6 +820,13 @@ const Profile = () => {
                                 <Plus size={16} /> Add Address
                             </button>
                         </div>
+
+                        {profileDeliveryCityNotice && (
+                            <div className="profile-service-area-notice" role="status">
+                                <Info size={18} className="profile-service-area-notice__icon" aria-hidden />
+                                <span>{profileDeliveryCityNotice}</span>
+                            </div>
+                        )}
 
                         {addressFormVisible && (
                             <form onSubmit={handleSaveAddress} className="address-form-wrapper">
@@ -811,20 +843,56 @@ const Profile = () => {
                                 <div className="address-form-grid">
                                     <div className="form-group">
                                         <label>City *</label>
-                                        <input type="text" name="city" required value={addressForm.city} onChange={handleAddressFormChange} />
+                                        <input
+                                            type="text"
+                                            name="city"
+                                            required
+                                            value={addressForm.city}
+                                            onChange={handleAddressFormChange}
+                                            readOnly={envFrozen.city}
+                                            title={envFrozen.city ? 'Fixed for this store (see VITE_DELIVERY_CITY)' : undefined}
+                                            style={envFrozen.city ? { opacity: 0.85, cursor: 'not-allowed' } : undefined}
+                                        />
                                     </div>
                                     <div className="form-group">
                                         <label>State *</label>
-                                        <input type="text" name="state" required value={addressForm.state} onChange={handleAddressFormChange} />
+                                        <input
+                                            type="text"
+                                            name="state"
+                                            required
+                                            value={addressForm.state}
+                                            onChange={handleAddressFormChange}
+                                            readOnly={envFrozen.state}
+                                            title={envFrozen.state ? 'Fixed for this store (see VITE_DELIVERY_STATE)' : undefined}
+                                            style={envFrozen.state ? { opacity: 0.85, cursor: 'not-allowed' } : undefined}
+                                        />
                                     </div>
                                     <div className="form-group">
                                         <label>PIN Code *</label>
-                                        <input type="text" name="pincode" required value={addressForm.pincode} onChange={handleAddressFormChange} />
+                                        <input
+                                            type="text"
+                                            name="pincode"
+                                            required
+                                            value={addressForm.pincode}
+                                            onChange={handleAddressFormChange}
+                                            readOnly={envFrozen.pincode}
+                                            title={envFrozen.pincode ? 'Fixed for this store (see VITE_DELIVERY_PINCODE)' : undefined}
+                                            style={envFrozen.pincode ? { opacity: 0.85, cursor: 'not-allowed' } : undefined}
+                                        />
                                     </div>
                                     <div className="form-group">
                                         <label>Country</label>
-                                        <select name="country" value={addressForm.country} onChange={handleAddressFormChange}>
+                                        <select
+                                            name="country"
+                                            value={addressForm.country}
+                                            onChange={handleAddressFormChange}
+                                            disabled={envFrozen.country}
+                                            title={envFrozen.country ? 'Fixed for this store (see VITE_DELIVERY_COUNTRY)' : undefined}
+                                        >
                                             <option value="India">India</option>
+                                            {envLoc.country && envLoc.country !== 'India' ? (
+                                                <option value={envLoc.country}>{envLoc.country}</option>
+                                            ) : null}
                                         </select>
                                     </div>
                                 </div>
@@ -882,6 +950,7 @@ const Profile = () => {
                         )}
                     </div>
                 );
+            }
 
             case 'orders':
                 // If viewing order detail
@@ -1039,7 +1108,7 @@ const Profile = () => {
                 }
 
                 // Order list view — customer-friendly cards
-                const sortedOrders = [...userOrders].sort((a, b) => new Date(b.date) - new Date(a.date));
+                const sortedOrders = [...orders].sort((a, b) => new Date(b.date) - new Date(a.date));
                 const ordersTotalPages = Math.ceil(sortedOrders.length / 8);
                 const currentOrders = sortedOrders.slice((ordersPage - 1) * 8, ordersPage * 8);
 

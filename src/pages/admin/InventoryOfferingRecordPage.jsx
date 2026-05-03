@@ -2,7 +2,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Package } from 'lucide-react';
 import { AdminRecordShell, AdminDetailGrid, AdminDetailField } from '../../components/admin/AdminRecordShell';
-import { PageLoading, InlineSpinner } from '../../components/common/PageLoading';
+import ActionOverlay from '../../components/admin/ActionOverlay';
+import { PageLoading } from '../../components/common/PageLoading';
 import { useAuth } from '../../context/AuthContext';
 import { hasModuleGrant } from '../../utils/permissionMapper';
 import { getMedicineById } from '../../services/medicinesApi';
@@ -216,6 +217,7 @@ const InventoryOfferingRecordPage = ({ mode, medicineId, offeringId, showNotify,
               <button
                 type="button"
                 className="btn-add"
+                disabled={savingStock}
                 onClick={() => navigate(offeringEditPath, { state: navState })}
               >
                 Edit
@@ -224,6 +226,8 @@ const InventoryOfferingRecordPage = ({ mode, medicineId, offeringId, showNotify,
           </>
         }
       >
+        <div style={{ position: 'relative' }}>
+          <ActionOverlay show={savingStock} message="Updating stock…" />
         <div className="inventory-offering-record-hero">
           <Package size={22} aria-hidden className="inventory-offering-record-hero__icon" />
           <div>
@@ -261,6 +265,7 @@ const InventoryOfferingRecordPage = ({ mode, medicineId, offeringId, showNotify,
                   step={1}
                   className="inv-stock-input"
                   value={stockDraft}
+                  disabled={savingStock}
                   onChange={(e) => setStockDraft(e.target.value)}
                   aria-label="Stock quantity"
                 />
@@ -271,7 +276,7 @@ const InventoryOfferingRecordPage = ({ mode, medicineId, offeringId, showNotify,
                   disabled={savingStock}
                   onClick={handleSaveStock}
                 >
-                  {savingStock ? <InlineSpinner size={16} /> : 'Save stock'}
+                  {savingStock ? 'Saving…' : 'Save stock'}
                 </button>
               </div>
             ) : (
@@ -326,6 +331,7 @@ const InventoryOfferingRecordPage = ({ mode, medicineId, offeringId, showNotify,
             </div>
           </dl>
         </details>
+        </div>
       </AdminRecordShell>
     );
   }
@@ -346,6 +352,8 @@ const InventoryOfferingRecordPage = ({ mode, medicineId, offeringId, showNotify,
       backLabel={returnToMedicineEdit || returnToMedicineView ? 'Back to medicine' : 'Back to details'}
       footer={null}
     >
+      <div style={{ position: 'relative' }}>
+        <ActionOverlay show={saving} message="Saving changes…" />
       <form className="modal-form inventory-offering-edit-form" onSubmit={handleSubmitEdit} style={{ margin: 0, padding: 0, border: 'none', boxShadow: 'none', background: 'transparent' }}>
         <p style={{ margin: '0 0 1rem', fontSize: '0.9rem', color: 'var(--admin-text-muted)' }}>
           {medicineName} — {brandLabel}
@@ -392,6 +400,7 @@ const InventoryOfferingRecordPage = ({ mode, medicineId, offeringId, showNotify,
             type="button"
             className="btn-add btn-cancel"
             style={{ flex: 1 }}
+            disabled={saving}
             onClick={() => {
               if (returnToMedicineEdit) {
                 navigate(`/admin/medicines/${returnToMedicineEdit}/edit`);
@@ -405,16 +414,11 @@ const InventoryOfferingRecordPage = ({ mode, medicineId, offeringId, showNotify,
             Cancel
           </button>
           <button type="submit" className="btn-add" style={{ flex: 2 }} disabled={saving}>
-            {saving ? (
-              <>
-                <InlineSpinner size={16} /> Saving…
-              </>
-            ) : (
-              'Save'
-            )}
+            {saving ? 'Saving…' : 'Save'}
           </button>
         </div>
       </form>
+      </div>
     </AdminRecordShell>
   );
 };
