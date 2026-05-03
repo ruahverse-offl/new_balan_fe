@@ -9,6 +9,7 @@ import {
     EmptyState,
     TableFooter,
 } from '../../components/admin/AdminUI';
+import { InlineSpinner } from '../../components/common/PageLoading';
 import './AdminCatalogTabs.css';
 import './TherapeuticCategoriesTab.css';
 
@@ -28,6 +29,7 @@ const TherapeuticCategoriesTab = ({
     onEditClick,
     onViewClick,
     onDeleteClick,
+    loading = false,
 }) => {
     const filteredCategories = useMemo(() => {
         const q = (searchTerm || '').trim().toLowerCase();
@@ -61,6 +63,7 @@ const TherapeuticCategoriesTab = ({
                 <span className="catalog-tab-meta therap-cat-toolbar-meta">
                     {total > 0 ? `${total} ${total === 1 ? 'category' : 'categories'}` : ''}
                 </span>
+                {loading && <InlineSpinner size={16} style={{ color: 'var(--admin-text-muted)' }} />}
                 <Btn variant="primary" size="md" onClick={onAddClick} className="therap-cat-add-btn">
                     <Plus size={15} /> Add category
                 </Btn>

@@ -11,6 +11,7 @@ import {
     Filter,
     Eye,
 } from 'lucide-react';
+import { InlineSpinner } from '../../components/common/PageLoading';
 import { formatTimeTo12h, parseTimeToHHmm } from '../../utils/timeFormatters';
 import './AdminCatalogTabs.css';
 import './TestBookingsTab.css';
@@ -64,6 +65,7 @@ const TestBookingsTab = ({
     onEditClick,
     onViewDetails,
     onDeleteClick,
+    loading = false,
 }) => {
     const [dateFilter, setDateFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
@@ -194,6 +196,7 @@ const TestBookingsTab = ({
                 <button type="button" className="btn-add" onClick={onAddClick}>
                     <Plus size={18} /> Add booking
                 </button>
+                {loading && <InlineSpinner size={16} style={{ color: 'var(--admin-text-muted)' }} />}
                 {total > 0 && (
                     <span className="catalog-tab-meta">
                         {total} booking{total !== 1 ? 's' : ''}

@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, ChevronRight, Eye } from 'lucide-react';
+import { PageLoading } from '../../components/common/PageLoading';
 import { getOrders } from '../../services/ordersApi';
 import {
     formatOrderStatusLabel,
     orderStatusTagClass,
+    HISTORY_ORDER_STATUS_FILTER_VALUES,
 } from '../../constants/orderLifecycle';
 
 const OrderHistoryPage = () => {
@@ -17,9 +19,10 @@ const OrderHistoryPage = () => {
     const [rowsPerPage, setRowsPerPage] = useState(20);
     const [search, setSearch] = useState('');
     const [dateFilter, setDateFilter] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
 
     const fetch = useCallback(
-        async (p = page, s = search, rpp = rowsPerPage, d = dateFilter) => {
+        async (p = page, s = search, rpp = rowsPerPage, d = dateFilter, sf = statusFilter) => {
             setLoading(true);
             try {
                 const res = await getOrders({
@@ -27,6 +30,7 @@ const OrderHistoryPage = () => {
                     offset: (p - 1) * rpp,
                     search: s || undefined,
                     order_date: d || undefined,
+                    order_status: sf || undefined,
                     staff_scope: 'history',
                 }).catch(() => ({ items: [], pagination: {} }));
                 setOrders(res.items || []);
@@ -40,7 +44,7 @@ const OrderHistoryPage = () => {
     );
 
     useEffect(() => {
-        fetch(page, search, rowsPerPage, dateFilter);
+        fetch(page, search, rowsPerPage, dateFilter, statusFilter);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page, rowsPerPage]);
 
@@ -57,6 +61,7 @@ const OrderHistoryPage = () => {
                 >
                     <ArrowLeft size={18} /> Back to Orders
                 </button>
+                <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>Order History</h2>
             </div>
 
             <div className="admin-table-card catalog-tab-card orders-tab-card" style={{ padding: 0 }}>
@@ -71,7 +76,7 @@ const OrderHistoryPage = () => {
                             onChange={(e) => {
                                 setSearch(e.target.value);
                                 setPage(1);
-                                fetch(1, e.target.value, rowsPerPage, dateFilter);
+                                fetch(1, e.target.value, rowsPerPage, dateFilter, statusFilter);
                             }}
                             aria-label="Search history orders"
                         />
@@ -84,10 +89,27 @@ const OrderHistoryPage = () => {
                             onChange={(e) => {
                                 setDateFilter(e.target.value);
                                 setPage(1);
-                                fetch(1, search, rowsPerPage, e.target.value);
+                                fetch(1, search, rowsPerPage, e.target.value, statusFilter);
                             }}
                         />
                     </label>
+                    <select
+                        className="orders-status-filter"
+                        value={statusFilter}
+                        onChange={(e) => {
+                            setStatusFilter(e.target.value);
+                            setPage(1);
+                            fetch(1, search, rowsPerPage, dateFilter, e.target.value);
+                        }}
+                        aria-label="Filter by order status"
+                    >
+                        <option value="">All history</option>
+                        {HISTORY_ORDER_STATUS_FILTER_VALUES.map((s) => (
+                            <option key={s} value={s}>
+                                {formatOrderStatusLabel(s)}
+                            </option>
+                        ))}
+                    </select>
                     <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--admin-text-muted)', whiteSpace: 'nowrap' }}>
                         {total.toLocaleString('en-IN')} order{total !== 1 ? 's' : ''}
                     </span>
@@ -111,7 +133,9 @@ const OrderHistoryPage = () => {
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan={7} className="orders-empty-cell">Loading…</td>
+                                    <td colSpan={7} style={{ padding: 0, border: 0 }}>
+                                        <PageLoading variant="compact" message="Loading orders…" />
+                                    </td>
                                 </tr>
                             ) : orders.length === 0 ? (
                                 <tr>

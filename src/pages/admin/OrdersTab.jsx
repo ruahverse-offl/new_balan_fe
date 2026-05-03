@@ -1,10 +1,11 @@
 import React from 'react';
 import { Search, Eye, ArrowLeft, ChevronRight, History, FileText } from 'lucide-react';
 import {
-    ORDER_STATUS_FILTER_VALUES,
+    ACTIVE_ORDER_STATUS_FILTER_VALUES,
     formatOrderStatusLabel,
 } from '../../constants/orderLifecycle';
 import { getPrescriptionFileUrl } from '../../utils/prescriptionUrl';
+import { PageLoading } from '../../components/common/PageLoading';
 import './AdminCatalogTabs.css';
 
 /**
@@ -146,8 +147,8 @@ const OrdersTab = ({
                     }}
                     aria-label="Filter by order status"
                 >
-                    <option value="">All statuses</option>
-                    {ORDER_STATUS_FILTER_VALUES.map((s) => (
+                    <option value="">All active</option>
+                    {ACTIVE_ORDER_STATUS_FILTER_VALUES.map((s) => (
                         <option key={s} value={s}>
                             {formatOrderStatusLabel(s)}
                         </option>
@@ -175,8 +176,8 @@ const OrdersTab = ({
                         <tbody>
                             {ordersLoading ? (
                                 <tr>
-                                    <td colSpan={8} className="orders-empty-cell">
-                                        Loading…
+                                    <td colSpan={8} style={{ padding: 0, border: 0 }}>
+                                        <PageLoading variant="compact" message="Loading orders…" />
                                     </td>
                                 </tr>
                             ) : pageOrders.length === 0 ? (

@@ -11,6 +11,7 @@ import {
     EmptyState,
     TableFooter,
 } from '../../components/admin/AdminUI';
+import { InlineSpinner } from '../../components/common/PageLoading';
 import './AdminCatalogTabs.css';
 import './DoctorsTab.css';
 
@@ -42,6 +43,7 @@ const DoctorsTab = ({
     onViewDoctorDetails,
     menuItems = [],
     isAdminRole = false,
+    loading = false,
 }) => {
     const { canCreate, canUpdate, canDelete } = doctorPermissions(menuItems, isAdminRole);
     const canViewDetails = typeof onViewDoctorDetails === 'function';
@@ -101,6 +103,7 @@ const DoctorsTab = ({
                         ? `${filtered.length} doctor${filtered.length !== 1 ? 's' : ''}`
                         : ''}
                 </span>
+                {loading && <InlineSpinner size={16} style={{ color: 'var(--admin-text-muted)' }} />}
                 {canCreate && (
                     <Btn variant="primary" size="md" onClick={onAdd} className="doctors-tab-add-btn">
                         <Plus size={15} /> Add doctor

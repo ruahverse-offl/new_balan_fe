@@ -43,6 +43,27 @@ export const ORDER_STATUS_FILTER_VALUES = [
     'REFUNDED',
 ];
 
+/** Active (in-progress) order statuses — shown on the main Orders page */
+export const ACTIVE_ORDER_STATUS_FILTER_VALUES = [
+    'PENDING',
+    'ORDER_RECEIVED',
+    'ORDER_TAKEN',
+    'ORDER_PROCESSING',
+    'DELIVERY_ASSIGNED',
+    'PARCEL_TAKEN',
+    'OUT_FOR_DELIVERY',
+];
+
+/** Terminal order statuses — shown on the Order History page */
+export const HISTORY_ORDER_STATUS_FILTER_VALUES = [
+    'PAYMENT_CANCELLED',
+    'DELIVERED',
+    'CANCELLED_BY_STAFF',
+    'DELIVERY_RETURNED',
+    'REFUND_INITIATED',
+    'REFUNDED',
+];
+
 const TERMINAL = new Set([
     'PAYMENT_CANCELLED',
     'DELIVERED',

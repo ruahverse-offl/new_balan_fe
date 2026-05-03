@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminRecordShell, AdminDetailGrid, AdminDetailField } from '../../components/admin/AdminRecordShell';
 import { PageLoading, InlineSpinner } from '../../components/common/PageLoading';
@@ -32,6 +32,7 @@ const MedicineCategoryRecordPage = ({ mode, categoryId, showNotify, onCategories
   const [detail, setDetail] = useState(null);
   const [form, setForm] = useState({ name: '', description: '' });
   const [saving, setSaving] = useState(false);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     if (mode === 'new') {
@@ -71,8 +72,11 @@ const MedicineCategoryRecordPage = ({ mode, categoryId, showNotify, onCategories
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     const name = String(form.name || '').trim();
     if (!name) {
+      submittingRef.current = false;
       showNotify?.('Name is required', 'error');
       return;
     }
@@ -99,6 +103,7 @@ const MedicineCategoryRecordPage = ({ mode, categoryId, showNotify, onCategories
       showNotify?.(err?.message || 'Save failed', 'error');
     } finally {
       setSaving(false);
+      submittingRef.current = false;
     }
   };
 

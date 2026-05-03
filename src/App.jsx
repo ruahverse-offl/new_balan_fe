@@ -151,57 +151,19 @@ function AppContent() {
             {/* Auth */}
             <Route path="/login" element={<Login />} />
 
-            {/* Admin panel - only staff roles */}
-            <Route path="/admin" element={
-              <AdminRoute>
-                <Admin />
-              </AdminRoute>
-            } />
-            <Route path="/admin/orders/:orderId" element={
-              <AdminRoute>
-                <Admin />
-              </AdminRoute>
-            } />
-            <Route path="/admin/medicine-categories/new" element={
-              <AdminRoute>
-                <Admin />
-              </AdminRoute>
-            } />
-            <Route path="/admin/medicine-categories/:categoryId/edit" element={
-              <AdminRoute>
-                <Admin />
-              </AdminRoute>
-            } />
-            <Route path="/admin/medicine-categories/:categoryId" element={
-              <AdminRoute>
-                <Admin />
-              </AdminRoute>
-            } />
-            <Route path="/admin/medicines/new" element={
-              <AdminRoute>
-                <Admin />
-              </AdminRoute>
-            } />
-            <Route path="/admin/medicines/:medicineId/edit" element={
-              <AdminRoute>
-                <Admin />
-              </AdminRoute>
-            } />
-            <Route path="/admin/medicines/:medicineId" element={
-              <AdminRoute>
-                <Admin />
-              </AdminRoute>
-            } />
-            <Route path="/admin/inventory-offerings/:medicineId/:offeringId/edit" element={
-              <AdminRoute>
-                <Admin />
-              </AdminRoute>
-            } />
-            <Route path="/admin/inventory-offerings/:medicineId/:offeringId" element={
-              <AdminRoute>
-                <Admin />
-              </AdminRoute>
-            } />
+            {/* Admin panel - only staff roles.
+                Specific param routes must come before the wildcard so useParams() resolves correctly. */}
+            <Route path="/admin/orders/:orderId" element={<AdminRoute><Admin /></AdminRoute>} />
+            <Route path="/admin/medicine-categories/new" element={<AdminRoute><Admin /></AdminRoute>} />
+            <Route path="/admin/medicine-categories/:categoryId/edit" element={<AdminRoute><Admin /></AdminRoute>} />
+            <Route path="/admin/medicine-categories/:categoryId" element={<AdminRoute><Admin /></AdminRoute>} />
+            <Route path="/admin/medicines/new" element={<AdminRoute><Admin /></AdminRoute>} />
+            <Route path="/admin/medicines/:medicineId/edit" element={<AdminRoute><Admin /></AdminRoute>} />
+            <Route path="/admin/medicines/:medicineId" element={<AdminRoute><Admin /></AdminRoute>} />
+            <Route path="/admin/inventory-offerings/:medicineId/:offeringId/edit" element={<AdminRoute><Admin /></AdminRoute>} />
+            <Route path="/admin/inventory-offerings/:medicineId/:offeringId" element={<AdminRoute><Admin /></AdminRoute>} />
+            {/* Wildcard catches /admin, /admin/orders/history, and any future admin sub-pages */}
+            <Route path="/admin/*" element={<AdminRoute><Admin /></AdminRoute>} />
 
             {/* Catch-all 404 */}
             <Route path="*" element={<NotFound />} />

@@ -505,6 +505,7 @@ const Admin = () => {
     const [notifLogsChannelFilter, setNotifLogsChannelFilter] = useState('');
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [fetchingTabsSet, setFetchingTabsSet] = useState(() => new Set());
     const [searchByTab, setSearchByTab] = useState({});
     const getSearchForTab = (tab) => searchByTab[tab] ?? '';
     const setSearchForTab = (tab, value) => setSearchByTab(prev => ({ ...prev, [tab]: value }));
@@ -576,6 +577,7 @@ const Admin = () => {
         // Full-page loader only on first load of this tab — not after saves/refreshes (forceReload),
         // so the UI does not blank the whole content area on every mutation.
         const showGlobalLoading = !loadedTabs.has(tab);
+        setFetchingTabsSet(prev => new Set([...prev, tab]));
 
         try {
             if (showGlobalLoading) {
@@ -602,9 +604,22 @@ const Admin = () => {
                     }
                     break;
                     
-                case 'orders':
+                case 'orders': {
+                    const tabSearch = getSearchForTab('orders');
+                    const ordersRes = await getOrders({
+                        limit: ordersRowsPerPage,
+                        offset: (ordersPage - 1) * ordersRowsPerPage,
+                        search: tabSearch || undefined,
+                        order_status: orderStatusFilter || undefined,
+                        order_date: orderDateFilter || undefined,
+                        staff_scope: 'active',
+                    }).catch(() => ({ items: [], pagination: {} }));
+                    setOrders(ordersRes.items || []);
+                    setOrdersTotal(ordersRes.pagination?.total ?? 0);
+                    break;
+                }
                 case 'delivery-orders': {
-                    const tabSearch = getSearchForTab(tab);
+                    const tabSearch = getSearchForTab('delivery-orders');
                     const ordersRes = await getOrders({
                         limit: ordersRowsPerPage,
                         offset: (ordersPage - 1) * ordersRowsPerPage,
@@ -775,6 +790,7 @@ const Admin = () => {
             if (showGlobalLoading) {
                 setLoading(false);
             }
+            setFetchingTabsSet(prev => { const s = new Set(prev); s.delete(tab); return s; });
         }
     };
 
@@ -917,7 +933,7 @@ const Admin = () => {
                 search: search || undefined,
                 order_status: statusFilter || undefined,
                 order_date: dateFilter || undefined,
-                staff_scope: statusFilter ? undefined : 'active',
+                staff_scope: 'active',
             }).catch(() => ({ items: [], pagination: {} }));
             setOrders(res.items || []);
             setOrdersTotal(res.pagination?.total ?? 0);
@@ -2113,19 +2129,10 @@ const Admin = () => {
         }
     }, [inventoryOfferingRecordMode]);
 
-    // When returning from order detail page, show Orders tab
+    // When returning to /admin with a tab in location state, restore that tab
     useEffect(() => {
-        if (location.pathname === '/admin' && location.state?.tab === 'orders') {
-            setActiveTab('orders');
-        }
-        if (location.pathname === '/admin' && location.state?.tab === 'coupon-usages') {
-            setActiveTab('coupon-usages');
-        }
-        if (location.pathname === '/admin' && location.state?.tab === 'medicines') {
-            setActiveTab('medicines');
-        }
-        if (location.pathname === '/admin' && location.state?.tab === 'inventory') {
-            setActiveTab('inventory');
+        if (location.pathname === '/admin' && location.state?.tab) {
+            setActiveTab(location.state.tab);
         }
     }, [location.pathname, location.state]);
 
@@ -2194,8 +2201,8 @@ const Admin = () => {
                             title={item.label}
                             className={`nav-item ${activeTab === item.id || (item.id === 'orders' && orderIdFromUrl) || (item.id === 'therapeutic-categories' && medicineCategoryRecordMode) || (item.id === 'medicines' && medicineRecordMode) || (item.id === 'inventory' && inventoryOfferingRecordMode) ? 'active' : ''}`}
                             onClick={() => {
-                                if (orderIdFromUrl || medicineCategoryRecordMode || medicineRecordMode || inventoryOfferingRecordMode) {
-                                    navigate('/admin');
+                                if (location.pathname !== '/admin') {
+                                    navigate('/admin', { state: { tab: item.id } });
                                 }
                                 setActiveTab(item.id);
                                 setIsMobileSidebarOpen(false);
@@ -2406,6 +2413,7 @@ const Admin = () => {
                     {activeTab === 'doctors' && (
                         <DoctorsTab
                             doctors={doctors}
+                            loading={fetchingTabsSet.has('doctors')}
                             searchTerm={getSearchForTab('doctors')}
                             setSearchTerm={(v) => setSearchForTab('doctors', v)}
                             doctorsPage={doctorsPage}
@@ -2526,6 +2534,7 @@ const Admin = () => {
                     {activeTab === 'appointments' && (
                         <AppointmentsTab
                             appointments={appointments}
+                            loading={fetchingTabsSet.has('appointments')}
                             searchTerm={getSearchForTab('appointments')}
                             setSearchTerm={(v) => {
                                 setSearchForTab('appointments', v);
@@ -2555,6 +2564,7 @@ const Admin = () => {
 
                     {activeTab === 'coupons' && (
                         <CouponsTab
+                            loading={fetchingTabsSet.has('coupons')}
                             marqueeSettings={marqueeSettings}
                             onMarqueeEnable={handleMarqueeEnable}
                             onMarqueeDisable={handleMarqueeDisable}
@@ -2569,6 +2579,7 @@ const Admin = () => {
                                     isActive: true,
                                     expiryDate: '',
                                     firstOrderOnly: false,
+                                    minOrderAmount: '',
                                 });
                                 setShowModal(true);
                             }}
@@ -2705,6 +2716,7 @@ const Admin = () => {
                     )}
                     {activeTab === 'test-bookings' && (
                         <TestBookingsTab
+                            loading={fetchingTabsSet.has('test-bookings')}
                             testBookings={testBookings}
                             polyclinicTests={polyclinicTests}
                             searchTerm={getSearchForTab('test-bookings')}
@@ -2732,6 +2744,7 @@ const Admin = () => {
                     )}
                     {activeTab === 'therapeutic-categories' && (
                         <TherapeuticCategoriesTab
+                            loading={fetchingTabsSet.has('therapeutic-categories')}
                             therapeuticCategories={therapeuticCategories}
                             searchTerm={getSearchForTab('therapeutic-categories')}
                             setSearchTerm={(v) => setSearchForTab('therapeutic-categories', v)}
@@ -2747,6 +2760,7 @@ const Admin = () => {
                     )}
                     {activeTab === 'coupon-usages' && (
                         <CouponUsagesTab
+                            loading={fetchingTabsSet.has('coupon-usages')}
                             couponUsages={couponUsages}
                             searchTerm={getSearchForTab('coupon-usages')}
                             setSearchTerm={(v) => {
@@ -2901,6 +2915,18 @@ const Admin = () => {
                                         <label>Discount Percentage (%)</label>
                                         <input type="number" required min="0" max="100" step="0.01" value={couponForm.discount} onChange={e => setCouponForm({ ...couponForm, discount: e.target.value === '' ? '' : Number(e.target.value) })} />
                                         <small style={{ color: 'var(--admin-text-muted)', marginTop: '0.25rem', display: 'block' }}>Any value from 0% to 100% as per your requirement</small>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Minimum Order Amount (₹) — Optional</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="e.g. 200"
+                                            value={couponForm.minOrderAmount ?? ''}
+                                            onChange={e => setCouponForm({ ...couponForm, minOrderAmount: e.target.value === '' ? '' : Number(e.target.value) })}
+                                        />
+                                        <small style={{ color: 'var(--admin-text-muted)', marginTop: '0.25rem', display: 'block' }}>Coupon only applies when cart total meets or exceeds this amount. Leave blank for no minimum.</small>
                                     </div>
                                     <div className="form-group">
                                         <label>Expiry Date (Optional)</label>

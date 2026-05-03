@@ -13,6 +13,7 @@ import {
     Filter,
     Stethoscope,
 } from 'lucide-react';
+import { InlineSpinner } from '../../components/common/PageLoading';
 import { formatTimeTo12h, parseTimeToHHmm } from '../../utils/timeFormatters';
 import './AdminCatalogTabs.css';
 import './AppointmentsTab.css';
@@ -85,6 +86,7 @@ const AppointmentsTab = ({
     onDelete,
     onConfirmPending,
     onCancelPending,
+    loading = false,
 }) => {
     const [dateFilter, setDateFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
@@ -215,6 +217,7 @@ const AppointmentsTab = ({
                         {dateFilter || statusFilter ? ' (filtered)' : ''}
                     </span>
                 )}
+                {loading && <InlineSpinner size={16} style={{ color: 'var(--admin-text-muted)' }} />}
             </div>
 
             <div className="scrollable-section-wrapper">

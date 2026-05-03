@@ -8,6 +8,7 @@ import {
     Calendar,
     ExternalLink,
 } from 'lucide-react';
+import { InlineSpinner } from '../../components/common/PageLoading';
 import './AdminCatalogTabs.css';
 import './CouponUsagesTab.css';
 
@@ -25,6 +26,7 @@ const CouponUsagesTab = ({
     couponUsagesRowsPerPage,
     setCouponUsagesRowsPerPage,
     onViewOrder,
+    loading = false,
 }) => {
     const [dateFilter, setDateFilter] = useState('');
     const list = couponUsages || [];
@@ -158,6 +160,7 @@ const CouponUsagesTab = ({
                         {dateFilter ? ' (filtered)' : ''}
                     </span>
                 )}
+                {loading && <InlineSpinner size={16} style={{ color: 'var(--admin-text-muted)' }} />}
             </div>
 
             <div className="coupon-usages-stats">

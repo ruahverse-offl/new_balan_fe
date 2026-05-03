@@ -12,6 +12,7 @@ import {
     IndianRupee,
     Eye,
 } from 'lucide-react';
+import { InlineSpinner } from '../../components/common/PageLoading';
 import './AdminCatalogTabs.css';
 import './CouponsTab.css';
 
@@ -60,6 +61,7 @@ const CouponsTab = ({
     onToggleCouponActive,
     onViewCouponDetails,
     onViewMarqueeDetails,
+    loading = false,
 }) => {
     const [statusFilter, setStatusFilter] = useState('');
     const [page, setPage] = useState(1);
@@ -200,6 +202,7 @@ const CouponsTab = ({
                             {hasFilters ? ' (filtered)' : ''}
                         </span>
                     )}
+                    {loading && <InlineSpinner size={16} style={{ color: 'var(--admin-text-muted)' }} />}
                 </div>
 
                 <div className="scrollable-section-wrapper">

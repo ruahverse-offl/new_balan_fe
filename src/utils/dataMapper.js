@@ -308,6 +308,10 @@ export const mapCouponToBackend = (coupon) => {
     is_active: coupon.isActive !== false,
   };
   if (coupon.firstOrderOnly !== undefined) payload.first_order_only = Boolean(coupon.firstOrderOnly);
+  const minAmt = coupon.minOrderAmount;
+  payload.min_order_amount = (minAmt !== '' && minAmt != null && !Number.isNaN(Number(minAmt)))
+    ? Number(minAmt)
+    : null;
   return payload;
 };
 

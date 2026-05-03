@@ -71,7 +71,7 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
   const [medicineNewOffering, setMedicineNewOffering] = useState({
     brand_id: '',
     mrp: '',
-    description: '',
+    description: '--- strip of 10',
   });
   const [brandAvailUpdatingId, setBrandAvailUpdatingId] = useState(null);
   const categoryDefaulted = useRef(false);
@@ -112,7 +112,7 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
       setForm(emptyForm());
       categoryDefaulted.current = false;
       setMedicineOfferings([]);
-      setMedicineNewOffering({ brand_id: '', mrp: '', description: '' });
+      setMedicineNewOffering({ brand_id: '', mrp: '', description: '--- strip of 10' });
       setMedicineOfferingsLoading(false);
       setAddingBrandLine(false);
       setLoading(false);
@@ -181,7 +181,7 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
         description: String(medicineNewOffering.description || '').trim() || null,
       });
       setMedicineOfferings((prev) => [...(prev || []), row]);
-      setMedicineNewOffering({ brand_id: '', mrp: '', description: '' });
+      setMedicineNewOffering({ brand_id: '', mrp: '', description: '--- strip of 10' });
       const synced = await syncMedicineHeaderAvailability();
       if (synced?.brands) setMedicineOfferings(synced.brands);
       showNotify?.('Brand line added', 'success');
@@ -802,7 +802,7 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
                 type="text"
                 value={medicineNewOffering.description}
                 onChange={(e) => setMedicineNewOffering({ ...medicineNewOffering, description: e.target.value })}
-                placeholder="e.g. 500 mg · strip of 10"
+                placeholder="--- strip of 10"
               />
             </div>
             {isEdit && medicineId && (
