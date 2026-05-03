@@ -1,9 +1,10 @@
 import React from 'react';
-import { Search, Eye, ArrowLeft, ChevronRight, History } from 'lucide-react';
+import { Search, Eye, ArrowLeft, ChevronRight, History, FileText } from 'lucide-react';
 import {
     ORDER_STATUS_FILTER_VALUES,
     formatOrderStatusLabel,
 } from '../../constants/orderLifecycle';
+import { getPrescriptionFileUrl } from '../../utils/prescriptionUrl';
 import './AdminCatalogTabs.css';
 
 /**
@@ -235,6 +236,21 @@ const OrdersTab = ({
                                                     >
                                                         <Eye size={18} />
                                                     </button>
+                                                    {order.prescription_path && (() => {
+                                                        const rxUrl = getPrescriptionFileUrl(order.prescription_path);
+                                                        return rxUrl ? (
+                                                            <a
+                                                                href={rxUrl}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="orders-icon-btn"
+                                                                title="View prescription"
+                                                                aria-label="View prescription"
+                                                            >
+                                                                <FileText size={18} />
+                                                            </a>
+                                                        ) : null;
+                                                    })()}
                                                 </div>
                                             </td>
                                         </tr>

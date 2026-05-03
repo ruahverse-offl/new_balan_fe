@@ -70,7 +70,6 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
   const [addingBrandLine, setAddingBrandLine] = useState(false);
   const [medicineNewOffering, setMedicineNewOffering] = useState({
     brand_id: '',
-    manufacturer: '',
     mrp: '',
     description: '',
   });
@@ -113,7 +112,7 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
       setForm(emptyForm());
       categoryDefaulted.current = false;
       setMedicineOfferings([]);
-      setMedicineNewOffering({ brand_id: '', manufacturer: '', mrp: '', description: '' });
+      setMedicineNewOffering({ brand_id: '', mrp: '', description: '' });
       setMedicineOfferingsLoading(false);
       setAddingBrandLine(false);
       setLoading(false);
@@ -164,7 +163,6 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
       return;
     }
     const bid = medicineNewOffering.brand_id;
-    const mfr = String(medicineNewOffering.manufacturer || '').trim();
     const mrpRaw = medicineNewOffering.mrp;
     if (!bid || mrpRaw === '' || Number.isNaN(Number(mrpRaw))) {
       showNotify?.('Select a catalog brand and enter MRP.', 'error');
@@ -179,12 +177,11 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
       const row = await createMedicineBrandOffering({
         medicine_id: medicineId,
         brand_id: bid,
-        manufacturer: mfr || undefined,
         mrp: Number(mrpRaw),
         description: String(medicineNewOffering.description || '').trim() || null,
       });
       setMedicineOfferings((prev) => [...(prev || []), row]);
-      setMedicineNewOffering({ brand_id: '', manufacturer: '', mrp: '', description: '' });
+      setMedicineNewOffering({ brand_id: '', mrp: '', description: '' });
       const synced = await syncMedicineHeaderAvailability();
       if (synced?.brands) setMedicineOfferings(synced.brands);
       showNotify?.('Brand line added', 'success');
@@ -277,13 +274,11 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
         showNotify?.('Medicine added successfully', 'success');
         onMedicinesChanged?.();
         const d = medicineNewOffering;
-        const hasAny =
-          d.brand_id || String(d.manufacturer || '').trim() !== '' || String(d.mrp || '') !== '';
-        const hasAll =
-          d.brand_id && d.mrp !== '' && !Number.isNaN(Number(d.mrp));
+        const hasAny = d.brand_id || String(d.mrp || '') !== '';
+        const hasAll = d.brand_id && d.mrp !== '' && !Number.isNaN(Number(d.mrp));
         if (hasAny && !hasAll) {
           showNotify?.(
-            'Medicine saved. To link a catalog brand, choose brand and MRP (manufacturer optional) — or edit this medicine to add lines.',
+            'Medicine saved. To link a catalog brand, choose brand and MRP — or edit this medicine to add lines.',
             'success',
           );
         } else if (hasAll && created?.id) {
@@ -291,7 +286,6 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
             await createMedicineBrandOffering({
               medicine_id: created.id,
               brand_id: d.brand_id,
-              manufacturer: String(d.manufacturer || '').trim() || undefined,
               mrp: Number(d.mrp),
               description: String(d.description || '').trim() || null,
             });
@@ -788,31 +782,18 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
                 </small>
               )}
             </div>
-            <div className="admin-medicine-brand-form-row2">
-              <div className="form-group">
-                <label htmlFor="med-rec-mfr">Manufacturer (optional)</label>
-                <input
-                  id="med-rec-mfr"
-                  type="text"
-                  value={medicineNewOffering.manufacturer}
-                  onChange={(e) => setMedicineNewOffering({ ...medicineNewOffering, manufacturer: e.target.value })}
-                  placeholder="e.g. GSK Consumer — leave blank if unknown"
-                  autoComplete="off"
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="med-rec-mrp">MRP (₹)</label>
-                <input
-                  id="med-rec-mrp"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  inputMode="decimal"
-                  value={medicineNewOffering.mrp}
-                  onChange={(e) => setMedicineNewOffering({ ...medicineNewOffering, mrp: e.target.value })}
-                  placeholder="0.00"
-                />
-              </div>
+            <div className="form-group">
+              <label htmlFor="med-rec-mrp">MRP (₹)</label>
+              <input
+                id="med-rec-mrp"
+                type="number"
+                step="0.01"
+                min="0"
+                inputMode="decimal"
+                value={medicineNewOffering.mrp}
+                onChange={(e) => setMedicineNewOffering({ ...medicineNewOffering, mrp: e.target.value })}
+                placeholder="0.00"
+              />
             </div>
             <div className="form-group">
               <label htmlFor="med-rec-pack">Pack / variant note (optional)</label>
@@ -852,7 +833,7 @@ const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], show
           {isNew && (
             <div className="admin-medicine-brands-hint">
               When you <strong>Save medicine</strong>, we will create the first line automatically if catalog brand and
-              MRP are filled (manufacturer optional). To add more lines, edit the medicine afterward.
+              MRP are filled. To add more lines, edit the medicine afterward.
             </div>
           )}
         </div>

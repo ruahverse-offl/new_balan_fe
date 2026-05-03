@@ -6,13 +6,11 @@ import {
   Trash2,
   X,
   Clock,
-  ArrowRight,
   IndianRupee,
   Check,
   Sparkles,
 } from 'lucide-react';
 import { InlineSpinner } from '../../components/common/PageLoading';
-import { DeliverySlotTimeDials } from '../../components/common/CircularTimeDial';
 import {
   buildDeliverySlotLabel,
   parseDeliverySlotRangeToHHmm,
@@ -90,7 +88,7 @@ const DeliveryTab = ({ deliverySettings, setDeliverySettings, updateDeliverySett
     e?.preventDefault();
     const { startHm, endHm, is_active } = slotForm;
     if (!startHm || !endHm) {
-      showNotify?.('Choose a start and end time on the clock dials.', 'error');
+      showNotify?.('Choose a start and end time.', 'error');
       return;
     }
     if (!isValidDeliverySlotRange(startHm, endHm)) {
@@ -101,6 +99,27 @@ const DeliveryTab = ({ deliverySettings, setDeliverySettings, updateDeliverySett
     if (!slot_time) {
       showNotify?.('Could not build a valid time window label.', 'error');
       return;
+    }
+
+    const toMins = (hm) => { const [h, m] = hm.split(':').map(Number); return h * 60 + m; };
+    const newStart = toMins(startHm);
+    const newEnd = toMins(endHm);
+    const existingSlots = deliverySettings.delivery_slot_times || [];
+    for (let i = 0; i < existingSlots.length; i++) {
+      if (slotModalMode === 'edit' && i === editingSlotIndex) continue;
+      if (slot_time === existingSlots[i].slot_time) {
+        showNotify?.('This time window already exists.', 'error');
+        return;
+      }
+      const { startHm: es, endHm: ee } = parseDeliverySlotRangeToHHmm(existingSlots[i].slot_time || '');
+      if (es && ee) {
+        const eStart = toMins(es);
+        const eEnd = toMins(ee);
+        if (newStart < eEnd && eStart < newEnd) {
+          showNotify?.(`Overlaps with existing window: ${existingSlots[i].slot_time}`, 'error');
+          return;
+        }
+      }
     }
 
     setDeliverySettings((prev) => {
@@ -152,7 +171,6 @@ const DeliveryTab = ({ deliverySettings, setDeliverySettings, updateDeliverySett
     try {
       await updateDeliverySettings({
         free_delivery_min_amount: deliverySettings.free_delivery_min_amount,
-        free_delivery_max_amount: deliverySettings.free_delivery_max_amount,
         delivery_fee: deliverySettings.delivery_fee,
         min_order_amount: deliverySettings.min_order_amount,
       });
@@ -169,21 +187,15 @@ const DeliveryTab = ({ deliverySettings, setDeliverySettings, updateDeliverySett
     const inactiveCount = slots.length - activeCount;
     const fee = formatInr(deliverySettings.delivery_fee);
     const minAmt = formatInr(deliverySettings.free_delivery_min_amount);
-    const maxRaw = deliverySettings.free_delivery_max_amount;
-    const maxAmt = maxRaw !== '' && maxRaw != null ? formatInr(maxRaw) : null;
     const minOrder = formatInr(deliverySettings.min_order_amount);
-    let band = '—';
-    if (minAmt) {
-      band = maxAmt ? `${minAmt} – ${maxAmt}` : `${minAmt}+ (no cap)`;
-    }
     return {
       activeCount,
       inactiveCount,
       feeLabel: fee || '—',
-      freeBandLabel: band,
+      freeBandLabel: minAmt ? `${minAmt}+` : '—',
       minOrderLabel: minOrder || '₹0.00',
     };
-  }, [slots, deliverySettings.delivery_fee, deliverySettings.free_delivery_min_amount, deliverySettings.free_delivery_max_amount, deliverySettings.min_order_amount]);
+  }, [slots, deliverySettings.delivery_fee, deliverySettings.free_delivery_min_amount, deliverySettings.min_order_amount]);
 
   const applyDeliveryEnabled = async (enabled) => {
     const wasEnabled = deliverySettings.is_enabled !== false;
@@ -417,12 +429,10 @@ const DeliveryTab = ({ deliverySettings, setDeliverySettings, updateDeliverySett
               <div className="delivery-band-diagram__bar">
                 <span className="delivery-band-diagram__seg delivery-band-diagram__seg--fee" title="Fee" />
                 <span className="delivery-band-diagram__seg delivery-band-diagram__seg--free" title="Free delivery" />
-                <span className="delivery-band-diagram__seg delivery-band-diagram__seg--fee" title="Fee if max set" />
               </div>
               <div className="delivery-band-diagram__labels">
                 <span>Below min</span>
-                <span>Free band</span>
-                <span>Above max</span>
+                <span>Free (min and above)</span>
               </div>
             </div>
 
@@ -438,13 +448,7 @@ const DeliveryTab = ({ deliverySettings, setDeliverySettings, updateDeliverySett
                 <li>
                   <span className="delivery-rules__dot delivery-rules__dot--free" />
                   <span>
-                    Subtotal <strong>between</strong> min and max (inclusive) → <strong>free delivery</strong>.
-                  </span>
-                </li>
-                <li>
-                  <span className="delivery-rules__dot delivery-rules__dot--fee" />
-                  <span>
-                    If max is set, subtotal <strong>above</strong> it → fee applies again.
+                    Subtotal <strong>at or above</strong> the minimum → <strong>free delivery</strong>.
                   </span>
                 </li>
               </ul>
@@ -519,28 +523,6 @@ const DeliveryTab = ({ deliverySettings, setDeliverySettings, updateDeliverySett
                 </div>
               </div>
 
-              <div className="delivery-field">
-                <label htmlFor="delivery-free-max">Maximum for free delivery (optional)</label>
-                <div className="delivery-input-wrap">
-                  <span className="delivery-input-wrap__prefix">₹</span>
-                  <input
-                    id="delivery-free-max"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={deliverySettings.free_delivery_max_amount ?? ''}
-                    onChange={(e) =>
-                      setDeliverySettings((prev) => ({
-                        ...prev,
-                        free_delivery_max_amount: e.target.value,
-                      }))
-                    }
-                    placeholder="Empty = no upper limit"
-                  />
-                </div>
-                <small className="delivery-field-hint">Large carts above this pay the fee again.</small>
-              </div>
-
               <button type="submit" className="btn-add delivery-pricing-submit" disabled={savingFreeRange}>
                 {savingFreeRange ? <InlineSpinner size={18} className="spin-icon" /> : null}
                 Save pricing
@@ -559,7 +541,7 @@ const DeliveryTab = ({ deliverySettings, setDeliverySettings, updateDeliverySett
           }}
         >
           <div
-            className="admin-modal compact-modal delivery-slot-modal delivery-slot-modal--clocks"
+            className="admin-modal compact-modal delivery-slot-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="delivery-slot-modal-title"
@@ -583,57 +565,27 @@ const DeliveryTab = ({ deliverySettings, setDeliverySettings, updateDeliverySett
             </header>
 
             <form className="delivery-slot-modal-form" onSubmit={applySlotModal}>
-              <div className="delivery-slot-modal-tip">
-                <p>
-                  Drag or tap the <strong>hour</strong> and <strong>minute</strong> rings. Preview updates live.{' '}
-                  <strong>Cancel</strong> discards; <strong>Save window</strong> adds this range to your list (remember to save
-                  windows on the main screen).
-                </p>
-              </div>
-
-              <div className="delivery-slot-clocks">
-                <div className="delivery-slot-clock-panel delivery-slot-clock-panel--start">
-                  <div className="delivery-slot-clock-panel-head">
-                    <span className="delivery-slot-clock-step" aria-hidden>
-                      1
-                    </span>
-                    <div>
-                      <span className="delivery-slot-clock-title">Opens</span>
-                      <span className="delivery-slot-clock-sub">Start</span>
-                    </div>
-                  </div>
-                  <div className="delivery-slot-clock-panel-body">
-                    <DeliverySlotTimeDials
-                      value={slotForm.startHm}
-                      onChange={(v) => setSlotForm((f) => ({ ...f, startHm: v }))}
-                      fallbackHour={9}
-                      fallbackMinute={0}
-                    />
-                  </div>
+              <div className="delivery-slot-time-row">
+                <div className="delivery-slot-time-field">
+                  <label htmlFor="slot-start-time">Opens (start)</label>
+                  <input
+                    id="slot-start-time"
+                    type="time"
+                    value={slotForm.startHm}
+                    onChange={(e) => setSlotForm((f) => ({ ...f, startHm: e.target.value }))}
+                    required
+                  />
                 </div>
-
-                <div className="delivery-slot-clocks-connector" aria-hidden>
-                  <ArrowRight size={20} strokeWidth={2} />
-                </div>
-
-                <div className="delivery-slot-clock-panel delivery-slot-clock-panel--end">
-                  <div className="delivery-slot-clock-panel-head">
-                    <span className="delivery-slot-clock-step" aria-hidden>
-                      2
-                    </span>
-                    <div>
-                      <span className="delivery-slot-clock-title">Closes</span>
-                      <span className="delivery-slot-clock-sub">End</span>
-                    </div>
-                  </div>
-                  <div className="delivery-slot-clock-panel-body">
-                    <DeliverySlotTimeDials
-                      value={slotForm.endHm}
-                      onChange={(v) => setSlotForm((f) => ({ ...f, endHm: v }))}
-                      fallbackHour={11}
-                      fallbackMinute={0}
-                    />
-                  </div>
+                <span className="delivery-slot-time-sep" aria-hidden>→</span>
+                <div className="delivery-slot-time-field">
+                  <label htmlFor="slot-end-time">Closes (end)</label>
+                  <input
+                    id="slot-end-time"
+                    type="time"
+                    value={slotForm.endHm}
+                    onChange={(e) => setSlotForm((f) => ({ ...f, endHm: e.target.value }))}
+                    required
+                  />
                 </div>
               </div>
 

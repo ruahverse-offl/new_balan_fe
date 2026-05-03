@@ -1,178 +1,588 @@
-/* Medicine–brand inventory / catalogue (offerings + stock) */
+/* ── Inventory Tab v2 — card-grid stock-only UI ── */
 
-.inventory-tab-card {
-    overflow: hidden;
-}
-
-.inventory-tab-hint {
+/* Root */
+.inv2-root {
     display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    margin: 0;
-    padding: 0.75rem 1.5rem;
-    font-size: 0.8125rem;
-    line-height: 1.5;
-    color: var(--admin-text-muted, #64748b);
-    border-bottom: 1px solid var(--admin-border, #e2e8f0);
-    background: var(--gray-50, #f8fafc);
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.25rem 1.5rem 1.5rem;
 }
 
-.inventory-tab-hint__icon {
-    flex-shrink: 0;
-    margin-top: 0.1rem;
-    color: var(--admin-text-muted, #94a3b8);
+/* ── Stats strip ── */
+.inv2-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
 }
 
-.inventory-tab-card .scrollable-section-wrapper.inventory-tab-scroll-wrap {
-    padding: 0 1.5rem 1rem;
-}
-
-.inventory-table-scroll {
-    border: 1px solid var(--admin-border, #e2e8f0);
+.inv2-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
     border-radius: 12px;
+    border: 1px solid var(--admin-border, #e2e8f0);
     background: var(--white, #fff);
-    overflow: auto;
-    max-height: min(520px, 62vh);
+    transition: box-shadow 0.15s, transform 0.12s;
+    user-select: none;
 }
 
-.inventory-tab-card .inventory-table-scroll .inventory-offerings-table {
+.inv2-stat[role="button"] {
+    cursor: pointer;
+}
+
+.inv2-stat[role="button"]:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+}
+
+.inv2-stat[role="button"]:active {
+    transform: translateY(0);
+}
+
+.inv2-stat--active {
+    box-shadow: 0 0 0 2px currentColor;
+}
+
+/* Stat icon circles */
+.inv2-stat__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.inv2-stat--total .inv2-stat__icon {
+    background: #ede9fe;
+    color: #7c3aed;
+}
+
+.inv2-stat--out .inv2-stat__icon {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.inv2-stat--low .inv2-stat__icon {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.inv2-stat--ok .inv2-stat__icon {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.inv2-stat--total.inv2-stat--active {
+    border-color: #7c3aed;
+    background: #faf5ff;
+}
+
+.inv2-stat--out.inv2-stat--active {
+    border-color: #dc2626;
+    background: #fff5f5;
+}
+
+.inv2-stat--low.inv2-stat--active {
+    border-color: #d97706;
+    background: #fffbeb;
+}
+
+.inv2-stat__val {
     margin: 0;
-    min-width: 0;
-    width: 100%;
-    table-layout: fixed;
-}
-
-.inventory-offerings-table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-}
-
-.inventory-offerings-table .inv-col-medicine {
-    width: 26%;
-    min-width: 8rem;
-}
-
-.inventory-offerings-table .inv-col-brand {
-    width: 14%;
-    min-width: 5rem;
-}
-
-.inventory-offerings-table .inv-col-mfr {
-    width: 18%;
-    min-width: 6rem;
-}
-
-.inventory-offerings-table .inv-col-mrp {
-    width: 5.25rem;
-    text-align: right;
-}
-
-.inventory-offerings-table td.inv-col-mrp {
-    text-align: right;
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--admin-text-main, #0f172a);
     font-variant-numeric: tabular-nums;
-    font-weight: 600;
 }
 
-.inventory-offerings-table .inv-col-stock {
-    width: 8.75rem;
+.inv2-stat__label {
+    margin: 0.2rem 0 0;
+    font-size: 0.75rem;
+    color: var(--admin-text-muted, #64748b);
+    line-height: 1.3;
 }
 
-.inventory-offerings-table .inv-col-avail {
-    width: 5.5rem;
+/* ── Toolbar ── */
+.inv2-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.inv2-search {
+    flex: 1 1 220px;
+    min-width: 180px;
+}
+
+.inv2-filter-pills {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.inv2-filter-pill {
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid var(--admin-border, #e2e8f0);
+    background: var(--white, #fff);
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--admin-text-muted, #64748b);
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
     white-space: nowrap;
 }
 
-.inventory-offerings-table .inv-col-actions {
-    width: auto;
-    min-width: 13.5rem;
+.inv2-filter-pill:hover {
+    border-color: var(--primary, #6366f1);
+    color: var(--primary, #6366f1);
 }
 
-.inventory-medicine-cell {
-    font-weight: 700;
+.inv2-filter-pill--active {
+    background: var(--primary, #6366f1);
+    border-color: var(--primary, #6366f1);
+    color: #fff;
+}
+
+.inv2-count-meta {
+    margin-left: auto;
+    font-size: 0.82rem;
+    color: var(--admin-text-muted, #64748b);
+    white-space: nowrap;
+}
+
+/* ── Empty state ── */
+.inv2-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 3.5rem 1rem;
+    text-align: center;
+    color: var(--admin-text-muted, #64748b);
+}
+
+.inv2-empty__icon {
+    opacity: 0.3;
+    color: var(--admin-text-muted, #94a3b8);
+}
+
+.inv2-empty p {
+    margin: 0;
+    font-size: 0.9375rem;
+    max-width: 28rem;
+    line-height: 1.55;
+}
+
+.inv2-empty__reset {
+    margin-top: 0.25rem;
+    padding: 0.4rem 1.1rem;
+    border-radius: 8px;
+    border: 1px solid var(--admin-border, #e2e8f0);
+    background: var(--white, #fff);
+    font-size: 0.875rem;
+    color: var(--primary, #6366f1);
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.inv2-empty__reset:hover {
+    background: #f5f3ff;
+}
+
+/* ── Card grid ── */
+.inv2-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 0.875rem;
+}
+
+.inv2-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1rem 1rem 0.85rem;
+    border-radius: 12px;
+    border: 1px solid var(--admin-border, #e2e8f0);
+    background: var(--white, #fff);
+    border-left-width: 4px;
+    transition: box-shadow 0.15s;
+}
+
+.inv2-card:hover {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07);
+}
+
+.inv2-card--ok   { border-left-color: #22c55e; }
+.inv2-card--low  { border-left-color: #f59e0b; }
+.inv2-card--out  { border-left-color: #ef4444; }
+
+/* Card top row: brand badge + "Off sale" tag */
+.inv2-card__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.1rem;
+}
+
+.inv2-card__brand {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--primary, #6366f1);
+    background: #ede9fe;
+    padding: 0.18rem 0.55rem;
+    border-radius: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 70%;
+}
+
+.inv2-card__unavail {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #92400e;
+    background: #fef3c7;
+    padding: 0.15rem 0.45rem;
+    border-radius: 5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Card body */
+.inv2-card__name {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
     color: var(--admin-text-main, #0f172a);
     line-height: 1.35;
     word-break: break-word;
 }
 
-.inv-stock-row {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    flex-wrap: wrap;
-}
-
-.inv-stock-input {
-    width: 5.25rem;
-    padding: 0.4rem 0.5rem;
-    border-radius: 8px;
-    border: 1px solid var(--admin-border, #e2e8f0);
-    background: var(--admin-bg, #fff);
-    color: var(--admin-text, #0f172a);
-    font-size: 0.875rem;
+.inv2-card__mrp {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--admin-text-muted, #64748b);
     font-variant-numeric: tabular-nums;
 }
 
-.inv-stock-input:focus {
-    outline: none;
-    border-color: var(--primary, #6366f1);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary, #6366f1) 22%, transparent);
+/* Card footer: badge + button */
+.inv2-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--admin-border, #f1f5f9);
 }
 
-.inventory-offerings-table td.actions {
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    vertical-align: middle;
+/* ── Stock badge ── */
+.inv2-stock-badge {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 8px;
+    font-variant-numeric: tabular-nums;
+    min-width: 0;
 }
 
-/* Eye + View: reuse .medicines-view-btn from MedicinesTab.css; keep from shrinking in tight action cells */
-.inventory-offerings-table td.actions .action-btn.inventory-view-btn--eye {
+.inv2-stock-badge--ok {
+    background: #f0fdf4;
+    color: #15803d;
+}
+
+.inv2-stock-badge--low {
+    background: #fffbeb;
+    color: #b45309;
+}
+
+.inv2-stock-badge--out {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.inv2-stock-badge__num {
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.inv2-stock-badge__label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* ── Update button ── */
+.inv2-update-btn {
+    padding: 0.3rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid var(--primary, #6366f1);
+    background: transparent;
+    color: var(--primary, #6366f1);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    white-space: nowrap;
     flex-shrink: 0;
 }
 
-@media (max-width: 1024px) {
-    .inventory-offerings-table {
-        min-width: 720px;
-    }
+.inv2-update-btn:hover {
+    background: var(--primary, #6366f1);
+    color: #fff;
 }
 
-/* Add offering modal: medicine + brand as clean dropdowns only (no inline catalog / filter) */
-.inventory-add-offering-form .inventory-add-dropdowns-loading {
+/* ── Pagination ── */
+.inv2-pagination {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin: 0 0 1rem;
-    font-size: 0.9rem;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-top: 0.25rem;
+}
+
+/* ── Update stock modal ── */
+.inv2-update-modal {
+    width: min(26rem, 92vw);
+}
+
+.inv2-modal-header {
+    margin-bottom: 0.75rem;
+}
+
+.inv2-modal-brand {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--primary, #6366f1);
+    background: #ede9fe;
+    padding: 0.18rem 0.6rem;
+    border-radius: 6px;
+    margin-bottom: 0.35rem;
+}
+
+.inv2-modal-name {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--admin-text-main, #0f172a);
+    line-height: 1.3;
+}
+
+.inv2-modal-hint {
+    margin: 0 0 1.25rem;
+    font-size: 0.875rem;
     color: var(--admin-text-muted, #64748b);
 }
 
-.inventory-add-selects {
+/* Qty stepper row */
+.inv2-modal-qty-row {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: 0.75rem;
-    margin-bottom: 1.25rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid var(--admin-border, #e2e8f0);
+    margin-bottom: 1.5rem;
 }
 
-.inventory-add-select {
-    width: 100%;
-    padding: 0.55rem 0.65rem;
-    border-radius: 8px;
-    border: 1px solid var(--admin-border, #e2e8f0);
-    font-size: 0.95rem;
+.inv2-qty-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    border: 1.5px solid var(--admin-border, #e2e8f0);
     background: var(--white, #fff);
+    color: var(--admin-text-main, #0f172a);
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+    flex-shrink: 0;
 }
 
-.inventory-add-select:focus {
+.inv2-qty-btn:hover:not(:disabled) {
+    background: var(--primary, #6366f1);
+    border-color: var(--primary, #6366f1);
+    color: #fff;
+}
+
+.inv2-qty-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.inv2-qty-input {
+    width: 6rem;
+    text-align: center;
+    padding: 0.6rem 0.5rem;
+    border-radius: 10px;
+    border: 1.5px solid var(--admin-border, #e2e8f0);
+    background: var(--admin-bg, #fff);
+    color: var(--admin-text-main, #0f172a);
+    font-size: 1.35rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+.inv2-qty-input::-webkit-inner-spin-button,
+.inv2-qty-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.inv2-qty-input:focus {
     outline: none;
     border-color: var(--primary, #6366f1);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary, #6366f1) 20%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, #6366f1) 18%, transparent);
 }
 
-.inventory-add-catalog-hint {
-    margin: -0.5rem 0 1rem;
-    font-size: 0.82rem;
-    color: #b45309;
-    line-height: 1.4;
+/* Modal action buttons */
+.inv2-modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+.inv2-modal-cancel {
+    padding: 0.55rem 1.25rem;
+    border-radius: 9px;
+    border: 1px solid var(--admin-border, #e2e8f0);
+    background: transparent;
+    color: var(--admin-text-muted, #64748b);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.inv2-modal-cancel:hover:not(:disabled) {
+    background: var(--admin-bg, #f8fafc);
+}
+
+.inv2-modal-cancel:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.inv2-modal-save {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1.4rem;
+    border-radius: 9px;
+    border: none;
+    background: var(--primary, #6366f1);
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s, opacity 0.12s;
+}
+
+.inv2-modal-save:hover:not(:disabled) {
+    background: #4f46e5;
+}
+
+.inv2-modal-save:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .inv2-root {
+        padding: 1rem;
+    }
+
+    .inv2-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .inv2-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .inv2-search {
+        width: 100%;
+    }
+
+    .inv2-count-meta {
+        margin-left: 0;
+        text-align: right;
+    }
+
+    .inv2-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .inv2-stats {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+    }
+
+    .inv2-stat {
+        padding: 0.75rem 0.75rem;
+        gap: 0.5rem;
+    }
+
+    .inv2-stat__val {
+        font-size: 1.15rem;
+    }
+
+    .inv2-stat__icon {
+        width: 1.9rem;
+        height: 1.9rem;
+    }
+
+    .inv2-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .inv2-filter-pills {
+        width: 100%;
+    }
+
+    .inv2-filter-pill {
+        flex: 1;
+        text-align: center;
+    }
+
+    .inv2-modal-qty-row {
+        gap: 0.5rem;
+    }
+
+    .inv2-qty-input {
+        width: 5rem;
+        font-size: 1.15rem;
+    }
+
+    .inv2-modal-actions {
+        flex-direction: column-reverse;
+    }
+
+    .inv2-modal-cancel,
+    .inv2-modal-save {
+        width: 100%;
+        justify-content: center;
+    }
 }

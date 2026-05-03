@@ -570,15 +570,20 @@ const OrderDetailPage = ({
                                     (lifecycleActions || []).map((a) => [String(a.status || '').toUpperCase(), a]),
                                 );
                                 const deliveryReturnedAct = actionByStatus.get('DELIVERY_RETURNED');
-                                const pickedFromStoreAction =
-                                    actionByStatus.get('PARCEL_TAKEN') || actionByStatus.get('OUT_FOR_DELIVERY') || null;
                                 const chainSteps = [
                                     {
-                                        key: 'PICKED_FROM_STORE',
+                                        key: 'PARCEL_TAKEN',
                                         label: 'Pick from store',
                                         done: rank >= 6,
-                                        active: currentStatus === 'PARCEL_TAKEN' || currentStatus === 'OUT_FOR_DELIVERY',
-                                        action: pickedFromStoreAction,
+                                        active: currentStatus === 'PARCEL_TAKEN',
+                                        action: actionByStatus.get('PARCEL_TAKEN') || null,
+                                    },
+                                    {
+                                        key: 'OUT_FOR_DELIVERY',
+                                        label: 'Out for delivery',
+                                        done: rank >= 7,
+                                        active: currentStatus === 'OUT_FOR_DELIVERY',
+                                        action: actionByStatus.get('OUT_FOR_DELIVERY') || null,
                                     },
                                     {
                                         key: 'DELIVERED',
@@ -637,9 +642,7 @@ const OrderDetailPage = ({
                                                 disabled={lifecycleUpdating || loading}
                                                 onClick={() => onOrderLifecycleIntent(order, act)}
                                             >
-                                                {step.key === 'PICKED_FROM_STORE'
-                                                    ? 'Picked from store'
-                                                    : FULFILLMENT_CHAIN_BUTTON_LABELS[act.status] || act.label || step.label}
+                                                {FULFILLMENT_CHAIN_BUTTON_LABELS[act.status] || act.label || step.label}
                                             </button>,
                                         );
                                     } else {

@@ -1,72 +1,73 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Pencil, Trash2, Package, X, Eye } from 'lucide-react';
+import {
+    Search, Package, TrendingDown, AlertTriangle,
+    CheckCircle, Minus, Plus as PlusIcon, X,
+} from 'lucide-react';
 import { PageLoading, InlineSpinner } from '../../components/common/PageLoading';
 import { useAuth } from '../../context/AuthContext';
 import { hasModuleGrant } from '../../utils/permissionMapper';
 import { getMedicines, getAllMedicinesForSelect } from '../../services/medicinesApi';
 import { updateOfferingStock } from '../../services/inventoryApi';
-import { fetchAllBrandMasters, createBrand, deleteBrand } from '../../services/brandsApi';
+import { fetchAllBrandMasters, createBrand } from '../../services/brandsApi';
 import './AdminCatalogTabs.css';
-import './MedicinesTab.css';
 import './InventoryTab.css';
 
-/**
- * Admin: medicine–brand offerings with on-hand stock (M_inventory).
- * Stock updates: PATCH /inventory/offering/{id}. Offering CRUD: /medicine-brands.
- */
+const LOW_STOCK_THRESHOLD = 10;
+
+function stockStatus(qty) {
+    if (qty === 0) return 'out';
+    if (qty <= LOW_STOCK_THRESHOLD) return 'low';
+    return 'ok';
+}
+
+const emptyAddForm = () => ({
+    medicineId: '',
+    brandId: '',
+    mrp: '',
+    description: '',
+    initialStock: '0',
+});
+
 const InventoryTab = ({ showNotify, refreshToken = 0 }) => {
-    const navigate = useNavigate();
     const { user } = useAuth();
     const role = (user?.backendRole || user?.role || '').toUpperCase();
     const isAdminRole = role === 'DEV_ADMIN' || role === 'ADMIN';
-    const mi = user?.menuItems || [];
-    const canUpdateStock = isAdminRole || hasModuleGrant(mi, 'inventory', 'update');
-    const canManageOfferings = isAdminRole || hasModuleGrant(mi, 'medicines', 'update');
+    const canUpdateStock = isAdminRole || hasModuleGrant(user?.menuItems || [], 'inventory', 'update');
 
-    const [search, setSearch] = useState('');
-    const [debouncedSearch, setDebouncedSearch] = useState('');
-    const [page, setPage] = useState(1);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
-    const [loading, setLoading] = useState(false);
-    const [items, setItems] = useState([]);
-    const [pagination, setPagination] = useState(null);
+    const [search, setSearch]               = useState('');
+    const [debouncedSearch, setDebounced]   = useState('');
+    const [filter, setFilter]               = useState('all');
+    const [page, setPage]                   = useState(1);
+    const [loading, setLoading]             = useState(false);
+    const [items, setItems]                 = useState([]);
+    const [pagination, setPagination]       = useState(null);
+    const rowsPerPage                       = 50;
 
-    const [stockDraft, setStockDraft] = useState({});
-    const [savingOfferingId, setSavingOfferingId] = useState(null);
+    const [editingOffering, setEditingOffering] = useState(null);
+    const [editStock, setEditStock]             = useState('');
+    const [saving, setSaving]                   = useState(false);
 
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [addSubmitting, setAddSubmitting] = useState(false);
-    const [medicineOptions, setMedicineOptions] = useState([]);
-    const [brandOptions, setBrandOptions] = useState([]);
-    const [dropdownsLoading, setDropdownsLoading] = useState(false);
-    const [addForm, setAddForm] = useState({
-        medicine_id: '',
-        brand_id: '',
-        manufacturer: '',
-        mrp: '',
-        description: '',
-        is_available: true,
-    });
-
-    const [deleteConfirm, setDeleteConfirm] = useState(null);
+    // Add entry modal
+    const [addModalOpen, setAddModalOpen]     = useState(false);
+    const [addForm, setAddForm]               = useState(emptyAddForm);
+    const [addSaving, setAddSaving]           = useState(false);
+    const [allMedicines, setAllMedicines]     = useState([]);
+    const [allBrands, setAllBrands]           = useState([]);
+    const [addOptsLoading, setAddOptsLoading] = useState(false);
 
     useEffect(() => {
-        const t = setTimeout(() => setDebouncedSearch(search), 350);
+        const t = setTimeout(() => setDebounced(search), 350);
         return () => clearTimeout(t);
     }, [search]);
 
-    useEffect(() => {
-        setPage(1);
-    }, [debouncedSearch, rowsPerPage]);
+    useEffect(() => { setPage(1); }, [debouncedSearch]);
 
     const loadList = useCallback(async () => {
         setLoading(true);
         try {
-            const offset = (page - 1) * rowsPerPage;
             const res = await getMedicines({
                 limit: rowsPerPage,
-                offset,
+                offset: (page - 1) * rowsPerPage,
                 search: debouncedSearch || undefined,
                 sort_by: 'name',
                 sort_order: 'asc',
@@ -74,365 +75,287 @@ const InventoryTab = ({ showNotify, refreshToken = 0 }) => {
             });
             setItems(res.items || []);
             setPagination(res.pagination || null);
-            setStockDraft({});
         } catch (e) {
-            showNotify(e?.message || 'Failed to load medicines', 'error');
+            showNotify(e?.message || 'Failed to load inventory', 'error');
             setItems([]);
-            setPagination(null);
         } finally {
             setLoading(false);
         }
-    }, [page, rowsPerPage, debouncedSearch, showNotify]);
+    }, [page, debouncedSearch, showNotify]);
 
+    useEffect(() => { loadList(); }, [loadList, refreshToken]);
+
+    // Load dropdown options when add modal opens
     useEffect(() => {
-        loadList();
-    }, [loadList, refreshToken]);
+        if (!addModalOpen) return;
+        let cancelled = false;
+        (async () => {
+            setAddOptsLoading(true);
+            try {
+                const [meds, brands] = await Promise.all([
+                    getAllMedicinesForSelect(),
+                    fetchAllBrandMasters(),
+                ]);
+                if (!cancelled) {
+                    setAllMedicines(meds || []);
+                    setAllBrands(brands || []);
+                }
+            } catch (e) {
+                if (!cancelled) showNotify(e?.message || 'Failed to load options', 'error');
+            } finally {
+                if (!cancelled) setAddOptsLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [addModalOpen, showNotify]);
+
+    const openAdd = () => {
+        setAddForm(emptyAddForm());
+        setAddModalOpen(true);
+    };
+
+    const closeAdd = () => { if (!addSaving) setAddModalOpen(false); };
+
+    const handleAddEntry = async (e) => {
+        e?.preventDefault();
+        const { medicineId, brandId, mrp, description, initialStock } = addForm;
+        if (!medicineId) { showNotify('Select a medicine', 'error'); return; }
+        if (!brandId)    { showNotify('Select a brand', 'error'); return; }
+        if (!mrp || Number.isNaN(Number(mrp)) || Number(mrp) < 0) {
+            showNotify('Enter a valid MRP (₹0 or more)', 'error'); return;
+        }
+        const stockN = parseInt(String(initialStock).trim(), 10);
+        if (Number.isNaN(stockN) || stockN < 0) {
+            showNotify('Enter a valid initial stock count', 'error'); return;
+        }
+        setAddSaving(true);
+        try {
+            const offering = await createBrand({
+                medicine_id: medicineId,
+                brand_id: brandId,
+                mrp: Number(mrp),
+                description: description.trim() || null,
+            });
+            if (offering?.id && stockN > 0) {
+                await updateOfferingStock(offering.id, stockN);
+            }
+            showNotify('Stock entry added', 'success');
+            setAddModalOpen(false);
+            await loadList();
+        } catch (e) {
+            showNotify(e?.message || 'Failed to add entry', 'error');
+        } finally {
+            setAddSaving(false);
+        }
+    };
 
     const flatRows = useMemo(() => {
         const rows = [];
         for (const m of items) {
-            const brands = m.brands || [];
-            for (const b of brands) {
+            for (const b of (m.brands || [])) {
                 rows.push({
-                    offeringId: b.id,
-                    medicineId: m.id,
+                    offeringId:   b.id,
                     medicineName: m.name || '—',
-                    brandName: b.brand_name || '—',
-                    manufacturer: b.manufacturer || '—',
-                    mrp: b.mrp,
-                    stock_quantity: typeof b.stock_quantity === 'number' ? b.stock_quantity : 0,
-                    is_available: b.is_available !== false,
-                    description: b.description || '',
+                    brandName:    b.brand_name || '—',
+                    mrp:          b.mrp,
+                    stock:        typeof b.stock_quantity === 'number' ? b.stock_quantity : 0,
+                    isAvailable:  b.is_available !== false,
                 });
             }
         }
         return rows;
     }, [items]);
 
-    const openAddModal = async () => {
-        setAddForm({
-            medicine_id: '',
-            brand_id: '',
-            manufacturer: '',
-            mrp: '',
-            description: '',
-            is_available: true,
-        });
-        setShowAddModal(true);
-        setDropdownsLoading(true);
-        try {
-            const meds = await getAllMedicinesForSelect();
-            setMedicineOptions(meds || []);
-        } catch (e) {
-            showNotify(e?.message || 'Failed to load medicines', 'error');
-            setMedicineOptions([]);
-        }
-        try {
-            const brands = await fetchAllBrandMasters({ sort_by: 'name', sort_order: 'asc' });
-            setBrandOptions(brands || []);
-        } catch (e) {
-            showNotify(e?.message || 'Failed to load brand catalog', 'error');
-            setBrandOptions([]);
-        } finally {
-            setDropdownsLoading(false);
-        }
+    const stats = useMemo(() => ({
+        total: flatRows.length,
+        out:   flatRows.filter(r => r.stock === 0).length,
+        low:   flatRows.filter(r => r.stock > 0 && r.stock <= LOW_STOCK_THRESHOLD).length,
+        ok:    flatRows.filter(r => r.stock > LOW_STOCK_THRESHOLD).length,
+    }), [flatRows]);
+
+    const filteredRows = useMemo(() => {
+        if (filter === 'out') return flatRows.filter(r => r.stock === 0);
+        if (filter === 'low') return flatRows.filter(r => r.stock > 0 && r.stock <= LOW_STOCK_THRESHOLD);
+        return flatRows;
+    }, [flatRows, filter]);
+
+    const openEdit = (row) => {
+        setEditingOffering(row);
+        setEditStock(String(row.stock));
     };
 
-    const handleSaveStock = async (offeringId) => {
-        const raw = stockDraft[offeringId];
-        if (raw === undefined || raw === '') {
-            showNotify('Enter a stock quantity', 'error');
-            return;
-        }
-        const n = parseInt(String(raw).trim(), 10);
+    const closeEdit = () => { if (!saving) setEditingOffering(null); };
+
+    const adjustQty = (delta) =>
+        setEditStock(s => String(Math.max(0, (parseInt(s, 10) || 0) + delta)));
+
+    const handleSaveStock = async () => {
+        const n = parseInt(String(editStock).trim(), 10);
         if (Number.isNaN(n) || n < 0) {
-            showNotify('Stock must be a non-negative integer', 'error');
+            showNotify('Enter a valid stock count (0 or more)', 'error');
             return;
         }
-        setSavingOfferingId(offeringId);
+        setSaving(true);
         try {
-            await updateOfferingStock(offeringId, n);
+            await updateOfferingStock(editingOffering.offeringId, n);
             showNotify('Stock updated', 'success');
-            setStockDraft((prev) => {
-                const next = { ...prev };
-                delete next[offeringId];
-                return next;
-            });
+            setEditingOffering(null);
             await loadList();
         } catch (e) {
             showNotify(e?.message || 'Failed to update stock', 'error');
         } finally {
-            setSavingOfferingId(null);
-        }
-    };
-
-    const handleCreateOffering = async (e) => {
-        e.preventDefault();
-        if (!addForm.medicine_id || !addForm.brand_id) {
-            showNotify('Medicine and brand are required', 'error');
-            return;
-        }
-        const mrp = parseFloat(String(addForm.mrp).replace(',', '.'));
-        if (Number.isNaN(mrp) || mrp < 0) {
-            showNotify('Enter a valid MRP', 'error');
-            return;
-        }
-        setAddSubmitting(true);
-        try {
-            await createBrand({
-                medicine_id: addForm.medicine_id,
-                brand_id: addForm.brand_id,
-                manufacturer: addForm.manufacturer?.trim() || undefined,
-                mrp,
-                description: addForm.description?.trim() || undefined,
-                is_available: addForm.is_available !== false,
-            });
-            showNotify('Medicine–brand offering created', 'success');
-            setShowAddModal(false);
-            await loadList();
-        } catch (err) {
-            showNotify(err?.message || 'Create failed', 'error');
-        } finally {
-            setAddSubmitting(false);
-        }
-    };
-
-    const handleDeleteOffering = async () => {
-        if (!deleteConfirm?.id) return;
-        try {
-            await deleteBrand(deleteConfirm.id);
-            showNotify('Offering removed', 'success');
-            setDeleteConfirm(null);
-            await loadList();
-        } catch (err) {
-            showNotify(err?.message || 'Delete failed', 'error');
+            setSaving(false);
         }
     };
 
     const totalPages =
-        pagination?.total != null && rowsPerPage > 0
-            ? Math.max(1, Math.ceil(pagination.total / rowsPerPage))
-            : 1;
+        pagination?.total != null ? Math.max(1, Math.ceil(pagination.total / rowsPerPage)) : 1;
 
-    const formatOfferingMrp = (v) => {
-        const n = parseFloat(v);
-        if (Number.isNaN(n)) return '—';
-        return n.toFixed(2);
-    };
-
-    const medicineTotal = pagination?.total;
+    const FILTER_LABELS = { all: 'All', low: 'Low stock', out: 'Out of stock' };
 
     return (
-        <div className="admin-table-card catalog-tab-card inventory-tab-card animate-slide-up">
-            <div className="catalog-tab-toolbar">
-                <div className="table-search">
-                    <Search size={18} aria-hidden />
+        <div className="inv2-root animate-slide-up">
+
+            {/* ── Stats strip ── */}
+            <div className="inv2-stats">
+                {[
+                    { key: 'all',  icon: <Package size={18} />,       cls: 'total', val: stats.total, label: 'Total SKUs' },
+                    { key: 'out',  icon: <AlertTriangle size={18} />, cls: 'out',   val: stats.out,   label: 'Out of stock' },
+                    { key: 'low',  icon: <TrendingDown size={18} />,  cls: 'low',   val: stats.low,   label: `Low (≤${LOW_STOCK_THRESHOLD})` },
+                    { key: null,   icon: <CheckCircle size={18} />,   cls: 'ok',    val: stats.ok,    label: 'Well stocked' },
+                ].map(({ key, icon, cls, val, label }) => (
+                    <div
+                        key={cls}
+                        className={`inv2-stat inv2-stat--${cls}${key && filter === key ? ' inv2-stat--active' : ''}`}
+                        role={key ? 'button' : undefined}
+                        tabIndex={key ? 0 : undefined}
+                        onClick={key ? () => setFilter(key) : undefined}
+                        onKeyDown={key ? (e) => e.key === 'Enter' && setFilter(key) : undefined}
+                    >
+                        <span className="inv2-stat__icon">{icon}</span>
+                        <div>
+                            <p className="inv2-stat__val">{val}</p>
+                            <p className="inv2-stat__label">{label}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* ── Toolbar ── */}
+            <div className="inv2-toolbar">
+                <div className="table-search inv2-search">
+                    <Search size={17} aria-hidden />
                     <input
                         type="search"
-                        placeholder="Search by medicine name…"
+                        placeholder="Search medicine or brand…"
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        aria-label="Search inventory by medicine name"
+                        onChange={e => setSearch(e.target.value)}
+                        aria-label="Search inventory"
                     />
                 </div>
-                <label className="catalog-rows-label">
-                    Rows
-                    <select
-                        className="catalog-rows-select"
-                        value={rowsPerPage}
-                        onChange={(e) => setRowsPerPage(Number(e.target.value))}
-                        aria-label="Medicines per page"
-                    >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={20}>20</option>
-                        <option value={50}>50</option>
-                    </select>
-                </label>
-                {canManageOfferings && (
-                    <button type="button" className="btn-add" onClick={openAddModal}>
-                        <Plus size={18} /> Add offering
-                    </button>
-                )}
-                {!loading && flatRows.length > 0 && (
-                    <span className="catalog-tab-meta">
-                        {flatRows.length} line{flatRows.length !== 1 ? 's' : ''} shown
-                        {medicineTotal != null ? ` · ${medicineTotal} medicine${medicineTotal !== 1 ? 's' : ''} in catalog` : ''}
+                <div className="inv2-filter-pills">
+                    {Object.entries(FILTER_LABELS).map(([key, label]) => (
+                        <button
+                            key={key}
+                            type="button"
+                            className={`inv2-filter-pill${filter === key ? ' inv2-filter-pill--active' : ''}`}
+                            onClick={() => setFilter(key)}
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </div>
+                {!loading && (
+                    <span className="inv2-count-meta">
+                        {filteredRows.length} item{filteredRows.length !== 1 ? 's' : ''}
+                        {filter !== 'all' ? ` · ${FILTER_LABELS[filter].toLowerCase()}` : ''}
                     </span>
+                )}
+                {canUpdateStock && (
+                    <button type="button" className="btn-add inv2-add-btn" onClick={openAdd}>
+                        <PlusIcon size={16} aria-hidden />
+                        Add Entry
+                    </button>
                 )}
             </div>
 
-            <p className="inventory-tab-hint">
-                <Package size={16} className="inventory-tab-hint__icon" aria-hidden />
-                Update the quantity and click <strong>Save</strong>. Use <strong>View</strong> for full line details.
-            </p>
-
-            {loading && flatRows.length === 0 ? (
-                <PageLoading
-                    variant="compact"
-                    className="catalog-loading"
-                    message="Loading inventory…"
-                />
+            {/* ── Content ── */}
+            {loading && items.length === 0 ? (
+                <PageLoading variant="compact" className="catalog-loading" message="Loading inventory…" />
+            ) : filteredRows.length === 0 ? (
+                <div className="inv2-empty">
+                    <Package size={44} className="inv2-empty__icon" aria-hidden />
+                    <p>
+                        {search
+                            ? 'No matches for your search.'
+                            : filter !== 'all'
+                                ? `No items are ${filter === 'out' ? 'out of stock' : 'low on stock'}.`
+                                : 'No stock entries yet. Use Add Entry to link a medicine to a brand.'}
+                    </p>
+                    {filter !== 'all' ? (
+                        <button type="button" className="inv2-empty__reset" onClick={() => setFilter('all')}>
+                            Show all
+                        </button>
+                    ) : canUpdateStock && (
+                        <button type="button" className="btn-add inv2-empty-add-btn" onClick={openAdd}>
+                            <PlusIcon size={16} aria-hidden />
+                            Add Entry
+                        </button>
+                    )}
+                </div>
             ) : (
-                <div className="scrollable-section-wrapper inventory-tab-scroll-wrap">
-                    <div className="inventory-table-scroll">
-                        <table className="admin-table catalog-table inventory-offerings-table">
-                            <thead>
-                                <tr>
-                                    <th scope="col" className="inv-col-medicine">
-                                        Medicine
-                                    </th>
-                                    <th scope="col" className="inv-col-brand">
-                                        Brand
-                                    </th>
-                                    <th scope="col" className="inv-col-mfr">
-                                        Manufacturer
-                                    </th>
-                                    <th scope="col" className="inv-col-mrp">
-                                        MRP (₹)
-                                    </th>
-                                    <th scope="col" className="inv-col-stock">
-                                        Stock
-                                    </th>
-                                    <th scope="col" className="inv-col-avail">
-                                        For sale
-                                    </th>
-                                    <th scope="col" className="inv-col-actions">
-                                        Actions
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {flatRows.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={7} className="table-empty-cell">
-                                            No lines on this page. Try another search or add an offering.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    flatRows.map((row) => {
-                                        const oid = String(row.offeringId);
-                                        const draft =
-                                            stockDraft[oid] !== undefined
-                                                ? stockDraft[oid]
-                                                : String(row.stock_quantity);
-                                        return (
-                                            <tr key={oid}>
-                                                <td data-label="Medicine" className="inv-col-medicine">
-                                                    <span className="inventory-medicine-cell">{row.medicineName}</span>
-                                                </td>
-                                                <td data-label="Brand" className="inv-col-brand">
-                                                    <span className="catalog-brand-pill" title={row.brandName || ''}>
-                                                        {row.brandName}
-                                                    </span>
-                                                </td>
-                                                <td data-label="Manufacturer" className="inv-col-mfr">
-                                                    <span style={{ wordBreak: 'break-word' }}>{row.manufacturer}</span>
-                                                </td>
-                                                <td data-label="MRP" className="inv-col-mrp">
-                                                    {formatOfferingMrp(row.mrp)}
-                                                </td>
-                                                <td data-label="Stock" className="inv-col-stock">
-                                                    {canUpdateStock ? (
-                                                        <div className="inv-stock-row">
-                                                            <input
-                                                                type="number"
-                                                                min={0}
-                                                                step={1}
-                                                                className="inv-stock-input"
-                                                                value={draft}
-                                                                onChange={(e) =>
-                                                                    setStockDraft((prev) => ({ ...prev, [oid]: e.target.value }))
-                                                                }
-                                                                aria-label={`Stock for ${row.medicineName}`}
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                className="action-btn"
-                                                                title="Save stock"
-                                                                disabled={savingOfferingId === oid}
-                                                                onClick={() => handleSaveStock(row.offeringId)}
-                                                            >
-                                                                {savingOfferingId === oid ? (
-                                                                    <InlineSpinner size={16} />
-                                                                ) : (
-                                                                    'Save'
-                                                                )}
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <span style={{ fontVariantNumeric: 'tabular-nums' }}>{row.stock_quantity}</span>
-                                                    )}
-                                                </td>
-                                                <td data-label="For sale" className="inv-col-avail">
-                                                    <span className={`status-tag ${row.is_available ? 'active' : 'inactive'}`}>
-                                                        {row.is_available ? 'Yes' : 'No'}
-                                                    </span>
-                                                </td>
-                                                <td data-label="Actions" className="actions inv-col-actions">
-                                                    <button
-                                                        type="button"
-                                                        className="action-btn medicines-view-btn inventory-view-btn--eye"
-                                                        title="View offering details (read-only)"
-                                                        aria-label={`View details for ${row.medicineName} (${row.brandName})`}
-                                                        onClick={() =>
-                                                            navigate(
-                                                                `/admin/inventory-offerings/${row.medicineId}/${row.offeringId}`,
-                                                            )
-                                                        }
-                                                    >
-                                                        <Eye size={18} strokeWidth={2.25} aria-hidden />
-                                                        <span className="medicines-view-btn-label">View</span>
-                                                    </button>
-                                                    {canManageOfferings && (
-                                                        <>
-                                                            <button
-                                                                type="button"
-                                                                className="action-btn"
-                                                                title="Edit offering"
-                                                                onClick={() =>
-                                                                    navigate(
-                                                                        `/admin/inventory-offerings/${row.medicineId}/${row.offeringId}/edit`,
-                                                                    )
-                                                                }
-                                                            >
-                                                                <Pencil size={16} />
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                className="action-btn delete"
-                                                                title="Remove offering"
-                                                                onClick={() =>
-                                                                    setDeleteConfirm({
-                                                                        id: row.offeringId,
-                                                                        label: `${row.medicineName} (${row.brandName})`,
-                                                                    })
-                                                                }
-                                                            >
-                                                                <Trash2 size={16} />
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                <div className="inv2-grid">
+                    {filteredRows.map(row => {
+                        const st = stockStatus(row.stock);
+                        return (
+                            <div key={row.offeringId} className={`inv2-card inv2-card--${st}`}>
+                                <div className="inv2-card__top">
+                                    <span className="inv2-card__brand" title={row.brandName}>
+                                        {row.brandName}
+                                    </span>
+                                    {!row.isAvailable && (
+                                        <span className="inv2-card__unavail">Off sale</span>
+                                    )}
+                                </div>
+
+                                <p className="inv2-card__name">{row.medicineName}</p>
+                                <p className="inv2-card__mrp">
+                                    MRP ₹{parseFloat(row.mrp || 0).toFixed(2)}
+                                </p>
+
+                                <div className="inv2-card__footer">
+                                    <div className={`inv2-stock-badge inv2-stock-badge--${st}`}>
+                                        <span className="inv2-stock-badge__num">{row.stock}</span>
+                                        <span className="inv2-stock-badge__label">
+                                            {st === 'out' ? 'Out of stock' : st === 'low' ? 'Low' : 'In stock'}
+                                        </span>
+                                    </div>
+                                    {canUpdateStock && (
+                                        <button
+                                            type="button"
+                                            className="inv2-update-btn"
+                                            onClick={() => openEdit(row)}
+                                        >
+                                            Update
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 
-            {pagination?.total != null && (
-                <div className="catalog-tab-footer">
+            {/* ── Pagination ── */}
+            {pagination?.total != null && totalPages > 1 && (
+                <div className="catalog-tab-footer inv2-pagination">
                     <span className="catalog-tab-meta">
-                        Page {page} of {totalPages} ({pagination.total} medicine{pagination.total !== 1 ? 's' : ''})
+                        Page {page} of {totalPages}
                     </span>
                     <div className="pagination-bar">
                         <button
                             type="button"
-                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
                             disabled={page <= 1 || loading}
                             className="page-nav-btn"
                         >
@@ -440,7 +363,7 @@ const InventoryTab = ({ showNotify, refreshToken = 0 }) => {
                         </button>
                         <button
                             type="button"
-                            onClick={() => setPage((p) => p + 1)}
+                            onClick={() => setPage(p => p + 1)}
                             disabled={loading || !pagination.has_next}
                             className="page-nav-btn"
                         >
@@ -450,134 +373,201 @@ const InventoryTab = ({ showNotify, refreshToken = 0 }) => {
                 </div>
             )}
 
-            {showAddModal && (
-                <div className="admin-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="inv-add-title">
-                    <div className="admin-modal" style={{ maxWidth: '500px', maxHeight: 'min(88vh, 560px)' }}>
-                        <div className="modal-header">
-                            <h3 id="inv-add-title">Add medicine–brand offering</h3>
-                            <button type="button" onClick={() => setShowAddModal(false)} style={{ color: 'var(--admin-text-muted)' }} aria-label="Close">
-                                <X size={24} />
+            {/* ── Add entry modal ── */}
+            {addModalOpen && (
+                <div
+                    className="admin-modal-overlay"
+                    role="presentation"
+                    onClick={(e) => { if (e.target === e.currentTarget) closeAdd(); }}
+                >
+                    <div
+                        className="admin-modal inv2-add-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="inv2-add-title"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="admin-modal-header">
+                            <h3 id="inv2-add-title" className="admin-modal-title">Add Stock Entry</h3>
+                            <button type="button" className="admin-modal-close" onClick={closeAdd} aria-label="Close">
+                                <X size={18} />
                             </button>
                         </div>
-                        <form onSubmit={handleCreateOffering} className="modal-form inventory-add-offering-form">
-                            {dropdownsLoading && (
-                                <p className="inventory-add-dropdowns-loading">
-                                    <InlineSpinner size={18} />
-                                    Loading lists…
-                                </p>
-                            )}
-                            <div className="inventory-add-selects">
+
+                        {addOptsLoading ? (
+                            <div className="inv2-add-loading">
+                                <InlineSpinner size={20} />
+                                <span>Loading options…</span>
+                            </div>
+                        ) : (
+                            <form onSubmit={handleAddEntry}>
                                 <div className="form-group">
-                                    <label htmlFor="inv-add-medicine">Medicine</label>
+                                    <label htmlFor="inv2-add-medicine">Medicine</label>
                                     <select
-                                        id="inv-add-medicine"
+                                        id="inv2-add-medicine"
+                                        value={addForm.medicineId}
+                                        onChange={e => setAddForm(f => ({ ...f, medicineId: e.target.value, brandId: '' }))}
                                         required
-                                        disabled={dropdownsLoading}
-                                        value={addForm.medicine_id}
-                                        onChange={(e) => setAddForm((f) => ({ ...f, medicine_id: e.target.value }))}
-                                        className="inventory-add-select"
                                     >
-                                        <option value="">Select medicine…</option>
-                                        {medicineOptions.map((m) => (
-                                            <option key={m.id} value={m.id}>
-                                                {m.name}
-                                            </option>
+                                        <option value="">Choose a medicine…</option>
+                                        {allMedicines.map(m => (
+                                            <option key={m.id} value={m.id}>{m.name || m.id}</option>
                                         ))}
                                     </select>
                                 </div>
+
                                 <div className="form-group">
-                                    <label htmlFor="inv-add-brand">Brand</label>
+                                    <label htmlFor="inv2-add-brand">Brand</label>
                                     <select
-                                        id="inv-add-brand"
+                                        id="inv2-add-brand"
+                                        value={addForm.brandId}
+                                        onChange={e => setAddForm(f => ({ ...f, brandId: e.target.value }))}
                                         required
-                                        disabled={dropdownsLoading}
-                                        value={addForm.brand_id}
-                                        onChange={(e) => setAddForm((f) => ({ ...f, brand_id: e.target.value }))}
-                                        className="inventory-add-select"
                                     >
-                                        <option value="">
-                                            {brandOptions.length === 0 && !dropdownsLoading ? 'No brands in catalog' : 'Select brand…'}
-                                        </option>
-                                        {brandOptions.map((b) => (
-                                            <option key={b.id} value={b.id}>
-                                                {b.name}
-                                            </option>
+                                        <option value="">Choose a brand…</option>
+                                        {allBrands.map(b => (
+                                            <option key={b.id} value={b.id}>{b.name || b.id}</option>
                                         ))}
                                     </select>
                                 </div>
-                            </div>
-                            {brandOptions.length === 0 && !dropdownsLoading && (
-                                <p className="inventory-add-catalog-hint">
-                                    Add brands under the Brand master tab first if the list is empty.
-                                </p>
-                            )}
-                            <div className="form-group">
-                                <label>Manufacturer (optional)</label>
-                                <input
-                                    required
-                                    value={addForm.manufacturer}
-                                    onChange={(e) => setAddForm((f) => ({ ...f, manufacturer: e.target.value }))}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>MRP (₹)*</label>
-                                <input
-                                    required
-                                    type="number"
-                                    min={0}
-                                    step="0.01"
-                                    value={addForm.mrp}
-                                    onChange={(e) => setAddForm((f) => ({ ...f, mrp: e.target.value }))}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Description (optional)</label>
-                                <input
-                                    value={addForm.description}
-                                    onChange={(e) => setAddForm((f) => ({ ...f, description: e.target.value }))}
-                                />
-                            </div>
-                            <div className="form-group form-group-checkbox" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
-                                <input
-                                    type="checkbox"
-                                    id="inv-add-avail"
-                                    checked={addForm.is_available}
-                                    onChange={(e) => setAddForm((f) => ({ ...f, is_available: e.target.checked }))}
-                                />
-                                <label htmlFor="inv-add-avail">Available for sale</label>
-                            </div>
-                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                                <button type="button" className="btn-add btn-cancel" style={{ flex: 1 }} onClick={() => setShowAddModal(false)}>
-                                    Cancel
-                                </button>
-                                <button type="submit" className="btn-add" style={{ flex: 2 }} disabled={addSubmitting}>
-                                    {addSubmitting ? 'Saving…' : 'Create'}
-                                </button>
-                            </div>
-                        </form>
+
+                                <div className="inv2-add-row2">
+                                    <div className="form-group">
+                                        <label htmlFor="inv2-add-mrp">MRP (₹)</label>
+                                        <input
+                                            id="inv2-add-mrp"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            inputMode="decimal"
+                                            placeholder="0.00"
+                                            value={addForm.mrp}
+                                            onChange={e => setAddForm(f => ({ ...f, mrp: e.target.value }))}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label htmlFor="inv2-add-stock">Initial stock</label>
+                                        <input
+                                            id="inv2-add-stock"
+                                            type="number"
+                                            min="0"
+                                            step="1"
+                                            inputMode="numeric"
+                                            placeholder="0"
+                                            value={addForm.initialStock}
+                                            onChange={e => setAddForm(f => ({ ...f, initialStock: e.target.value }))}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="form-group">
+                                    <label htmlFor="inv2-add-desc">Pack / variant note <span className="inv2-add-optional">(optional)</span></label>
+                                    <input
+                                        id="inv2-add-desc"
+                                        type="text"
+                                        placeholder="e.g. 500 mg · strip of 10"
+                                        value={addForm.description}
+                                        onChange={e => setAddForm(f => ({ ...f, description: e.target.value }))}
+                                    />
+                                </div>
+
+                                <div className="admin-modal-footer">
+                                    <button
+                                        type="button"
+                                        className="btn-secondary"
+                                        onClick={closeAdd}
+                                        disabled={addSaving}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="btn-add"
+                                        disabled={addSaving}
+                                    >
+                                        {addSaving
+                                            ? <><InlineSpinner size={14} /> Adding…</>
+                                            : <><PlusIcon size={15} aria-hidden /> Add Entry</>}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
                     </div>
                 </div>
             )}
 
-            {deleteConfirm && (
-                <div className="admin-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="inv-del-title">
-                    <div className="admin-modal" style={{ maxWidth: '420px' }}>
-                        <div className="modal-header">
-                            <h3 id="inv-del-title">Remove offering?</h3>
-                            <button type="button" onClick={() => setDeleteConfirm(null)} style={{ color: 'var(--admin-text-muted)' }} aria-label="Close">
-                                <X size={24} />
+            {/* ── Update stock modal ── */}
+            {editingOffering && (
+                <div
+                    className="admin-modal-overlay"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="inv2-modal-title"
+                    onClick={closeEdit}
+                >
+                    <div
+                        className="admin-modal inv2-update-modal"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="inv2-modal-header">
+                            <span className="inv2-modal-brand">{editingOffering.brandName}</span>
+                            <h3 id="inv2-modal-title" className="inv2-modal-name">
+                                {editingOffering.medicineName}
+                            </h3>
+                        </div>
+                        <p className="inv2-modal-hint">Set the current on-hand stock count.</p>
+
+                        <div className="inv2-modal-qty-row">
+                            <button
+                                type="button"
+                                className="inv2-qty-btn"
+                                aria-label="Decrease by 1"
+                                disabled={saving || (parseInt(editStock, 10) || 0) <= 0}
+                                onClick={() => adjustQty(-1)}
+                            >
+                                <Minus size={18} />
+                            </button>
+                            <input
+                                type="number"
+                                min={0}
+                                step={1}
+                                className="inv2-qty-input"
+                                value={editStock}
+                                onChange={e => setEditStock(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && handleSaveStock()}
+                                autoFocus
+                                aria-label="Stock quantity"
+                            />
+                            <button
+                                type="button"
+                                className="inv2-qty-btn"
+                                aria-label="Increase by 1"
+                                disabled={saving}
+                                onClick={() => adjustQty(1)}
+                            >
+                                <PlusIcon size={18} />
                             </button>
                         </div>
-                        <p style={{ margin: '0 0 0.75rem' }}>{deleteConfirm.label}</p>
-                        <p style={{ fontSize: '0.85rem', color: 'var(--admin-text-muted)', marginBottom: '1.5rem' }}>
-                            This soft-deletes the medicine–brand link. Historical orders may still reference it.
-                        </p>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <button type="button" className="btn-add btn-cancel" style={{ flex: 1 }} onClick={() => setDeleteConfirm(null)}>
+
+                        <div className="inv2-modal-actions">
+                            <button
+                                type="button"
+                                className="inv2-modal-cancel"
+                                onClick={closeEdit}
+                                disabled={saving}
+                            >
                                 Cancel
                             </button>
-                            <button type="button" className="btn-add btn-danger" style={{ flex: 1 }} onClick={handleDeleteOffering}>
-                                Remove
+                            <button
+                                type="button"
+                                className="inv2-modal-save"
+                                onClick={handleSaveStock}
+                                disabled={saving}
+                            >
+                                {saving
+                                    ? <><InlineSpinner size={14} /> Saving…</>
+                                    : 'Save Stock'}
                             </button>
                         </div>
                     </div>

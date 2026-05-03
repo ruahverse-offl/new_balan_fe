@@ -102,6 +102,7 @@ const Profile = () => {
     const [profileVerifyPassword, setProfileVerifyPassword] = useState('');
     const [showProfileVerifyPassword, setShowProfileVerifyPassword] = useState(false);
     const [profileSaveError, setProfileSaveError] = useState('');
+    const [showVerifyModal, setShowVerifyModal] = useState(false);
 
     // Pagination State
     const [ordersPage, setOrdersPage] = useState(1);
@@ -273,14 +274,30 @@ const Profile = () => {
     ];
 
 
-    const handleProfileUpdate = async (e) => {
+    const handleProfileUpdate = (e) => {
         e.preventDefault();
         setProfileSaveError('');
+        const originalName = user?.name || '';
+        const originalPhone = user?.phone || user?.mobile_number || '';
+        const originalEmail = user?.email || '';
+        const sensitive =
+            profileUpdates.name.trim() !== originalName.trim() ||
+            profileUpdates.phone.trim() !== originalPhone.trim() ||
+            profileUpdates.email.trim() !== originalEmail.trim();
+        if (sensitive) {
+            setProfileVerifyPassword('');
+            setShowProfileVerifyPassword(false);
+            setShowVerifyModal(true);
+        }
+    };
+
+    const handleConfirmVerify = async () => {
         if (!profileVerifyPassword.trim()) {
-            setProfileSaveError('Enter your account password to save profile changes.');
+            setProfileSaveError('Enter your password to confirm changes.');
             return;
         }
         setIsSaving(true);
+        setProfileSaveError('');
         try {
             const result = await updateUser({
                 ...profileUpdates,
@@ -289,6 +306,7 @@ const Profile = () => {
             if (result.success) {
                 setProfileVerifyPassword('');
                 setShowProfileVerifyPassword(false);
+                setShowVerifyModal(false);
                 alert('Profile updated successfully!');
             } else {
                 setProfileSaveError(result.message || 'Could not save profile.');
@@ -673,31 +691,6 @@ const Profile = () => {
                                             }}
                                             placeholder="+91 XXXXX XXXXX"
                                         />
-                                    </div>
-                                    <div className="form-group form-group--full-row">
-                                        <label><Lock size={14} /> Password (confirm it&apos;s you)</label>
-                                        <div className="password-input-wrapper">
-                                            <input
-                                                type={showProfileVerifyPassword ? 'text' : 'password'}
-                                                value={profileVerifyPassword}
-                                                onChange={(e) => {
-                                                    setProfileSaveError('');
-                                                    setProfileVerifyPassword(e.target.value);
-                                                }}
-                                                placeholder="Enter your login password"
-                                                autoComplete="current-password"
-                                            />
-                                            <button
-                                                type="button"
-                                                className="password-toggle"
-                                                onClick={() => setShowProfileVerifyPassword((s) => !s)}
-                                                tabIndex={-1}
-                                                aria-label={showProfileVerifyPassword ? 'Hide password' : 'Show password'}
-                                            >
-                                                {showProfileVerifyPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                            </button>
-                                        </div>
-                                        <p className="profile-verify-password-hint">Required whenever you save changes to your name, email, or phone.</p>
                                     </div>
                                 </div>
                                 {profileSaveError && (
@@ -1320,6 +1313,73 @@ const Profile = () => {
                     <div className="sidebar-overlay" onClick={() => setIsMobileMenuOpen(false)}></div>
                 )}
             </div>
+
+            {showVerifyModal && (
+                <div
+                    className="profile-modal-overlay"
+                    onClick={() => { if (!isSaving) { setShowVerifyModal(false); setProfileSaveError(''); } }}
+                >
+                    <div
+                        className="profile-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Verify your identity"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="profile-modal-header">
+                            <Lock size={20} />
+                            <h3>Confirm your identity</h3>
+                        </div>
+                        <p className="profile-modal-body">
+                            Enter your password to save changes to your profile.
+                        </p>
+                        <div className="form-group">
+                            <label><Lock size={14} /> Password</label>
+                            <div className="password-input-wrapper">
+                                <input
+                                    type={showProfileVerifyPassword ? 'text' : 'password'}
+                                    value={profileVerifyPassword}
+                                    onChange={(e) => { setProfileSaveError(''); setProfileVerifyPassword(e.target.value); }}
+                                    placeholder="Enter your login password"
+                                    autoComplete="current-password"
+                                    autoFocus
+                                    onKeyDown={(e) => { if (e.key === 'Enter') handleConfirmVerify(); }}
+                                />
+                                <button
+                                    type="button"
+                                    className="password-toggle"
+                                    onClick={() => setShowProfileVerifyPassword((s) => !s)}
+                                    tabIndex={-1}
+                                    aria-label={showProfileVerifyPassword ? 'Hide password' : 'Show password'}
+                                >
+                                    {showProfileVerifyPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
+                        </div>
+                        {profileSaveError && (
+                            <p className="form-hint form-hint--error" role="alert">{profileSaveError}</p>
+                        )}
+                        <div className="profile-modal-actions">
+                            <button
+                                type="button"
+                                className="profile-modal-btn profile-modal-btn--cancel"
+                                onClick={() => { setShowVerifyModal(false); setProfileSaveError(''); }}
+                                disabled={isSaving}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className="profile-modal-btn profile-modal-btn--confirm"
+                                onClick={handleConfirmVerify}
+                                disabled={isSaving}
+                            >
+                                {isSaving ? <><InlineSpinner size={14} /> Saving...</> : 'Confirm & Save'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <Footer />
 

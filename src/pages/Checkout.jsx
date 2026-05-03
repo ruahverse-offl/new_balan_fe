@@ -103,6 +103,16 @@ function computeDeliveryFee(subtotal, settings) {
     return 0;
 }
 
+function formatSlotDate(isoDate) {
+    if (!isoDate) return '';
+    const [year, month, day] = isoDate.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    const d = date.getDate();
+    const suffix = d === 1 || d === 21 || d === 31 ? 'st' : d === 2 || d === 22 ? 'nd' : d === 3 || d === 23 ? 'rd' : 'th';
+    const monthName = date.toLocaleString('en-US', { month: 'long' });
+    return `${monthName} ${d}${suffix}, ${year}`;
+}
+
 const Checkout = () => {
     const { cart, subtotal, updateQuantity, removeFromCart, clearCart } = useCart();
     const { user } = useAuth();
@@ -289,9 +299,9 @@ const Checkout = () => {
             const result = await validateCouponApi(code, subtotal);
             if (result.valid) {
                 const discountAmount = Number(result.discount_amount) || 0;
-                setAppliedCoupons(prev => [...prev, { code: codeUpper, discountAmount }]);
+                setAppliedCoupons([{ code: codeUpper, discountAmount }]);
                 setFormData(prev => ({ ...prev, coupon: '' }));
-                setCouponMsg({ text: result.message || `Added! ₹${discountAmount.toFixed(2)} off.`, type: 'success' });
+                setCouponMsg({ text: result.message || `Applied! ₹${discountAmount.toFixed(2)} off.`, type: 'success' });
             } else {
                 setCouponMsg({ text: result.message || 'Invalid coupon code', type: 'error' });
             }
@@ -687,7 +697,7 @@ const Checkout = () => {
                             <div style={{ marginTop: '0.35rem', fontWeight: 700 }}>
                                 Delivery window: {deliverySettings.delivery_schedule.slot_label}
                                 {deliverySettings.delivery_schedule?.fulfillment_date_iso
-                                    ? ` (${deliverySettings.delivery_schedule.fulfillment_date_iso})`
+                                    ? ` (${formatSlotDate(deliverySettings.delivery_schedule.fulfillment_date_iso)})`
                                     : ''}
                             </div>
                         ) : null}

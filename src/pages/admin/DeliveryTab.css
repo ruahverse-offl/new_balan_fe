@@ -821,13 +821,13 @@
     }
 }
 
-.admin-modal.compact-modal.delivery-slot-modal.delivery-slot-modal--clocks {
+.admin-modal.compact-modal.delivery-slot-modal {
     animation: deliverySlotModalIn 0.22s ease-out forwards;
     transform: none;
 }
 
-.delivery-slot-modal.delivery-slot-modal--clocks {
-    max-width: min(580px, calc(100vw - 1.5rem));
+.delivery-slot-modal {
+    max-width: min(400px, calc(100vw - 1.5rem));
     padding: 0;
     overflow: hidden;
     border-radius: 16px;
@@ -838,11 +838,11 @@
     flex-direction: column;
 }
 
-.delivery-slot-modal--clocks > .delivery-slot-modal-top {
+.delivery-slot-modal > .delivery-slot-modal-top {
     flex-shrink: 0;
 }
 
-.delivery-slot-modal--clocks > .delivery-slot-modal-form {
+.delivery-slot-modal > .delivery-slot-modal-form {
     flex: 1 1 auto;
     min-height: 0;
     padding: 0 1.1rem 0.65rem;
@@ -955,168 +955,54 @@
     white-space: nowrap;
 }
 
-.delivery-slot-clocks {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    gap: 0.4rem 0.35rem;
-    align-items: stretch;
-}
-
-.delivery-slot-clocks-connector {
+/* —— Time input row (replaces circular clock dials) —— */
+.delivery-slot-time-row {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--dl-accent);
-    padding: 0 0.1rem;
-    align-self: center;
-}
-
-@media (max-width: 520px) {
-    .delivery-slot-clocks {
-        grid-template-columns: 1fr;
-    }
-
-    .delivery-slot-clocks-connector {
-        justify-content: center;
-        padding: 0.2rem 0;
-        transform: rotate(90deg);
-    }
-}
-
-.delivery-slot-clock-panel {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    border-radius: 12px;
-    border: 1px solid var(--dl-line);
-    background: var(--dl-card);
-    box-shadow: var(--dl-shadow);
-    overflow: hidden;
-}
-
-.delivery-slot-clock-panel--start {
-    border-top: 3px solid var(--dl-accent);
-}
-
-.delivery-slot-clock-panel--end {
-    border-top: 3px solid #94a3b8;
-}
-
-.delivery-slot-clock-panel-head {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.65rem;
-    background: #f8fafc;
-    border-bottom: 1px solid var(--dl-line);
-}
-
-.delivery-slot-clock-step {
-    flex-shrink: 0;
-    width: 1.4rem;
-    height: 1.4rem;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.7rem;
-    font-weight: 800;
-    background: var(--dl-accent-soft);
-    color: var(--dl-accent);
-}
-
-.delivery-slot-clock-title {
-    display: block;
-    font-size: 0.8rem;
-    font-weight: 800;
-    color: var(--dl-ink);
-    line-height: 1.2;
-}
-
-.delivery-slot-clock-sub {
-    display: block;
-    font-size: 0.62rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--dl-muted);
-    margin-top: 0.05rem;
-}
-
-.delivery-slot-clock-panel-body {
-    padding: 0.5rem 0.35rem 0.6rem;
-    display: flex;
-    justify-content: center;
-    background: radial-gradient(ellipse 100% 70% at 50% 0%, #f1f5f9 0%, #fff 55%);
-}
-
-.delivery-slot-dial-pair {
-    display: flex;
-    flex-direction: row;
+    align-items: flex-end;
+    gap: 0.75rem;
+    margin: 0.85rem 0 0.75rem;
     flex-wrap: wrap;
-    justify-content: center;
-    align-items: flex-start;
-    gap: 0.5rem 0.65rem;
-    width: 100%;
-    max-width: 320px;
 }
 
-.circular-time-dial-wrap {
+.delivery-slot-time-field {
+    flex: 1 1 140px;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 0.25rem;
+    gap: 0.35rem;
 }
 
-.circular-time-dial-title {
-    font-size: 0.58rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--dl-muted);
-}
-
-.circular-time-dial-svg {
-    width: min(132px, 38vw);
-    height: min(132px, 38vw);
-    aspect-ratio: 1;
-    flex-shrink: 0;
-    touch-action: none;
-    cursor: pointer;
-    border-radius: 50%;
-    user-select: none;
-    -webkit-user-select: none;
-}
-
-.circular-time-dial-face {
-    fill: color-mix(in srgb, #f1f5f9 55%, #ffffff);
-    stroke: var(--dl-line);
-    stroke-width: 1.75;
-}
-
-.circular-time-dial-tick {
-    stroke: color-mix(in srgb, var(--dl-line) 85%, var(--dl-muted));
-    stroke-width: 1.1;
-    pointer-events: none;
-}
-
-.circular-time-dial-num {
-    fill: var(--dl-ink);
+.delivery-slot-time-field label {
+    font-size: 0.78rem;
     font-weight: 700;
-    font-family: system-ui, sans-serif;
-    pointer-events: none;
+    color: var(--dl-ink);
 }
 
-.circular-time-dial-hand {
-    stroke: var(--dl-accent);
-    stroke-width: 3.25;
-    stroke-linecap: round;
-    pointer-events: none;
+.delivery-slot-time-field input[type="time"] {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border-radius: 10px;
+    border: 2px solid var(--dl-line);
+    background: var(--dl-card);
+    color: var(--dl-ink);
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+    letter-spacing: 0.03em;
+    outline: none;
+    transition: border-color 0.18s, box-shadow 0.18s;
 }
 
-.circular-time-dial-hub {
-    fill: var(--dl-accent);
-    pointer-events: none;
+.delivery-slot-time-field input[type="time"]:focus {
+    border-color: color-mix(in srgb, var(--dl-accent) 55%, var(--dl-line));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--dl-accent) 15%, transparent);
+}
+
+.delivery-slot-time-sep {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--dl-muted);
+    padding-bottom: 0.6rem;
+    flex-shrink: 0;
 }
 
 .delivery-slot-preview {
