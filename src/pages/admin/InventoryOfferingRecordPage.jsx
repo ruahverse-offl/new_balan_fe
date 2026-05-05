@@ -37,7 +37,7 @@ const InventoryOfferingRecordPage = ({ mode, medicineId, offeringId, showNotify,
   const canManageOfferings = isAdminRole || hasModuleGrant(mi, 'medicines', 'update');
 
   const goList = useCallback(() => {
-    navigate('/admin', { state: { tab: 'inventory' } });
+    navigate('/admin/inventory');
   }, [navigate]);
 
   const goBackFromOffering = useCallback(() => {

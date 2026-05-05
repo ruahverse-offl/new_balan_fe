@@ -82,3 +82,15 @@ export const updateOrder = async (orderId, orderData) => {
 export const deleteOrder = async (orderId) => {
   return await apiDelete(`/orders/${orderId}`);
 };
+
+/**
+ * Customer self-cancellation. Allowed before parcel is packed (ORDER_RECEIVED → DELIVERY_ASSIGNED).
+ * @param {string} orderId - Order UUID
+ * @param {string} [reason] - Optional cancellation reason
+ * @returns {Promise<{ order_id, order_status, refund_initiated, refund_status, message }>}
+ */
+export const cancelOrderAsCustomer = async (orderId, reason) => {
+  return await apiPost(`/orders/${orderId}/cancel`, {
+    cancellation_reason: reason || null,
+  });
+};

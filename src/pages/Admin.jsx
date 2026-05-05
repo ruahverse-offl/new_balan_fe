@@ -431,7 +431,13 @@ const Admin = () => {
     /** Bumps when inventory lines are saved from full-page flows so the list refetches. */
     const [inventoryRefreshToken, setInventoryRefreshToken] = useState(0);
 
-    const [activeTab, setActiveTab] = useState('orders');
+    const getTabFromPath = (pathname) => {
+        const seg = pathname.replace(/^\/admin\/?/, '').split('/')[0];
+        if (!seg) return null;
+        if (ADMIN_PORTAL_TAB_IDS.has(seg) || seg === 'my-profile') return seg;
+        return null;
+    };
+    const [activeTab, setActiveTab] = useState(() => getTabFromPath(location.pathname) || 'orders');
     /** After RBAC menu loads, we land once on ``display_order`` 1 (or next tab); reset on logout. */
     const adminLandingAppliedForUserIdRef = useRef(null);
     /** Mobile drawer open state. On desktop (≥1025px) the sidebar stays visible regardless (Admin.css). */
@@ -2093,16 +2099,20 @@ const Admin = () => {
     useEffect(() => {
         if (!user?.id || mainSidebarNavItems.length === 0) return;
         if (orderIdFromUrl) return;
-        if (location.state && location.state.tab) return;
         if (adminLandingAppliedForUserIdRef.current === user.id) return;
         if (!Array.isArray(user.menuItems) || user.menuItems.length === 0) return;
 
         const land = getDefaultAdminLandingTabId(user.menuItems);
         if (land && mainSidebarNavItems.some((i) => i.id === land)) {
-            setActiveTab(land);
+            // Only auto-navigate when at bare /admin — don't override a deep-link URL
+            if (!getTabFromPath(location.pathname)) {
+                navigate(`/admin/${land}`, { replace: true });
+            } else {
+                setActiveTab(land);
+            }
         }
         adminLandingAppliedForUserIdRef.current = user.id;
-    }, [user, user?.id, user?.menuItems, mainSidebarNavItems, orderIdFromUrl, location.state?.tab]);
+    }, [user, user?.id, user?.menuItems, mainSidebarNavItems, orderIdFromUrl, location.pathname]);
 
     // Keep Orders section active when viewing an order (order detail lives under Orders, not Dashboard)
     useEffect(() => {
@@ -2129,12 +2139,11 @@ const Admin = () => {
         }
     }, [inventoryOfferingRecordMode]);
 
-    // When returning to /admin with a tab in location state, restore that tab
+    // Sync activeTab from URL so reload / back-forward preserves the current section
     useEffect(() => {
-        if (location.pathname === '/admin' && location.state?.tab) {
-            setActiveTab(location.state.tab);
-        }
-    }, [location.pathname, location.state]);
+        const tab = getTabFromPath(location.pathname);
+        if (tab) setActiveTab(tab);
+    }, [location.pathname]);
 
 
     // Products are now filtered on the backend, no need for client-side filtering
@@ -2201,10 +2210,7 @@ const Admin = () => {
                             title={item.label}
                             className={`nav-item ${activeTab === item.id || (item.id === 'orders' && orderIdFromUrl) || (item.id === 'therapeutic-categories' && medicineCategoryRecordMode) || (item.id === 'medicines' && medicineRecordMode) || (item.id === 'inventory' && inventoryOfferingRecordMode) ? 'active' : ''}`}
                             onClick={() => {
-                                if (location.pathname !== '/admin') {
-                                    navigate('/admin', { state: { tab: item.id } });
-                                }
-                                setActiveTab(item.id);
+                                navigate(`/admin/${item.id}`);
                                 setIsMobileSidebarOpen(false);
                             }}
                         >
@@ -2219,7 +2225,7 @@ const Admin = () => {
                         className={`sidebar-profile-card ${activeTab === 'my-profile' ? 'active' : ''}`}
                         title="My profile"
                         onClick={() => {
-                            setActiveTab('my-profile');
+                            navigate('/admin/my-profile');
                             setIsMobileSidebarOpen(false);
                         }}
                         aria-current={activeTab === 'my-profile' ? 'page' : undefined}

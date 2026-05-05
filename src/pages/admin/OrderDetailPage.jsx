@@ -142,7 +142,7 @@ const OrderDetailPage = ({
         }
     }, [loading, error, detail, location.state?.orderDetailFocus]);
 
-    const handleBack = () => navigate('/admin', { state: { tab: orderListBackTab } });
+    const handleBack = () => navigate(`/admin/${orderListBackTab}`);
 
     if (loading) {
         return (

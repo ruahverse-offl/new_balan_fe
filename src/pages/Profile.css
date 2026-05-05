@@ -1001,6 +1001,15 @@
     background: rgba(var(--primary-rgb), 0.05);
 }
 
+.btn-danger-outline {
+    color: #dc2626;
+    border-color: #dc2626;
+}
+
+.btn-danger-outline:hover {
+    background: #fef2f2;
+}
+
 .btn-cancel {
     padding: 0.6rem 1.25rem;
     border-radius: 10px;

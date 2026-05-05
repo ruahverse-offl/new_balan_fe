@@ -24,7 +24,7 @@ const formatTs = (v) => {
 const MedicineCategoryRecordPage = ({ mode, categoryId, showNotify, onCategoriesChanged }) => {
   const navigate = useNavigate();
   const goList = useCallback(() => {
-    navigate('/admin', { state: { tab: 'therapeutic-categories' } });
+    navigate('/admin/therapeutic-categories');
   }, [navigate]);
 
   const [loading, setLoading] = useState(mode !== 'new');

@@ -55,7 +55,7 @@ const computeMedicineAvailableFromBrands = (brands) =>
 const MedicineRecordPage = ({ mode, medicineId, therapeuticCategories = [], showNotify, onMedicinesChanged }) => {
   const navigate = useNavigate();
   const goList = useCallback(() => {
-    navigate('/admin', { state: { tab: 'medicines' } });
+    navigate('/admin/medicines');
   }, [navigate]);
 
   const [loading, setLoading] = useState(mode !== 'new');

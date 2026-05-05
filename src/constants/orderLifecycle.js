@@ -15,6 +15,7 @@ export const ORDER_STATUS_LABELS = {
     OUT_FOR_DELIVERY: 'Out for delivery',
     DELIVERED: 'Delivered',
     CANCELLED_BY_STAFF: 'Cancelled by staff',
+    CANCELLED_BY_CUSTOMER: 'Cancelled by customer',
     DELIVERY_RETURNED: 'Delivery not done - returned to store',
     REFUND_INITIATED: 'Refund initiated',
     REFUNDED: 'Refunded',
@@ -59,6 +60,7 @@ export const HISTORY_ORDER_STATUS_FILTER_VALUES = [
     'PAYMENT_CANCELLED',
     'DELIVERED',
     'CANCELLED_BY_STAFF',
+    'CANCELLED_BY_CUSTOMER',
     'DELIVERY_RETURNED',
     'REFUND_INITIATED',
     'REFUNDED',
@@ -68,6 +70,7 @@ const TERMINAL = new Set([
     'PAYMENT_CANCELLED',
     'DELIVERED',
     'CANCELLED_BY_STAFF',
+    'CANCELLED_BY_CUSTOMER',
     'DELIVERY_RETURNED',
     'REFUND_INITIATED',
     'REFUNDED',
@@ -129,6 +132,7 @@ export function orderStatusTagClass(raw) {
         case 'DELIVERED':
             return 'delivered';
         case 'CANCELLED_BY_STAFF':
+        case 'CANCELLED_BY_CUSTOMER':
         case 'DELIVERY_RETURNED':
             return 'inactive';
         case 'REFUNDED':

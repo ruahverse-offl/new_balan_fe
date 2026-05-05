@@ -57,7 +57,7 @@ const OrderHistoryPage = () => {
                 <button
                     type="button"
                     className="order-detail-back-btn"
-                    onClick={() => navigate('/admin', { state: { tab: 'orders' } })}
+                    onClick={() => navigate('/admin/orders')}
                 >
                     <ArrowLeft size={18} /> Back to Orders
                 </button>

@@ -9,6 +9,7 @@ import { cartLinesForMedicine, totalUnitsForMedicineLines } from '../utils/cartM
 import { ShoppingCart, Search, Filter, AlertCircle, ShoppingBag, Plus, Minus, X, Clock, Check, ChevronDown, Package, Phone } from 'lucide-react';
 import { InlineSpinner } from '../components/common/PageLoading';
 import { prodCheck } from '../config';
+import { getDeliveryLocationFromEnv, getDeliveryCityOnlyNotice } from '../config/deliveryLocationEnv';
 import './Pharmacy.css';
 
 /** Matches Contact page / chatbot store line for phone orders when the online store flag is off. */
@@ -383,6 +384,9 @@ const Pharmacy = () => {
 
     const skeletonSlots = 12;
 
+    const _deliveryLoc = getDeliveryLocationFromEnv().values;
+    const _deliveryNotice = getDeliveryCityOnlyNotice(_deliveryLoc);
+
     return (
         <div className="pharmacy-page animate-fade">
             <header className="page-header pharmacy-header" aria-label="Pharmacy catalog">
@@ -392,6 +396,12 @@ const Pharmacy = () => {
                             <p className="pharmacy-hero-eyebrow">Catalog</p>
                             <h1 className="pharmacy-hero-title">Online Pharmacy</h1>
                             <p className="pharmacy-hero-subtitle">Genuine medicines, verified sourcing, doorstep delivery.</p>
+                            {_deliveryNotice && (
+                                <p className="pharmacy-hero-location-notice">
+                                    <AlertCircle size={14} aria-hidden />
+                                    {_deliveryNotice}
+                                </p>
+                            )}
                         </div>
                         <button type="button" className="cart-trigger" onClick={() => setIsCartOpen(true)} aria-label={`Open cart, ${cart.length} items`}>
                             <ShoppingCart size={22} aria-hidden />

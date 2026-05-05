@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { getOrders, getOrderDetail } from '../services/ordersApi';
+import { getOrders, getOrderDetail, cancelOrderAsCustomer } from '../services/ordersApi';
 import { checkPaymentStatus } from '../services/razorpayApi';
 import { changePassword } from '../services/authApi';
 import { safeError } from '../utils/logger';
@@ -12,7 +12,7 @@ import {
     ShoppingBag, Pill,
     LogOut, Menu, X, ChevronRight,
     Bell, Edit, CheckCircle, Package, ArrowLeft,
-    Plus, Info,
+    Plus, Info, AlertCircle,
     Save, Trash2, Star, ShoppingCart,
     Lock, Eye, EyeOff, FileText, CreditCard, Clock,
     Home, ExternalLink
@@ -115,6 +115,12 @@ const Profile = () => {
     const [orderDetailError, setOrderDetailError] = useState('');
     const [reorderingOrderId, setReorderingOrderId] = useState(null);
     const [reorderSuccess, setReorderSuccess] = useState(null);
+
+    // Customer cancel state
+    const [cancelOrderModalOpen, setCancelOrderModalOpen] = useState(false);
+    const [cancelOrderReason, setCancelOrderReason] = useState('');
+    const [cancelOrderSubmitting, setCancelOrderSubmitting] = useState(false);
+    const [cancelOrderError, setCancelOrderError] = useState('');
 
     // Password Change State
     const [passwordForm, setPasswordForm] = useState({
@@ -340,6 +346,39 @@ const Profile = () => {
     const handleBackToOrders = () => {
         setSelectedOrder(null);
         setOrderDetailError('');
+    };
+
+    const CUSTOMER_CANCELLABLE = new Set([
+        'ORDER_RECEIVED', 'ORDER_TAKEN', 'ORDER_PROCESSING', 'DELIVERY_ASSIGNED',
+    ]);
+
+    const canCustomerCancel = (orderStatus) =>
+        CUSTOMER_CANCELLABLE.has(String(orderStatus || '').toUpperCase());
+
+    const handleCustomerCancelSubmit = async () => {
+        if (!selectedOrder) return;
+        setCancelOrderError('');
+        setCancelOrderSubmitting(true);
+        try {
+            const res = await cancelOrderAsCustomer(selectedOrder.id, cancelOrderReason || undefined);
+            setCancelOrderModalOpen(false);
+            setCancelOrderReason('');
+            setSelectedOrder((prev) => prev ? { ...prev, status: res.order_status, order_status: res.order_status } : prev);
+            // Refresh the full detail so refund info shows
+            const detail = await getOrderDetail(selectedOrder.id);
+            if (detail) {
+                setSelectedOrder({
+                    ...detail.order,
+                    status: detail.order?.order_status || res.order_status,
+                    items: detail.items || [],
+                    payment: detail.payment || null,
+                });
+            }
+        } catch (err) {
+            setCancelOrderError(err?.message || 'Failed to cancel order. Please try again.');
+        } finally {
+            setCancelOrderSubmitting(false);
+        }
     };
 
     // Invoice Download Handler
@@ -996,9 +1035,19 @@ const Profile = () => {
                                                 Complete Payment ({formatCountdown(detailGraceSeconds)})
                                             </button>
                                         )}
-                                        <button onClick={handleDownloadInvoice} className="btn-primary btn-sm">
-                                            <FileText size={15} /> Invoice
-                                        </button>
+                                        {!['PENDING', 'PAYMENT_CANCELLED', 'CANCELLED_BY_STAFF', 'CANCELLED_BY_CUSTOMER', 'DELIVERY_RETURNED', 'REFUND_INITIATED', 'REFUNDED', 'CANCELLED'].includes(String(detailEffectiveStatus || '').toUpperCase()) && (
+                                            <button onClick={handleDownloadInvoice} className="btn-primary btn-sm">
+                                                <FileText size={15} /> Invoice
+                                            </button>
+                                        )}
+                                        {canCustomerCancel(detailEffectiveStatus) && (
+                                            <button
+                                                className="btn-outline btn-sm btn-danger-outline"
+                                                onClick={() => { setCancelOrderError(''); setCancelOrderModalOpen(true); }}
+                                            >
+                                                <X size={15} /> Cancel order
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1096,6 +1145,42 @@ const Profile = () => {
                                     </div>
                                 </div>
                             </div>
+
+                            {cancelOrderModalOpen && (
+                                <div className="modal-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget && !cancelOrderSubmitting) setCancelOrderModalOpen(false); }}>
+                                    <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="cancel-order-title" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+                                        <h3 id="cancel-order-title" style={{ margin: '0 0 0.75rem', fontSize: '1.1rem', fontWeight: 600 }}>Cancel order</h3>
+                                        <p style={{ margin: '0 0 1rem', fontSize: '0.9rem', color: '#64748b', display: 'flex', gap: '0.4rem', alignItems: 'flex-start' }}>
+                                            <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '0.1rem', color: '#f59e0b' }} />
+                                            Are you sure you want to cancel this order? If payment was already collected, a full refund will be initiated automatically.
+                                        </p>
+                                        <div className="form-group" style={{ marginBottom: '1rem' }}>
+                                            <label htmlFor="cancel-reason" style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: 500 }}>Reason (optional)</label>
+                                            <input
+                                                id="cancel-reason"
+                                                type="text"
+                                                placeholder="e.g. Changed my mind"
+                                                value={cancelOrderReason}
+                                                maxLength={500}
+                                                disabled={cancelOrderSubmitting}
+                                                onChange={(e) => setCancelOrderReason(e.target.value)}
+                                                style={{ width: '100%', boxSizing: 'border-box' }}
+                                            />
+                                        </div>
+                                        {cancelOrderError && (
+                                            <p style={{ margin: '0 0 0.75rem', color: '#b91c1c', fontSize: '0.85rem' }}>{cancelOrderError}</p>
+                                        )}
+                                        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                                            <button className="btn-outline btn-sm" disabled={cancelOrderSubmitting} onClick={() => { setCancelOrderModalOpen(false); setCancelOrderReason(''); setCancelOrderError(''); }}>
+                                                Keep order
+                                            </button>
+                                            <button className="btn-primary btn-sm" style={{ background: '#dc2626', borderColor: '#dc2626' }} disabled={cancelOrderSubmitting} onClick={handleCustomerCancelSubmit}>
+                                                {cancelOrderSubmitting ? 'Cancelling…' : 'Yes, cancel'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     );
                 }
