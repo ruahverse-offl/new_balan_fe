@@ -14,3 +14,4 @@ export { default as NotificationMasterTab } from './NotificationMasterTab';
 export { default as NotificationSettingsTab } from './NotificationSettingsTab';
 export { default as NotificationLogsTab } from './NotificationLogsTab';
 export { default as MyProfileTab } from './MyProfileTab';
+export { default as InsuranceEnquiriesTab } from './InsuranceEnquiriesTab';

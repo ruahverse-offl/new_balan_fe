@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Link, useParams, useNavigate, useLocation, useMatch } from 'react-router-dom';
-import { LayoutDashboard, Users, User, Pill, ShoppingCart, Search, Plus, Trash2, Check, X, Menu, Clock, MapPin, Phone, Pencil, AlertCircle, Eye, EyeOff, CheckCircle, XCircle, LogOut, Bell, Truck, Ticket, UserCheck, ArrowLeft, ChevronRight, ChevronsLeft, ChevronsRight, Shield, CreditCard, Tags, BarChart3, Calendar, Home, Package, Tag, Layers, LayoutGrid, TestTube } from 'lucide-react';
+import { LayoutDashboard, Users, User, Pill, ShoppingCart, Search, Plus, Trash2, Check, X, Menu, Clock, MapPin, Phone, Pencil, AlertCircle, Eye, EyeOff, CheckCircle, XCircle, LogOut, Bell, Truck, Ticket, UserCheck, ArrowLeft, ChevronRight, ChevronsLeft, ChevronsRight, Shield, CreditCard, Tags, BarChart3, Calendar, Home, Package, Tag, Layers, LayoutGrid, TestTube, ShieldPlus } from 'lucide-react';
 import { PageLoading, InlineSpinner } from '../components/common/PageLoading';
 import ActionOverlay from '../components/admin/ActionOverlay';
 import { useAuth } from '../context/AuthContext';
@@ -65,6 +65,7 @@ import RoleModuleMatrixTab from './admin/RoleModuleMatrixTab';
 import NotificationMasterTab from './admin/NotificationMasterTab';
 import NotificationSettingsTab from './admin/NotificationSettingsTab';
 import NotificationLogsTab from './admin/NotificationLogsTab';
+import InsuranceEnquiriesTab from './admin/InsuranceEnquiriesTab';
 import DatePicker from '../components/common/DatePicker';
 import TimeInput from '../components/common/TimeInput';
 import './Admin.css';
@@ -92,6 +93,7 @@ const ADMIN_SIDEBAR_ICON_MAP = {
     Layers,
     LayoutGrid,
     TestTube,
+    ShieldPlus,
 };
 
 /** Legacy permission filter when `menu_items` is absent (tab id → frontend permission key) */
@@ -116,6 +118,7 @@ const ADMIN_TAB_PERMISSION_FALLBACK = {
     'access-modules': 'access-modules',
     'role-access': 'role-access',
     clinic: 'clinic',
+    'insurance-enquiries': 'appointments',
 };
 
 /** Align DB `menu_tasks.code` with React tab ids (lowercase, hyphenated). Fixes Inventory etc. when API sends different casing. */
@@ -163,6 +166,7 @@ const ADMIN_PORTAL_TAB_IDS = new Set([
     'notification-master',
     'notification-settings',
     'notification-logs',
+    'insurance-enquiries',
 ]);
 
 function buildSidebarItemsFromMenuItems(menuItemsFromApi) {
@@ -247,6 +251,7 @@ const LEGACY_SIDEBAR_TEMPLATE = [
     { id: 'notification-master', label: 'Notification master', icon: <Bell size={20} />, menuKey: 'nav_notification_master', permission: 'notification-master' },
     { id: 'notification-settings', label: 'Notification settings', icon: <Bell size={20} />, menuKey: 'nav_notification_settings', permission: 'notification-settings' },
     { id: 'notification-logs', label: 'Notification logs', icon: <Bell size={20} />, menuKey: 'nav_notification_logs', permission: 'notification-logs' },
+    { id: 'insurance-enquiries', label: 'Insurance Enquiries', icon: <ShieldPlus size={20} />, menuKey: 'nav_insurance_enquiries', permission: 'appointments' },
 ].sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
 function computeAvailableMenuItems(user) {
@@ -773,6 +778,8 @@ const Admin = () => {
                 case 'inventory':
                     break;
                 case 'brand-master':
+                    break;
+                case 'insurance-enquiries':
                     break;
                 case 'roles':
                 case 'access-modules':
@@ -2816,6 +2823,13 @@ const Admin = () => {
                             rowsPerPage={notifLogsRowsPerPage}
                             setRowsPerPage={(v) => { setNotifLogsRowsPerPage(v); setNotifLogsPage(1); }}
                             onRefresh={() => fetchNotificationLogs(notifLogsPage, notifLogsRowsPerPage, notifLogsStatusFilter, notifLogsChannelFilter)}
+                        />
+                    )}
+                    {activeTab === 'insurance-enquiries' && (
+                        <InsuranceEnquiriesTab
+                            showNotify={showNotify}
+                            canUpdate={hasModuleGrant(user?.menuItems, 'appointments', 'update')}
+                            canDelete={hasModuleGrant(user?.menuItems, 'appointments', 'delete')}
                         />
                     )}
                     {activeTab === 'my-profile' && (

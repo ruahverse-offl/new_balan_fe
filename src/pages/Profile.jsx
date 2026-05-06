@@ -1152,7 +1152,7 @@ const Profile = () => {
                                         <h3 id="cancel-order-title" style={{ margin: '0 0 0.75rem', fontSize: '1.1rem', fontWeight: 600 }}>Cancel order</h3>
                                         <p style={{ margin: '0 0 1rem', fontSize: '0.9rem', color: '#64748b', display: 'flex', gap: '0.4rem', alignItems: 'flex-start' }}>
                                             <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '0.1rem', color: '#f59e0b' }} />
-                                            Are you sure you want to cancel this order? If payment was already collected, a full refund will be initiated automatically.
+                                            Are you sure you want to cancel this order? If payment was already collected, our team will review and process a refund for you.
                                         </p>
                                         <div className="form-group" style={{ marginBottom: '1rem' }}>
                                             <label htmlFor="cancel-reason" style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: 500 }}>Reason (optional)</label>

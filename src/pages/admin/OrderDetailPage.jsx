@@ -181,10 +181,13 @@ const OrderDetailPage = ({
         isAdminRole,
     });
     const cancelStaffAction = lifecycleActions.find((a) => a.status === 'CANCELLED_BY_STAFF');
+    // Refund only makes sense for orders that were cancelled or returned — not active/delivered.
+    const _refundEligibleStatuses = new Set(['CANCELLED_BY_STAFF', 'CANCELLED_BY_CUSTOMER', 'DELIVERY_RETURNED']);
     const canRefundPayment =
         !isCompactOrderDetailView &&
         Boolean(onRefundPayment) &&
         payment &&
+        _refundEligibleStatuses.has(normalizeOrderStatus(order.order_status)) &&
         String(payment.payment_status || '').toUpperCase() === 'SUCCESS' &&
         (!payment.refund_status || String(payment.refund_status).toUpperCase() === 'NONE');
     const canStaffViewDeliveryAgentStatus =

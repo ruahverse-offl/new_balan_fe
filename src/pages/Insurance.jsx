@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ShieldPlus, CheckCircle, MessageSquare, Phone, HelpCircle, UserCheck, Activity, Users, Heart, AlertCircle, User, Award, Star, Clock, Send } from 'lucide-react';
 import { InlineSpinner } from '../components/common/PageLoading';
 import LocationSection from '../components/common/LocationSection';
+import { createInsuranceEnquiry } from '../services/insuranceEnquiriesApi';
 import './Insurance.css';
 
 const Insurance = () => {
@@ -28,13 +29,24 @@ const Insurance = () => {
         setSubmitting(true);
         setSubmitResult(null);
         try {
-            await new Promise((r) => setTimeout(r, 300));
+            await createInsuranceEnquiry({
+                customer_name: formData.customer_name.trim(),
+                customer_phone: formData.customer_phone.trim(),
+                customer_age: formData.customer_age ? parseInt(formData.customer_age, 10) : null,
+                family_size: formData.family_size ? parseInt(formData.family_size, 10) : null,
+                plan_type: formData.plan_type || null,
+                message: formData.message.trim() || null,
+            });
             setSubmitResult({
                 type: 'success',
-                message:
-                    'Please call or WhatsApp us with your details to complete your insurance enquiry — we no longer store enquiries through this form.',
+                message: 'Enquiry submitted! Our expert Manikandan will get back to you shortly.',
             });
             setFormData({ customer_name: '', customer_phone: '', customer_age: '', family_size: '', plan_type: '', message: '' });
+        } catch {
+            setSubmitResult({
+                type: 'error',
+                message: 'Something went wrong. Please try again or call us directly.',
+            });
         } finally {
             setSubmitting(false);
         }
