@@ -531,26 +531,29 @@ const Profile = () => {
     };
 
     const handleReorder = async (e, orderId) => {
-        e.stopPropagation(); // Prevent row click from opening detail view
+        e.stopPropagation();
         setReorderingOrderId(orderId);
         setReorderSuccess(null);
         try {
-            const orderData = await getOrderById(orderId);
-            const items = orderData.items || orderData.order_items || [];
+            const detail = await getOrderDetail(orderId);
+            const items = detail.items || [];
             if (items.length === 0) {
                 setReorderingOrderId(null);
                 return;
             }
             for (const item of items) {
+                const offeringId = item.medicine_brand_id;
                 const product = {
-                    id: item.medicine_id || item.product_id || item.id,
-                    name: item.medicine_name || item.product_name || item.name || 'Unknown Item',
-                    price: parseFloat(item.unit_price || item.price || 0),
+                    id: offeringId,
+                    brandId: offeringId,
+                    name: item.medicine_name
+                        ? `${item.medicine_name}${item.brand_name ? ` (${item.brand_name})` : ''}`
+                        : 'Unknown Item',
+                    price: parseFloat(item.unit_price || 0),
+                    brandName: item.brand_name || null,
                     requiresPrescription: item.requires_prescription || false,
                 };
-                for (let i = 0; i < (item.quantity || 1); i++) {
-                    addToCart(product);
-                }
+                addToCart(product, { quantity: item.quantity || 1 });
             }
             setReorderSuccess(orderId);
             setTimeout(() => {

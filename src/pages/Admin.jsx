@@ -118,7 +118,7 @@ const ADMIN_TAB_PERMISSION_FALLBACK = {
     'access-modules': 'access-modules',
     'role-access': 'role-access',
     clinic: 'clinic',
-    'insurance-enquiries': 'appointments',
+    'insurance-enquiries': 'insurance-enquiries',
 };
 
 /** Align DB `menu_tasks.code` with React tab ids (lowercase, hyphenated). Fixes Inventory etc. when API sends different casing. */
@@ -251,7 +251,7 @@ const LEGACY_SIDEBAR_TEMPLATE = [
     { id: 'notification-master', label: 'Notification master', icon: <Bell size={20} />, menuKey: 'nav_notification_master', permission: 'notification-master' },
     { id: 'notification-settings', label: 'Notification settings', icon: <Bell size={20} />, menuKey: 'nav_notification_settings', permission: 'notification-settings' },
     { id: 'notification-logs', label: 'Notification logs', icon: <Bell size={20} />, menuKey: 'nav_notification_logs', permission: 'notification-logs' },
-    { id: 'insurance-enquiries', label: 'Insurance Enquiries', icon: <ShieldPlus size={20} />, menuKey: 'nav_insurance_enquiries', permission: 'appointments' },
+    { id: 'insurance-enquiries', label: 'Insurance Enquiries', icon: <ShieldPlus size={20} />, menuKey: 'nav_insurance_enquiries', permission: 'insurance-enquiries' },
 ].sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
 function computeAvailableMenuItems(user) {
@@ -2828,8 +2828,8 @@ const Admin = () => {
                     {activeTab === 'insurance-enquiries' && (
                         <InsuranceEnquiriesTab
                             showNotify={showNotify}
-                            canUpdate={hasModuleGrant(user?.menuItems, 'appointments', 'update')}
-                            canDelete={hasModuleGrant(user?.menuItems, 'appointments', 'delete')}
+                            canUpdate={hasModuleGrant(user?.menuItems, 'insurance-enquiries', 'update')}
+                            canDelete={hasModuleGrant(user?.menuItems, 'insurance-enquiries', 'delete')}
                         />
                     )}
                     {activeTab === 'my-profile' && (
