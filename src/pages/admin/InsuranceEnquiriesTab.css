@@ -1,5 +1,13 @@
 /* Insurance Enquiries admin tab */
 
+/* Fill the full available page height */
+.ins-enq-tab-card {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 120px);
+    width: 100%;
+}
+
 /* Name cell with avatar initial */
 .ins-enq-name-cell {
     display: flex;
@@ -144,6 +152,13 @@
     gap: 0.3rem;
     font-size: 0.845rem;
     color: #dc2626;
+}
+
+/* Table section grows to fill remaining card height */
+.ins-enq-tab-card .table-wrapper,
+.ins-enq-tab-card .catalog-loading,
+.ins-enq-tab-card .catalog-empty {
+    flex: 1;
 }
 
 /* Clickable table rows */

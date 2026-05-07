@@ -71,7 +71,7 @@ export const getBrands = async (params = {}) => {
 };
 
 /** Create medicine–brand offering (junction row). Body: medicine_id, brand_id, manufacturer, mrp, … */
-export const createBrand = async (data) => apiPost('/medicine-brands', data);
+export const createBrand = async (data) => apiPost('/medicine-brands/', data);
 
 export const updateBrand = async (id, data) => apiPatch(`/medicine-brands/${id}`, data);
 
