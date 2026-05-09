@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Link, useParams, useNavigate, useLocation, useMatch } from 'react-router-dom';
-import { LayoutDashboard, Users, User, Pill, ShoppingCart, Search, Plus, Trash2, Check, X, Menu, Clock, MapPin, Phone, Pencil, AlertCircle, Eye, EyeOff, CheckCircle, XCircle, LogOut, Bell, Truck, Ticket, UserCheck, ArrowLeft, ChevronRight, ChevronsLeft, ChevronsRight, Shield, CreditCard, Tags, BarChart3, Calendar, Home, Package, Tag, Layers, LayoutGrid, TestTube, ShieldPlus } from 'lucide-react';
+import { LayoutDashboard, Users, User, Pill, ShoppingCart, Search, Plus, Trash2, Check, X, Menu, Clock, MapPin, Phone, Pencil, AlertCircle, Eye, EyeOff, CheckCircle, XCircle, LogOut, Bell, Truck, Ticket, UserCheck, ArrowLeft, ChevronRight, ChevronsLeft, ChevronsRight, Shield, CreditCard, Tags, BarChart3, Calendar, Home, Package, Tag, Layers, LayoutGrid, TestTube, ShieldPlus, Users2 } from 'lucide-react';
 import { PageLoading, InlineSpinner } from '../components/common/PageLoading';
 import ActionOverlay from '../components/admin/ActionOverlay';
 import { useAuth } from '../context/AuthContext';
@@ -66,6 +66,7 @@ import NotificationMasterTab from './admin/NotificationMasterTab';
 import NotificationSettingsTab from './admin/NotificationSettingsTab';
 import NotificationLogsTab from './admin/NotificationLogsTab';
 import InsuranceEnquiriesTab from './admin/InsuranceEnquiriesTab';
+import CustomersTab from './admin/CustomersTab';
 import DatePicker from '../components/common/DatePicker';
 import TimeInput from '../components/common/TimeInput';
 import './Admin.css';
@@ -94,6 +95,7 @@ const ADMIN_SIDEBAR_ICON_MAP = {
     LayoutGrid,
     TestTube,
     ShieldPlus,
+    Users2,
 };
 
 /** Legacy permission filter when `menu_items` is absent (tab id → frontend permission key) */
@@ -119,6 +121,7 @@ const ADMIN_TAB_PERMISSION_FALLBACK = {
     'role-access': 'role-access',
     clinic: 'clinic',
     'insurance-enquiries': 'insurance-enquiries',
+    'customers': 'customers',
 };
 
 /** Align DB `menu_tasks.code` with React tab ids (lowercase, hyphenated). Fixes Inventory etc. when API sends different casing. */
@@ -167,6 +170,7 @@ const ADMIN_PORTAL_TAB_IDS = new Set([
     'notification-settings',
     'notification-logs',
     'insurance-enquiries',
+    'customers',
 ]);
 
 function buildSidebarItemsFromMenuItems(menuItemsFromApi) {
@@ -252,6 +256,7 @@ const LEGACY_SIDEBAR_TEMPLATE = [
     { id: 'notification-settings', label: 'Notification settings', icon: <Bell size={20} />, menuKey: 'nav_notification_settings', permission: 'notification-settings' },
     { id: 'notification-logs', label: 'Notification logs', icon: <Bell size={20} />, menuKey: 'nav_notification_logs', permission: 'notification-logs' },
     { id: 'insurance-enquiries', label: 'Insurance Enquiries', icon: <ShieldPlus size={20} />, menuKey: 'nav_insurance_enquiries', permission: 'insurance-enquiries' },
+    { id: 'customers', label: 'Customers', icon: <Users2 size={20} />, menuKey: 'nav_customers', permission: 'customers' },
 ].sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
 function computeAvailableMenuItems(user) {
@@ -780,6 +785,8 @@ const Admin = () => {
                 case 'brand-master':
                     break;
                 case 'insurance-enquiries':
+                    break;
+                case 'customers':
                     break;
                 case 'roles':
                 case 'access-modules':
@@ -2830,6 +2837,11 @@ const Admin = () => {
                             showNotify={showNotify}
                             canUpdate={hasModuleGrant(user?.menuItems, 'insurance-enquiries', 'update')}
                             canDelete={hasModuleGrant(user?.menuItems, 'insurance-enquiries', 'delete')}
+                        />
+                    )}
+                    {activeTab === 'customers' && (
+                        <CustomersTab
+                            showNotify={showNotify}
                         />
                     )}
                     {activeTab === 'my-profile' && (

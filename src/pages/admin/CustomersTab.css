@@ -1,0 +1,195 @@
+/* Customers admin tab */
+
+/* Customer name cell */
+.cust-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.cust-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    color: #1d4ed8;
+    font-size: 0.8rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    text-transform: uppercase;
+}
+
+.cust-name-main {
+    font-weight: 600;
+    color: var(--admin-text-main, #0f172a);
+    font-size: 0.875rem;
+    line-height: 1.3;
+}
+
+.cust-name-email {
+    font-size: 0.775rem;
+    color: var(--admin-text-muted, #64748b);
+    margin-top: 1px;
+}
+
+/* Phone monospace */
+.cust-phone {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.875rem;
+}
+
+/* Status badge */
+.cust-status-active {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1.5px solid rgba(21,128,61,.25);
+}
+
+.cust-status-inactive {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: #f8fafc;
+    color: #64748b;
+    border: 1.5px solid rgba(100,116,139,.2);
+}
+
+/* Clickable rows */
+.cust-tab-card .admin-table tbody tr {
+    cursor: pointer;
+}
+
+/* Detail modal sections */
+.cust-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.875rem 1.5rem;
+}
+
+.cust-detail-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--admin-text-muted, #64748b);
+    margin-bottom: 0.2rem;
+}
+
+.cust-detail-value {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--admin-text-main, #0f172a);
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+/* Section divider */
+.cust-section-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--admin-text-muted, #64748b);
+    margin: 0 0 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+/* Orders mini-table inside modal */
+.cust-orders-wrap {
+    max-height: 320px;
+    overflow-y: auto;
+    border: 1px solid var(--admin-border, #e2e8f0);
+    border-radius: 10px;
+}
+
+.cust-orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.83rem;
+}
+
+.cust-orders-table thead th {
+    padding: 0.45rem 0.875rem;
+    text-align: left;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--admin-text-muted, #64748b);
+    background: var(--gray-50, #f9fafb);
+    border-bottom: 1px solid var(--admin-border, #e2e8f0);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+}
+
+.cust-orders-table tbody tr {
+    border-bottom: 1px solid var(--admin-border, #e2e8f0);
+    transition: background .1s;
+}
+
+.cust-orders-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.cust-orders-table tbody tr:hover {
+    background: rgba(59,130,246,.03);
+}
+
+.cust-orders-table td {
+    padding: 0.55rem 0.875rem;
+    vertical-align: middle;
+    color: var(--admin-text-main, #0f172a);
+}
+
+.cust-order-ref {
+    font-weight: 700;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.775rem;
+    color: var(--primary, #6366f1);
+}
+
+.cust-order-link {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: rgba(99, 102, 241, 0.4);
+    transition: color 0.15s, text-decoration-color 0.15s;
+}
+
+.cust-order-link:hover {
+    color: #4338ca;
+    text-decoration-color: #4338ca;
+}
+
+.cust-orders-empty {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--admin-text-muted, #64748b);
+    font-size: 0.875rem;
+}
+
+/* Large modal for customer detail */
+.cust-detail-modal {
+    max-width: 640px;
+}

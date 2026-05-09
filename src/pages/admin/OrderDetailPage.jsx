@@ -62,13 +62,17 @@ const OrderDetailPage = ({
             ? 'coupon-usages'
             : fromTab === 'delivery-orders'
               ? 'delivery-orders'
-              : 'orders';
+              : fromTab === 'customers'
+                ? 'customers'
+                : 'orders';
     const orderListBackLabel =
         fromTab === 'coupon-usages'
             ? 'Back to Coupon Usages'
             : fromTab === 'delivery-orders'
               ? 'Back to My deliveries'
-              : 'Back to Orders';
+              : fromTab === 'customers'
+                ? 'Back to Customers'
+                : 'Back to Orders';
     const isDeliveryOrdersView = fromTab === 'delivery-orders';
     const isCompactOrderDetailView = isDeliveryOrdersView;
     const [detail, setDetail] = useState(

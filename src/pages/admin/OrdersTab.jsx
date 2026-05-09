@@ -85,18 +85,16 @@ const OrdersTab = ({
                     <span className="orders-kpi-label">Total orders</span>
                     <span className="orders-kpi-value">{total.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="orders-kpi-card orders-kpi-card-accent" title="Net revenue = delivered minus returns and refunds. Cancelled value is shown separately. True profit also needs inventory and operating costs.">
+                <div className="orders-kpi-card orders-kpi-card-accent" title="Net revenue = delivered − cancelled − returned − refunded. All orders are prepaid so cancellations reduce realized revenue immediately.">
                     <span className="orders-kpi-label">Net revenue</span>
                     {salesSummary ? (
                         <>
                             <span className="orders-kpi-value">₹{fmt(netRevenue)}</span>
                             <span className="orders-kpi-breakdown">
                                 ₹{fmt(delivered)} delivered
+                                {cancelled > 0 && <> · −₹{fmt(cancelled)} cancelled</>}
                                 {returned > 0 && <> · −₹{fmt(returned)} returned</>}
-                                {refunded > 0 && <> · −₹{fmt(refunded)} refunds</>}
-                                {cancelled > 0 && (
-                                    <> · ₹{fmt(cancelled)} cancelled (separate)</>
-                                )}
+                                {refunded > 0 && <> · −₹{fmt(refunded)} refunded</>}
                             </span>
                             <span className="orders-kpi-footnote">
                                 Before inventory &amp; operating costs — not net profit.
