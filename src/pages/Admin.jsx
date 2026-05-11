@@ -2413,7 +2413,6 @@ const Admin = () => {
                             onOrderLifecycleIntent={handleOrderLifecycleIntent}
                             onCancelOrderWithReason={handleCancelOrderWithReason}
                             onRefundPayment={handleRefund}
-                            refundInProgress={refundLoading}
                             showNotify={showNotify}
                             menuItems={user?.menuItems || []}
                             userId={user?.id}

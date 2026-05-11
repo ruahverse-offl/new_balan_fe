@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, FileText, ExternalLink, Copy, Check, Ban, RotateCcw, Loader } from 'lucide-react';
+import { ArrowLeft, FileText, ExternalLink, Copy, Check, Ban, Loader } from 'lucide-react';
 import { PageLoading } from '../../components/common/PageLoading';
 import { getOrderDetail } from '../../services/ordersApi';
 import { getDeliveryAgents } from '../../services/usersApi';
@@ -44,7 +44,6 @@ const OrderDetailPage = ({
     onOrderLifecycleIntent,
     onCancelOrderWithReason,
     onRefundPayment,
-    refundInProgress = false,
     showNotify,
     menuItems = [],
     userId,
@@ -85,8 +84,6 @@ const OrderDetailPage = ({
     const [cancelModalOpen, setCancelModalOpen] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
     const [cancelSubmitting, setCancelSubmitting] = useState(false);
-    const [refundModalOpen, setRefundModalOpen] = useState(false);
-    const [refundError, setRefundError] = useState('');
     const [assignedAgentStatus, setAssignedAgentStatus] = useState('');
     const didScrollStatusFocus = useRef(false);
 
@@ -185,13 +182,10 @@ const OrderDetailPage = ({
         isAdminRole,
     });
     const cancelStaffAction = lifecycleActions.find((a) => a.status === 'CANCELLED_BY_STAFF');
-    // Refund only makes sense for orders that were cancelled or returned — not active/delivered.
-    const _refundEligibleStatuses = new Set(['CANCELLED_BY_STAFF', 'CANCELLED_BY_CUSTOMER', 'DELIVERY_RETURNED']);
-    const canRefundPayment =
-        !isCompactOrderDetailView &&
+    // Payment is refundable when it was captured and not yet refunded — used to auto-trigger on cancel.
+    const _paymentRefundable =
         Boolean(onRefundPayment) &&
         payment &&
-        _refundEligibleStatuses.has(normalizeOrderStatus(order.order_status)) &&
         String(payment.payment_status || '').toUpperCase() === 'SUCCESS' &&
         (!payment.refund_status || String(payment.refund_status).toUpperCase() === 'NONE');
     const canStaffViewDeliveryAgentStatus =
@@ -677,37 +671,23 @@ const OrderDetailPage = ({
                         </div>
                     </div>
 
-                    {!isCompactOrderDetailView && ((cancelStaffAction && onCancelOrderWithReason) || canRefundPayment) ? (
+                    {!isCompactOrderDetailView && cancelStaffAction && onCancelOrderWithReason ? (
                         <div className="order-detail-warning-actions" role="region" aria-label="Destructive actions">
                             <p className="order-detail-warning-title">
-                                <Ban size={16} aria-hidden /> Cancel or refund
+                                <Ban size={16} aria-hidden /> Cancel order
                             </p>
                             <div className="order-detail-warning-buttons">
-                                {cancelStaffAction && onCancelOrderWithReason ? (
-                                    <button
-                                        type="button"
-                                        className="order-detail-warning-btn order-detail-warning-btn-cancel"
-                                        disabled={lifecycleUpdating || loading}
-                                        onClick={() => {
-                                            setCancelReason('');
-                                            setCancelModalOpen(true);
-                                        }}
-                                    >
-                                        Cancel order…
-                                    </button>
-                                ) : null}
-                                {canRefundPayment ? (
-                                    <button
-                                        type="button"
-                                        className="order-detail-warning-btn order-detail-warning-btn-refund"
-                                        onClick={() => {
-                                            setRefundError('');
-                                            setRefundModalOpen(true);
-                                        }}
-                                    >
-                                        <RotateCcw size={16} aria-hidden /> Refund payment…
-                                    </button>
-                                ) : null}
+                                <button
+                                    type="button"
+                                    className="order-detail-warning-btn order-detail-warning-btn-cancel"
+                                    disabled={lifecycleUpdating || loading}
+                                    onClick={() => {
+                                        setCancelReason('');
+                                        setCancelModalOpen(true);
+                                    }}
+                                >
+                                    Cancel order…
+                                </button>
                             </div>
                         </div>
                     ) : null}
@@ -732,8 +712,7 @@ const OrderDetailPage = ({
                                 Cancel order
                             </h3>
                             <p className="order-detail-modal-warning">
-                                This cancels the order for the customer. Please give a clear reason (stock, prescription,
-                                etc.).
+                                This cancels the order.{_paymentRefundable ? ' Since payment was already collected, a refund will be initiated automatically.' : ''} Please give a clear reason (stock, prescription, etc.).
                             </p>
                             <textarea
                                 className="order-detail-modal-textarea"
@@ -767,7 +746,20 @@ const OrderDetailPage = ({
                                             await onCancelOrderWithReason(order.id, trimmed);
                                             setCancelModalOpen(false);
                                             setCancelReason('');
-                                            if (showNotify) showNotify('Order cancelled.', 'success');
+                                            if (_paymentRefundable) {
+                                                try {
+                                                    await onRefundPayment({
+                                                        ...payment,
+                                                        order_id: payment.order_id || order.id,
+                                                        amount: payment.amount ?? order.final_amount,
+                                                    });
+                                                    if (showNotify) showNotify('Order cancelled and refund initiated.', 'success');
+                                                } catch {
+                                                    if (showNotify) showNotify('Order cancelled. Refund could not be initiated — please process it manually.', 'error');
+                                                }
+                                            } else {
+                                                if (showNotify) showNotify('Order cancelled.', 'success');
+                                            }
                                         } catch (err) {
                                             if (showNotify) {
                                                 showNotify(err?.message || 'Could not cancel order.', 'error');
@@ -777,77 +769,13 @@ const OrderDetailPage = ({
                                         }
                                     }}
                                 >
-                                    {cancelSubmitting ? 'Cancelling…' : 'Confirm cancel'}
+                                    {cancelSubmitting ? 'Processing…' : _paymentRefundable ? 'Cancel & refund' : 'Confirm cancel'}
                                 </button>
                             </div>
                         </div>
                     </div>
                 ) : null}
 
-                {refundModalOpen && payment && onRefundPayment ? (
-                    <div
-                        className="admin-modal-overlay"
-                        role="presentation"
-                        onClick={(e) => {
-                            if (e.target === e.currentTarget && !refundInProgress) setRefundModalOpen(false);
-                        }}
-                    >
-                        <div
-                            className="admin-modal order-detail-modal"
-                            role="dialog"
-                            aria-modal="true"
-                            aria-labelledby="refund-title"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <h3 id="refund-title" className="order-detail-modal-title">
-                                Refund payment
-                            </h3>
-                            <p className="order-detail-modal-warning">
-                                This starts a gateway refund for the captured payment. Amount:{' '}
-                                <strong>
-                                    ₹
-                                    {parseFloat(payment.amount ?? order.final_amount ?? 0).toLocaleString('en-IN', {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2,
-                                    })}
-                                </strong>
-                            </p>
-                            {refundError ? <p className="order-detail-modal-error">{refundError}</p> : null}
-                            <div className="order-detail-modal-actions">
-                                <button
-                                    type="button"
-                                    className="btn-add btn-cancel"
-                                    onClick={() => setRefundModalOpen(false)}
-                                    disabled={refundInProgress}
-                                >
-                                    Close
-                                </button>
-                                <button
-                                    type="button"
-                                    className="btn-add"
-                                    disabled={refundInProgress}
-                                    onClick={async () => {
-                                        setRefundError('');
-                                        try {
-                                            await onRefundPayment({
-                                                ...payment,
-                                                order_id: payment.order_id || order.id,
-                                                amount: payment.amount ?? order.final_amount,
-                                            });
-                                            setRefundModalOpen(false);
-                                        } catch (err) {
-                                            const msg = err?.message || 'Refund failed.';
-                                            setRefundError(msg);
-                                            if (showNotify) showNotify(msg, 'error');
-                                        }
-                                    }}
-                                >
-                                    {refundInProgress ? 'Processing…' : 'Initiate refund'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                ) : null}
 
                 {/* Items ordered */}
                 <section className="order-detail-section">

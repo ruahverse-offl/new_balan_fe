@@ -71,11 +71,11 @@ const TERMINAL = new Set([
     'DELIVERED',
     'CANCELLED_BY_STAFF',
     'CANCELLED_BY_CUSTOMER',
-    'DELIVERY_RETURNED',
     'REFUND_INITIATED',
     'REFUNDED',
     'CANCELLED',
     'COMPLETED',
+    // DELIVERY_RETURNED intentionally excluded — can retry delivery or cancel+refund
 ]);
 
 const STAFF_NEXT = {
@@ -84,6 +84,7 @@ const STAFF_NEXT = {
     ORDER_TAKEN: ['DELIVERY_ASSIGNED', 'CANCELLED_BY_STAFF'],
     ORDER_PROCESSING: ['DELIVERY_ASSIGNED', 'CANCELLED_BY_STAFF'], // legacy path for existing orders
     DELIVERY_ASSIGNED: ['CANCELLED_BY_STAFF'],
+    DELIVERY_RETURNED: ['DELIVERY_ASSIGNED', 'CANCELLED_BY_STAFF'], // retry delivery or cancel+refund
 };
 
 const DELIVERY_NEXT = {
@@ -170,6 +171,7 @@ export const FULFILLMENT_CHAIN_BUTTON_LABELS = {
     ORDER_TAKEN: 'Order packed',
     ORDER_PROCESSING: 'Order packed',
     DELIVERY_ASSIGNED: 'Assign delivery agent',
+    DELIVERY_ASSIGNED_RETRY: 'Retry delivery — reassign agent',
     PARCEL_TAKEN: 'Pick from store',
     OUT_FOR_DELIVERY: 'Out for delivery',
     DELIVERED: 'Mark delivered',
@@ -241,12 +243,16 @@ export function getAllowedNextStatusActions({ order, menuItems = [], userId, isA
     const isAssignedCourier =
         assignedId != null && userId != null && String(assignedId) === String(userId);
 
+    const isRetryDelivery = current === 'DELIVERY_RETURNED';
     const out = [];
     const add = (code) => {
         if (!out.some((x) => x.status === code)) {
+            const label = (isRetryDelivery && code === 'DELIVERY_ASSIGNED')
+                ? FULFILLMENT_CHAIN_BUTTON_LABELS.DELIVERY_ASSIGNED_RETRY
+                : ORDER_STATUS_LABELS[code] || code;
             out.push({
                 status: code,
-                label: ORDER_STATUS_LABELS[code] || code,
+                label,
                 requires: code === 'CANCELLED_BY_STAFF' ? 'cancellation_reason' : code === 'DELIVERY_RETURNED' ? 'return_reason' : code === 'DELIVERY_ASSIGNED' ? 'delivery_assigned_user_id' : null,
             });
         }

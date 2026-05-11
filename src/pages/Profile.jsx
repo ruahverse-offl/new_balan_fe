@@ -1147,6 +1147,36 @@ const Profile = () => {
                                         <span className="amount">{'\u20B9'}{parseFloat(finalAmount).toFixed(2)}</span>
                                     </div>
                                 </div>
+
+                                {/* Refund status \u2014 shown when a refund is in progress or completed */}
+                                {(() => {
+                                    const refundStatus = String(detail.payment?.refund_status || '').toUpperCase();
+                                    if (!refundStatus || refundStatus === 'NONE') return null;
+                                    const refundAmount = parseFloat(detail.payment?.refund_amount || 0);
+                                    const isCompleted = refundStatus === 'COMPLETED';
+                                    const isFailed = refundStatus === 'FAILED';
+                                    return (
+                                        <div style={{
+                                            marginTop: '1rem',
+                                            padding: '0.875rem 1rem',
+                                            borderRadius: '10px',
+                                            background: isCompleted ? '#f0fdf4' : isFailed ? '#fff1f2' : '#fffbeb',
+                                            border: `1px solid ${isCompleted ? '#bbf7d0' : isFailed ? '#fecdd3' : '#fde68a'}`,
+                                        }}>
+                                            <p style={{ margin: '0 0 0.3rem', fontWeight: 700, fontSize: '0.85rem', color: isCompleted ? '#15803d' : isFailed ? '#be123c' : '#92400e' }}>
+                                                {isCompleted ? '\u2713 Refund processed' : isFailed ? '\u2715 Refund failed' : '\u23F3 Refund in progress'}
+                                            </p>
+                                            <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569' }}>
+                                                {isCompleted
+                                                    ? `\u20B9${refundAmount.toFixed(2)} has been refunded to your original payment method.`
+                                                    : isFailed
+                                                    ? 'Refund could not be processed. Please contact support.'
+                                                    : `\u20B9${refundAmount > 0 ? refundAmount.toFixed(2) : finalAmount.toFixed ? parseFloat(finalAmount).toFixed(2) : finalAmount} refund has been initiated and will reflect within 5\u20137 business days.`
+                                                }
+                                            </p>
+                                        </div>
+                                    );
+                                })()}
                             </div>
 
                             {cancelOrderModalOpen && (
