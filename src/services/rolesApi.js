@@ -6,7 +6,7 @@
 import { apiGet, apiPost, apiPatch, apiDelete } from '../utils/apiClient';
 
 export const getRoles = async (params = {}) => {
-  const response = await apiGet('/roles/', {
+  const response = await apiGet('/roles', {
     limit: params.limit ?? 100,
     offset: params.offset ?? 0,
     search: params.search,
@@ -21,7 +21,7 @@ export const getRoleById = async (roleId) => {
 };
 
 export const createRole = async (data) => {
-  return await apiPost('/roles/', data);
+  return await apiPost('/roles', data);
 };
 
 export const updateRole = async (id, data) => {

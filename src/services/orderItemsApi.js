@@ -11,7 +11,7 @@ import { apiGet } from '../utils/apiClient';
  * @returns {Promise<Object>} { items: OrderItem[], pagination: {} }
  */
 export const getOrderItems = async (params = {}) => {
-  const response = await apiGet('/order-items/', {
+  const response = await apiGet('/order-items', {
     limit: params.limit || 100,
     offset: params.offset || 0,
     search: params.search,

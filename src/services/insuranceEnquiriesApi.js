@@ -1,11 +1,11 @@
 import { apiGet, apiPost, apiPatch, apiDelete } from '../utils/apiClient';
 
 export const createInsuranceEnquiry = async (data) => {
-  return await apiPost('/insurance-enquiries/', data);
+  return await apiPost('/insurance-enquiries', data);
 };
 
 export const getInsuranceEnquiries = async (params = {}) => {
-  const response = await apiGet('/insurance-enquiries/', {
+  const response = await apiGet('/insurance-enquiries', {
     limit: params.limit || 100,
     offset: params.offset || 0,
     search: params.search,

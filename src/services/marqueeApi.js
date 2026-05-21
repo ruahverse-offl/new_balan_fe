@@ -11,7 +11,7 @@ import { apiGet, apiPatch } from '../utils/apiClient';
  */
 export const getMarqueeSettings = async () => {
   try {
-    return await apiGet('/marquee-settings/');
+    return await apiGet('/marquee-settings');
   } catch (error) {
     if (error.message?.includes('not found')) {
       return { show_marquee: true };
@@ -26,5 +26,5 @@ export const getMarqueeSettings = async () => {
  * @returns {Promise<{ show_marquee: boolean }>}
  */
 export const updateMarqueeSettings = async (data) => {
-  return await apiPatch('/marquee-settings/', { show_marquee: Boolean(data.show_marquee) });
+  return await apiPatch('/marquee-settings', { show_marquee: Boolean(data.show_marquee) });
 };

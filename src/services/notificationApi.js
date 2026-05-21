@@ -10,11 +10,11 @@ export const getNotificationMasters = async (params = {}) => {
   if (params.search) query.search = params.search;
   if (params.is_active !== undefined && params.is_active !== null) query.is_active = params.is_active;
 
-  const response = await apiGet('/notification-master/', query);
+  const response = await apiGet('/notification-master', query);
   return { items: response.items || [], pagination: response.pagination || {} };
 };
 
-export const createNotificationMaster = async (payload) => apiPost('/notification-master/', payload);
+export const createNotificationMaster = async (payload) => apiPost('/notification-master', payload);
 
 export const updateNotificationMaster = async (id, payload) =>
   apiPatch(`/notification-master/${id}`, payload);
@@ -32,7 +32,7 @@ export const getNotificationSettings = async (params = {}) => {
   if (params.user_id) query.user_id = params.user_id;
   if (params.is_active !== undefined && params.is_active !== null) query.is_active = params.is_active;
 
-  const response = await apiGet('/notification-settings/', query);
+  const response = await apiGet('/notification-settings', query);
   return { items: response.items || [], pagination: response.pagination || {} };
 };
 
@@ -50,6 +50,6 @@ export const getNotificationLogs = async (params = {}) => {
   if (params.channel) query.channel = params.channel;
   if (params.user_id) query.user_id = params.user_id;
 
-  const response = await apiGet('/notification-logs/', query);
+  const response = await apiGet('/notification-logs', query);
   return { items: response.items || [], pagination: response.pagination || {} };
 };

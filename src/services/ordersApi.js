@@ -22,7 +22,7 @@ export const getOrders = async (params = {}) => {
   if (params.order_date) query.order_date = params.order_date;
   if (params.staff_scope) query.staff_scope = params.staff_scope;
 
-  const response = await apiGet('/orders/', query);
+  const response = await apiGet('/orders', query);
   return {
     items: response.items || [],
     pagination: response.pagination || {},
@@ -61,7 +61,7 @@ export const getOrdersSalesSummary = async () => {
  * @returns {Promise<Object>} Created order
  */
 export const createOrder = async (orderData) => {
-  return await apiPost('/orders/', orderData);
+  return await apiPost('/orders', orderData);
 };
 
 /**

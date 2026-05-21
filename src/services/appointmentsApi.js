@@ -11,7 +11,7 @@ import { apiGet, apiPost, apiPatch, apiDelete } from '../utils/apiClient';
  * @returns {Promise<Object>} List of appointments with pagination
  */
 export const getAppointments = async (params = {}) => {
-  const response = await apiGet('/appointments/', {
+  const response = await apiGet('/appointments', {
     limit: params.limit || 100,
     offset: params.offset || 0,
     search: params.search,
@@ -45,7 +45,7 @@ export const getAppointmentById = async (appointmentId) => {
  * @returns {Promise<Object>} Created appointment
  */
 export const createAppointment = async (appointmentData) => {
-  return await apiPost('/appointments/', appointmentData);
+  return await apiPost('/appointments', appointmentData);
 };
 
 /**

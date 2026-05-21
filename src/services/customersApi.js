@@ -15,7 +15,7 @@ export const getCustomers = async (params = {}) => {
 };
 
 export const getCustomerOrders = async (customerId, params = {}) => {
-  const response = await apiGet('/orders/', {
+  const response = await apiGet('/orders', {
     customer_id: customerId,
     limit: params.limit || 50,
     offset: params.offset || 0,

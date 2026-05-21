@@ -11,7 +11,7 @@ import { apiGet, apiPost, apiPatch, apiDelete } from '../utils/apiClient';
  * @returns {Promise<Object>} List of coupons with pagination
  */
 export const getCoupons = async (params = {}) => {
-  const response = await apiGet('/coupons/', {
+  const response = await apiGet('/coupons', {
     limit: params.limit || 100,
     offset: params.offset || 0,
     search: params.search,
@@ -42,7 +42,7 @@ export const getCouponById = async (couponId) => {
  * @returns {Promise<Object>} Created coupon
  */
 export const createCoupon = async (couponData) => {
-  return await apiPost('/coupons/', couponData);
+  return await apiPost('/coupons', couponData);
 };
 
 /**

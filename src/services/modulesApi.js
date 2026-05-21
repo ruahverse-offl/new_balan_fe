@@ -5,12 +5,12 @@
 import { apiGet, apiPost, apiPatch } from '../utils/apiClient';
 
 export const getModules = async () => {
-  const rows = await apiGet('/modules/');
+  const rows = await apiGet('/modules');
   return Array.isArray(rows) ? rows : [];
 };
 
 export const createModule = async (data) => {
-  return await apiPost('/modules/', data);
+  return await apiPost('/modules', data);
 };
 
 export const updateModule = async (id, data) => {

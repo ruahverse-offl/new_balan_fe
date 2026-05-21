@@ -20,7 +20,7 @@ export const getDeliveryAgents = async () => {
 };
 
 export const getUsers = async (params = {}) => {
-  const response = await apiGet('/users/', {
+  const response = await apiGet('/users', {
     limit: params.limit || 100,
     offset: params.offset || 0,
     search: params.search,
@@ -50,7 +50,7 @@ export const getUserById = async (userId) => {
  * @returns {Promise<Object>} Created user
  */
 export const createUser = async (userData) => {
-  return await apiPost('/users/', userData);
+  return await apiPost('/users', userData);
 };
 
 /**

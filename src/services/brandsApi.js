@@ -51,7 +51,7 @@ export const deleteBrandMaster = async (id) => apiDelete(`${BRANDS_BASE}/${id}`)
  * Flatten medicine–brand offerings from GET /medicines?include_brands=true.
  */
 export const getBrands = async (params = {}) => {
-  const response = await apiGet('/medicines/', {
+  const response = await apiGet('/medicines', {
     limit: params.limit || 100,
     offset: params.offset || 0,
     search: params.search,
@@ -71,7 +71,7 @@ export const getBrands = async (params = {}) => {
 };
 
 /** Create medicine–brand offering (junction row). Body: medicine_id, brand_id, manufacturer, mrp, … */
-export const createBrand = async (data) => apiPost('/medicine-brands/', data);
+export const createBrand = async (data) => apiPost('/medicine-brands', data);
 
 export const updateBrand = async (id, data) => apiPatch(`/medicine-brands/${id}`, data);
 

@@ -11,7 +11,7 @@ import { apiGet, apiPost, apiPatch, apiDelete } from '../utils/apiClient';
  * @returns {Promise<Object>} List of doctors with pagination
  */
 export const getDoctors = async (params = {}) => {
-  const response = await apiGet('/doctors/', {
+  const response = await apiGet('/doctors', {
     limit: Math.min(Number(params.limit) || 100, 100),
     offset: params.offset || 0,
     search: params.search,
@@ -42,7 +42,7 @@ export const getDoctorById = async (doctorId) => {
  * @returns {Promise<Object>} Created doctor
  */
 export const createDoctor = async (doctorData) => {
-  return await apiPost('/doctors/', doctorData);
+  return await apiPost('/doctors', doctorData);
 };
 
 /**

@@ -20,7 +20,7 @@ function normalizeSlot(s) {
  */
 export const getDeliverySettings = async () => {
   try {
-    const data = await apiGet('/delivery-settings/');
+    const data = await apiGet('/delivery-settings');
     if (data && Array.isArray(data.delivery_slot_times)) {
       data.delivery_slot_times = data.delivery_slot_times
         .map(normalizeSlot)
@@ -93,7 +93,7 @@ export const updateDeliverySettings = async (settingsData) => {
     }
   }
   try {
-    return await apiPatch('/delivery-settings/', payload);
+    return await apiPatch('/delivery-settings', payload);
   } catch (error) {
     const msg = error?.message || '';
     if (msg.includes('not found') || msg.includes('404')) {
@@ -124,7 +124,7 @@ export const updateDeliverySettings = async (settingsData) => {
           }))
           .filter((row) => row.slot_time);
       }
-      return await apiPost('/delivery-settings/', createPayload);
+      return await apiPost('/delivery-settings', createPayload);
     }
     throw error;
   }
