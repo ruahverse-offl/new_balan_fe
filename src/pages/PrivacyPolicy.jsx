@@ -7,141 +7,136 @@ const PrivacyPolicy = () => {
             <header className="page-header">
                 <div className="container">
                     <h1 style={{ color: '#fff' }}>Privacy Policy</h1>
-                    <p>Your privacy is important to us. This policy explains how we collect, use, and protect your information.</p>
+                    <p>How we collect, use, and protect your information.</p>
                 </div>
             </header>
 
             <section className="section">
                 <div className="container">
                     <div className="legal-content">
+
                         <div className="legal-section">
-                            <h2>1. Information We Collect</h2>
-                            <p>We collect information that you provide directly to us when you:</p>
-                            <ul>
-                                <li>Create an account or register on our website</li>
-                                <li>Place an order for medicines or services</li>
-                                <li>Upload prescriptions or medical documents</li>
-                                <li>Contact us via phone, email, or WhatsApp</li>
-                                <li>Subscribe to our newsletter or promotional communications</li>
-                                <li>Participate in surveys or provide feedback</li>
-                            </ul>
-                            <p>The types of information we may collect include:</p>
-                            <ul>
-                                <li><strong>Personal Information:</strong> Name, email address, phone number, date of birth, gender</li>
-                                <li><strong>Address Information:</strong> Delivery address, billing address, location data</li>
-                                <li><strong>Medical Information:</strong> Prescriptions, medical history (only when necessary for order fulfillment)</li>
-                                <li><strong>Payment Information:</strong> Payment method details (processed securely through third-party payment gateways)</li>
-                                <li><strong>Account Information:</strong> Username, password, account preferences</li>
-                            </ul>
+                            <h2>1. Who We Are</h2>
+                            <p>NEW BALAN Medical &amp; Clinic ("we", "us", "New Balan") operates a licensed retail pharmacy, polyclinic services, and the New Balan Medical mobile app. This policy explains what personal information we collect through the app and our services, how we use it, who we share it with, and the rights you have over it.</p>
+                            <p>This policy is governed by the Digital Personal Data Protection Act, 2023 (India) and applicable consumer-protection and pharmacy regulations.</p>
                         </div>
 
                         <div className="legal-section">
-                            <h2>2. How We Use Your Information</h2>
-                            <p>We use the information we collect to:</p>
+                            <h2>2. Information We Collect</h2>
+                            <p>We collect the following categories of information:</p>
                             <ul>
-                                <li>Process and fulfill your orders for medicines and healthcare services</li>
-                                <li>Verify prescriptions and ensure compliance with medical regulations</li>
-                                <li>Communicate with you about your orders, appointments, and account</li>
-                                <li>Send you important updates, notifications, and service-related information</li>
-                                <li>Provide customer support and respond to your inquiries</li>
-                                <li>Improve our services, website functionality, and user experience</li>
-                                <li>Send promotional offers, discounts, and marketing communications (with your consent)</li>
-                                <li>Detect and prevent fraud, abuse, and security threats</li>
-                                <li>Comply with legal obligations and regulatory requirements</li>
+                                <li><strong>Account info:</strong> full name, email address, mobile number, hashed password.</li>
+                                <li><strong>Health data:</strong> prescription images or PDFs you upload, the medicines on those prescriptions, and information needed to fulfil your order.</li>
+                                <li><strong>Order info:</strong> items purchased, quantities, prices, delivery address, order notes, special instructions.</li>
+                                <li><strong>Payment info:</strong> handled by Razorpay (see &sect;4). We do NOT store your card or UPI credentials on our servers.</li>
+                                <li><strong>Device info:</strong> a Firebase Cloud Messaging (FCM) token used to send order-status push notifications, plus app version and device type to diagnose problems.</li>
+                                <li><strong>Diagnostic info:</strong> crash reports and basic app activity (which screens are visited, when the app last opened) for troubleshooting.</li>
                             </ul>
                         </div>
 
                         <div className="legal-section">
-                            <h2>3. Information Sharing and Disclosure</h2>
-                            <p>We do not sell your personal information. We may share your information only in the following circumstances:</p>
+                            <h2>3. How We Use Your Information</h2>
                             <ul>
-                                <li><strong>Service Providers:</strong> With trusted third-party service providers who assist us in operating our website, processing payments, delivering orders, and providing customer support</li>
-                                <li><strong>Healthcare Providers:</strong> With licensed pharmacists and doctors who need to verify prescriptions and provide medical services</li>
-                                <li><strong>Legal Requirements:</strong> When required by law, court order, or government regulation</li>
-                                <li><strong>Business Transfers:</strong> In connection with a merger, acquisition, or sale of assets (with notice to users)</li>
-                                <li><strong>With Your Consent:</strong> When you explicitly authorize us to share your information</li>
+                                <li>Fulfil your medicine orders and dispatch deliveries to your address.</li>
+                                <li>Verify prescriptions and comply with the rules of the Drugs and Cosmetics Act.</li>
+                                <li>Send push notifications and emails about your order status, delivery updates, and refund confirmations.</li>
+                                <li>Provide customer support over phone, WhatsApp, and email.</li>
+                                <li>Detect and prevent fraud, account abuse, and security incidents.</li>
+                                <li>Meet legal obligations including GST tax records, pharmacy licensing audits, and consumer-protection law.</li>
+                            </ul>
+                            <p>We do NOT use your health, prescription, or order data to serve advertising. We do not sell your personal information to anyone.</p>
+                        </div>
+
+                        <div className="legal-section">
+                            <h2>4. Who We Share With</h2>
+                            <p>We share the minimum information required, only with these processors:</p>
+                            <ul>
+                                <li><strong>Razorpay Software Pvt. Ltd.</strong> — payment processing. Receives your name, mobile number, order ID, and amount to complete the transaction. Razorpay's own privacy policy governs their handling of card and UPI data.</li>
+                                <li><strong>Google Firebase (Cloud Messaging)</strong> — delivers our push notifications. Receives an opaque FCM token tied to your device.</li>
+                                <li><strong>Licensed pharmacists at New Balan</strong> — see prescriptions to dispense medicines, as required by law.</li>
+                                <li><strong>Government and regulatory authorities</strong> — only when compelled by a valid legal order or required by drug-control / tax / consumer-protection law.</li>
                             </ul>
                         </div>
 
                         <div className="legal-section">
-                            <h2>4. Data Security</h2>
-                            <p>We implement industry-standard security measures to protect your personal information:</p>
+                            <h2>5. How We Protect Your Data</h2>
                             <ul>
-                                <li>Encryption of sensitive data during transmission (SSL/TLS)</li>
-                                <li>Secure storage of data on protected servers</li>
-                                <li>Regular security audits and vulnerability assessments</li>
-                                <li>Access controls and authentication mechanisms</li>
-                                <li>Employee training on data protection and privacy</li>
+                                <li>Passwords are stored as one-way bcrypt hashes — we cannot read your password even if asked.</li>
+                                <li>All API traffic is encrypted in transit using HTTPS / TLS 1.2+.</li>
+                                <li>Authentication tokens on your device are stored in Android EncryptedSharedPreferences / iOS Keychain.</li>
+                                <li>Access to production data is restricted to a small number of authorised staff and logged.</li>
                             </ul>
-                            <p>However, no method of transmission over the internet or electronic storage is 100% secure. While we strive to protect your information, we cannot guarantee absolute security.</p>
+                            <p>No method of internet transmission or electronic storage is 100% secure. While we strive to protect your information, we cannot guarantee absolute security.</p>
                         </div>
 
                         <div className="legal-section">
-                            <h2>5. Your Rights and Choices</h2>
-                            <p>You have the following rights regarding your personal information:</p>
+                            <h2>6. Data Retention</h2>
                             <ul>
-                                <li><strong>Access:</strong> Request access to the personal information we hold about you</li>
-                                <li><strong>Correction:</strong> Request correction of inaccurate or incomplete information</li>
-                                <li><strong>Deletion:</strong> Request deletion of your personal information (subject to legal retention requirements)</li>
-                                <li><strong>Objection:</strong> Object to processing of your information for certain purposes</li>
-                                <li><strong>Data Portability:</strong> Request a copy of your data in a portable format</li>
-                                <li><strong>Opt-Out:</strong> Unsubscribe from marketing communications at any time</li>
+                                <li><strong>Active accounts:</strong> we retain your profile and address details for as long as you have an account with us.</li>
+                                <li><strong>Order and invoice records:</strong> retained for at least 8 years from the order date to satisfy GST and the Drugs and Cosmetics Act recordkeeping requirements. After your account is deleted, these records remain but are no longer linked to your name, email, or phone number.</li>
+                                <li><strong>Prescriptions:</strong> retained for at least 2 years as required by pharmacy regulations.</li>
+                                <li><strong>Push notification tokens:</strong> cleared as soon as you log out or delete your account.</li>
+                                <li><strong>Diagnostic and crash data:</strong> retained for 90 days, then aggregated.</li>
                             </ul>
-                            <p>To exercise these rights, please contact us using the contact information provided below.</p>
                         </div>
 
                         <div className="legal-section">
-                            <h2>6. Cookies and Tracking Technologies</h2>
-                            <p>We use cookies and similar tracking technologies to:</p>
+                            <h2>7. Your Rights</h2>
+                            <p>Under the DPDP Act 2023 you have the following rights, exercisable free of charge:</p>
                             <ul>
-                                <li>Remember your preferences and settings</li>
-                                <li>Analyze website traffic and usage patterns</li>
-                                <li>Improve website functionality and performance</li>
-                                <li>Provide personalized content and advertisements</li>
+                                <li><strong>Access:</strong> request a copy of the personal information we hold about you.</li>
+                                <li><strong>Correction:</strong> update your name, email, mobile, or address from the Profile screen — or email us to correct anything else.</li>
+                                <li><strong>Deletion:</strong> delete your account at any time using <em>Account &rarr; Delete Account</em> inside the app (see &sect;8). This permanently removes your identifying information and anonymises any retained order history.</li>
+                                <li><strong>Withdraw consent:</strong> revoke push notifications from <em>Settings &rarr; Notifications</em>, or revoke storage access from your device settings.</li>
+                                <li><strong>Grievance:</strong> contact our grievance officer (details in &sect;11) if you believe your rights have been infringed.</li>
                             </ul>
-                            <p>You can control cookies through your browser settings. However, disabling cookies may affect the functionality of our website.</p>
                         </div>
 
                         <div className="legal-section">
-                            <h2>7. Children's Privacy</h2>
-                            <p>Our services are not intended for children under the age of 18. We do not knowingly collect personal information from children. If you believe we have inadvertently collected information from a child, please contact us immediately.</p>
-                        </div>
-
-                        <div className="legal-section">
-                            <h2>8. Data Retention</h2>
-                            <p>We retain your personal information for as long as necessary to:</p>
+                            <h2>8. Account Deletion</h2>
+                            <p>You can delete your account directly from the app: <strong>Account &rarr; Delete Account</strong>. You will be asked to re-enter your password to prevent accidental deletion.</p>
+                            <p>When you delete your account we immediately do all of the following:</p>
                             <ul>
-                                <li>Fulfill the purposes for which it was collected</li>
-                                <li>Comply with legal, regulatory, and tax obligations</li>
-                                <li>Resolve disputes and enforce our agreements</li>
-                                <li>Maintain accurate business records</li>
+                                <li>Mark the account as deleted and disable login.</li>
+                                <li>Anonymise your name, email, and mobile number on past order records so they cannot be linked back to you.</li>
+                                <li>Invalidate your authentication tokens and push notification tokens.</li>
+                                <li>Clear saved delivery addresses, cart contents, and notification preferences.</li>
                             </ul>
-                            <p>Prescription records may be retained for longer periods as required by healthcare regulations.</p>
+                            <p>Anonymised order and invoice records remain in our systems for the retention windows in &sect;6 because GST and consumer-protection law require pharmacies to keep transaction records. After anonymisation these rows cannot be re-associated with you.</p>
+                            <p>If you cannot access the app to delete your account (for example, you lost your device), email or WhatsApp us using the contact details in &sect;11 and we will action your request within 30 days after verifying your identity.</p>
                         </div>
 
                         <div className="legal-section">
-                            <h2>9. Third-Party Links</h2>
-                            <p>Our website may contain links to third-party websites or services. We are not responsible for the privacy practices of these external sites. We encourage you to review the privacy policies of any third-party sites you visit.</p>
+                            <h2>9. Children's Privacy</h2>
+                            <p>New Balan Medical is intended for adults aged 18 and over. We do not knowingly create accounts for or collect personal information from children under 13. If you believe a child has registered, contact us and we will delete the account.</p>
+                            <p>Parents and guardians may order medicines for children using their own adult account. In those cases, the prescription is treated like any other medical document under this policy.</p>
                         </div>
 
                         <div className="legal-section">
-                            <h2>10. Changes to This Privacy Policy</h2>
-                            <p>We may update this Privacy Policy from time to time to reflect changes in our practices or legal requirements. We will notify you of any material changes by posting the updated policy on our website and updating the "Last Updated" date. Your continued use of our services after such changes constitutes acceptance of the updated policy.</p>
+                            <h2>10. Cross-Border Transfers</h2>
+                            <p>Our servers are located in India. The third parties listed in &sect;4 (Razorpay, Google Firebase) may process data on infrastructure outside India. By using the app or website you consent to these transfers, which are subject to the contractual safeguards those providers offer.</p>
                         </div>
 
                         <div className="legal-section">
-                            <h2>11. Contact Us</h2>
-                            <p>If you have any questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:</p>
+                            <h2>11. Contact and Grievance Officer</h2>
+                            <p>For any privacy-related question, request, or complaint, contact our Grievance Officer:</p>
                             <ul>
+                                <li><strong>Name:</strong> Manikandan (Founder &amp; Director)</li>
                                 <li><strong>Email:</strong> newbalanmedicals@gmail.com</li>
-                                <li><strong>Phone:</strong> +91 9894880598</li>
-                                <li><strong>Address:</strong> 120/a Poobalarayapuram 2nd street, Thoothukudi, Tamil Nadu 628001</li>
+                                <li><strong>Phone / WhatsApp:</strong> +91 9894880598</li>
+                                <li><strong>Address:</strong> 120/a Poobalarayapuram 2nd Street, Thoothukudi, Tamil Nadu 628001</li>
                             </ul>
+                            <p>We acknowledge requests within 7 days and complete them within 30 days.</p>
+                        </div>
+
+                        <div className="legal-section">
+                            <h2>12. Changes to This Policy</h2>
+                            <p>We may update this policy when laws change or when we add new features. Material changes will be announced in-app and on the website before they take effect. The "Last Updated" date below tells you when this version was published.</p>
                         </div>
 
                         <div className="legal-footer">
-                            <p><strong>Last Updated:</strong> January 2026</p>
-                            <p>This Privacy Policy is effective as of the date stated above and applies to all users of NEW BALAN Medical & Clinic services.</p>
+                            <p><strong>Last Updated:</strong> May 2026</p>
+                            <p>This Privacy Policy applies to all users of NEW BALAN Medical &amp; Clinic services across web and mobile.</p>
                         </div>
                     </div>
                 </div>
